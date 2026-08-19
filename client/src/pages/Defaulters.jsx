@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { defaulters, drive, purchaseOrders, salesInvoices } from '../services/api/apiClient'
+import { defaulters, drive } from '../services/api/apiClient'
 import { isValidGstin } from '../utils/validation'
 import { useAuth } from '../state/authContext'
+import { useDefaulterContext } from '../hooks/useDefaulterContext'
 
 const faqs = [
   { q: "What is a defaulter?", a: "A defaulter is a business that fails to pay its suppliers on time. CreditDataWatch offers a reliable, accessible database of these entities, compiling reports submitted exclusively by our network of GST-registered members." },
@@ -35,9 +36,7 @@ export default function Defaulters() {
   const allowed = canAccessFeature('REPORT_OVERDUE')
   const [searchParams] = useSearchParams()
   const context = searchParams.get('context') // 'po' | 'invoice' | null
-  const [contextOptions, setContextOptions] = useState([])
-  const [contextLoading, setContextLoading] = useState(false)
-  const [contextNumbers, setContextNumbers] = useState(null) // Set of known PO/invoice numbers, for filtering the list below
+  const { contextOptions, contextNumbers, contextLoading } = useDefaulterContext(context)
   const [rows, setRows] = useState([])
   const [statusMsg, setStatusMsg] = useState('')
   const [loading, setLoading] = useState(true)
@@ -47,45 +46,6 @@ export default function Defaulters() {
   const [docUpdate, setDocUpdate] = useState({ drive_folder_id: '', ledger_url: '', ca_certificate_url: '' })
   const [docStatus, setDocStatus] = useState('')
   const [openFaq, setOpenFaq] = useState(null)
-
-  // Load the user's real POs or Invoices when arriving with a context —
-  // used both to pre-fill the "File a case" form below and to filter the
-  // case list to only ones that reference a real PO/Invoice number.
-  useEffect(() => {
-    if (!context) { setContextNumbers(null); return }
-    setContextLoading(true)
-    async function loadContextOptions() {
-      if (context === 'po') {
-        const res = await purchaseOrders.list(1, 100, false)
-        const items = res.ok ? (Array.isArray(res.data) ? res.data : (res.data?.items || [])) : []
-        setContextOptions(items.map(po => ({
-          id: po.id,
-          label: `${po.po_number} — ${po.vendor_name || po.vendor} — ₹${po.amount}`,
-          business_name: po.vendor_name || po.vendor,
-          business_gstin: po.gstin || '',
-          invoice_number: po.po_number,
-          amount: po.amount,
-          due_date: po.due_date ? String(po.due_date).slice(0, 10) : '',
-        })))
-        setContextNumbers(new Set(items.map(po => po.po_number)))
-      } else if (context === 'invoice') {
-        const res = await salesInvoices.list({ limit: 100 })
-        const items = res.ok ? (res.data?.invoices || []) : []
-        setContextOptions(items.map(inv => ({
-          id: inv.id,
-          label: `${inv.invoice_number} — ${inv.counterparty_name} — ₹${inv.total}`,
-          business_name: inv.counterparty_name,
-          business_gstin: inv.counterparty_gstin || '',
-          invoice_number: inv.invoice_number,
-          amount: inv.total,
-          due_date: inv.payment_due_date ? String(inv.payment_due_date).slice(0, 10) : '',
-        })))
-        setContextNumbers(new Set(items.map(inv => inv.invoice_number)))
-      }
-      setContextLoading(false)
-    }
-    loadContextOptions()
-  }, [context])
 
   const applyContextOption = (optionId) => {
     const opt = contextOptions.find(o => o.id === optionId)

@@ -1,5 +1,6 @@
 import { motion, AnimatePresence } from 'framer-motion'
 import { useState } from 'react'
+import FAQAccordion from '../../components/marketing/FAQAccordion'
 import { Link } from 'react-router-dom'
 
 const faqs = [
@@ -10,7 +11,6 @@ const faqs = [
 ]
 
 export default function BusinessCredit() {
-  const [openFaq, setOpenFaq] = useState(-1)
 
   return (
     <section className="section-padding bg-gray-50">
@@ -115,39 +115,7 @@ export default function BusinessCredit() {
           <div className="space-y-4">
             <h2 className="text-3xl font-heading font-bold text-center mb-6">Commonly Asked Questions</h2>
             <div className="space-y-3">
-              {faqs.map((item, idx) => (
-                <button
-                  key={item.q}
-                  type="button"
-                  className="card cursor-pointer w-full text-left"
-                  onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <p style={{ fontSize: '14px', fontWeight: 500 }} className="font-semibold text-gray-900">{item.q}</p>
-                    <svg
-                      className={`h-5 w-5 text-primary-600 transition-transform flex-shrink-0 ${openFaq === idx ? 'rotate-180' : ''}`}
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </div>
-                  <AnimatePresence initial={false}>
-                    {openFaq === idx && (
-                      <motion.div
-                        initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: 'auto', opacity: 1 }}
-                        exit={{ height: 0, opacity: 0 }}
-                        transition={{ duration: 0.25 }}
-                        className="overflow-hidden whitespace-pre-line"
-                      >
-                        <p style={{ fontSize: '14px', color: '#555' }} className="text-gray-700 mt-3 leading-relaxed">{item.a}</p>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                </button>
-              ))}
+              <FAQAccordion faqs={faqs} />
             </div>
           </div>
 

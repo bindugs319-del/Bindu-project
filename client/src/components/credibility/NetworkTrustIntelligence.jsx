@@ -1,19 +1,37 @@
+import { useState } from 'react'
 import StarDisplay from './StarDisplay'
+import { credibilityIndex } from '../../services/api/apiClient'
 
 /**
  * "Network Trust Intelligence" table + "Can't find the company you're
  * looking for?" request form. This exact block was duplicated verbatim
  * between CredibilityIndex.jsx and InvCredibilityIndex.jsx — it doesn't
- * depend on PO vs Invoice context, so it's extracted here.
+ * depend on PO vs Invoice context, so it's extracted here, along with
+ * its own local state (the rating-request form isn't used anywhere else
+ * on either page, so there's no need for the parent pages to own it).
  */
-export default function NetworkTrustIntelligence({
-  globalCredibilityIndex,
-  q,
-  ratingRequestCompany,
-  setRatingRequestCompany,
-  ratingRequestSubmitting,
-  handleRequestCompanyRating,
-}) {
+export default function NetworkTrustIntelligence({ globalCredibilityIndex, q }) {
+  const [ratingRequestCompany, setRatingRequestCompany] = useState('')
+  const [ratingRequestSubmitting, setRatingRequestSubmitting] = useState(false)
+
+  const handleRequestCompanyRating = async () => {
+    const name = ratingRequestCompany.trim()
+    if (!name) return
+    setRatingRequestSubmitting(true)
+    try {
+      const res = await credibilityIndex.requestCompanyRating(name)
+      if (res.ok) {
+        alert(res.data?.message || 'Rating Request Sent! Our team will update the registry within 24 hours.')
+        setRatingRequestCompany('')
+      } else {
+        alert(res.error || 'Failed to send rating request. Please try again.')
+      }
+    } catch {
+      alert('Failed to send rating request. Please try again.')
+    }
+    setRatingRequestSubmitting(false)
+  }
+
   return (
     <>
             {/* Section 2: Network Trust Intelligence */}

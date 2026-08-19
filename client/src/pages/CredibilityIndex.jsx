@@ -18,26 +18,6 @@ export default function CredibilityIndex() {
   const [q, setQ] = useState('')
   const [risk, setRisk] = useState('')
   const [sort, setSort] = useState('desc')
-  const [ratingRequestCompany, setRatingRequestCompany] = useState('')
-  const [ratingRequestSubmitting, setRatingRequestSubmitting] = useState(false)
-
-  const handleRequestCompanyRating = async () => {
-    const name = ratingRequestCompany.trim()
-    if (!name) return
-    setRatingRequestSubmitting(true)
-    try {
-      const res = await credibilityIndex.requestCompanyRating(name)
-      if (res.ok) {
-        alert(res.data?.message || 'Rating Request Sent! Our team will update the registry within 24 hours.')
-        setRatingRequestCompany('')
-      } else {
-        alert(res.error || 'Failed to send rating request. Please try again.')
-      }
-    } catch {
-      alert('Failed to send rating request. Please try again.')
-    }
-    setRatingRequestSubmitting(false)
-  }
 
   useEffect(() => {
     logActivity(ACTIONS.VIEW_CREDIBILITY) 
@@ -315,10 +295,6 @@ export default function CredibilityIndex() {
             <NetworkTrustIntelligence
               globalCredibilityIndex={globalCredibilityIndex}
               q={q}
-              ratingRequestCompany={ratingRequestCompany}
-              setRatingRequestCompany={setRatingRequestCompany}
-              ratingRequestSubmitting={ratingRequestSubmitting}
-              handleRequestCompanyRating={handleRequestCompanyRating}
             />
           </div>
         </div>

@@ -57,21 +57,6 @@ export default function Dashboard() {
     }
   }, [user])
 
-  const calculateDaysLeft = (dueDateStr, paymentWindowDays = 0) => {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    
-    const dueDate = new Date(dueDateStr)
-    dueDate.setHours(0, 0, 0, 0)
-    
-    // Add payment window days to due date
-    const effectiveDueDate = new Date(dueDate)
-    effectiveDueDate.setDate(effectiveDueDate.getDate() + parseInt(paymentWindowDays || 0))
-    
-    const daysLeft = Math.floor((effectiveDueDate - today) / (1000 * 60 * 60 * 24))
-    return daysLeft
-  }
-
   const fetchDashboardData = async () => {
     setLoadingData(true)
     try {
