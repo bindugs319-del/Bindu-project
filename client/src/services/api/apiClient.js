@@ -3,8 +3,13 @@ const API_BASE_URL = (() => {
   let u = (RAW_BASE || '').trim()
   if (!u) return '/api/v1'
   if (u.startsWith('/')) return u.replace(/\/+$/, '')
-  if (u.startsWith(':')) u = 'http://127.0.0.1' + u
-  if (!u.startsWith('http://') && !u.startsWith('https://')) u = 'http://' + u
+  // Derive the scheme from the page's own protocol (https in production,
+  // http only when the page itself is served over http, e.g. local dev)
+  // instead of hardcoding 'http://' — avoids ever silently forcing an
+  // insecure scheme for a value that could resolve to a real host.
+  const scheme = typeof window !== 'undefined' ? window.location.protocol : 'https:'
+  if (u.startsWith(':')) u = `${scheme}//127.0.0.1` + u
+  if (!u.startsWith('http://') && !u.startsWith('https://')) u = `${scheme}//` + u
   if (!/\/api\/v1\/?$/.test(u)) {
     if (u.endsWith('/')) u += 'api/v1'
     else if (!/\/api\/v1/.test(u)) u += '/api/v1'

@@ -5,10 +5,9 @@ from fastapi import APIRouter, Depends, Request, HTTPException, File, UploadFile
 from typing import Annotated
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, text
+from sqlalchemy import select, func, or_, text, update as sa_update
 from datetime import datetime, timezone
 from app.database import get_db, engine
-from app.utils.sql_helpers import build_safe_set_clause
 from app.models import User, PurchaseOrder, DefaulterCase, CreditReport, Settlement, Company, BusinessRequest, CompanyCredibilityIndex
 from app.models.credibility_index import GlobalCredibilityIndex, CredibilityStatus, AICreditRiskVerdict
 from app.schemas import (
@@ -839,12 +838,19 @@ async def approve_po_edit(
                     "supplier_address", "delivery_address", "invoice_address"
                 }
                 if any(k in ALLOWED_PO_EDIT_FIELDS for k in pending):
-                    set_clause, bind_params = build_safe_set_clause(pending, ALLOWED_PO_EDIT_FIELDS)
-                    bind_params["id"] = po_id
+                    # Use SQLAlchemy Core's update() construct instead of a raw
+                    # SQL string here — with the ORM's expression builder there's
+                    # no SQL text assembled from dynamic content at all, which is
+                    # both safer and avoids static-analysis "dynamic SQL" flags
+                    # that a hand-built SET clause triggers even when validated.
+                    safe_values = {
+                        k: v for k, v in pending.items() if k in ALLOWED_PO_EDIT_FIELDS
+                    }
                     await db.execute(
-                        text(f"UPDATE purchase_orders SET {set_clause} WHERE id = :id"),
-                        bind_params,
-                    ) 
+                        sa_update(PurchaseOrder)
+                        .where(PurchaseOrder.id == po_id)
+                        .values(**safe_values)
+                    )
  
         # Clear approval status 
         await db.execute(text(""" 
