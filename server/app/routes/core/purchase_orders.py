@@ -825,7 +825,15 @@ async def approve_po_edit(
                 try:
                     pending = json_lib.loads(pending)
                 except Exception as e:
-                    logger.warning(f"[PO] Failed to parse pending_changes JSON for PO {po_id}: {e}")
+                    # SECURITY: don't log the raw exception text or po_id
+                    # unsanitized — the JSON parse error can echo back
+                    # attacker-controlled content from the request body,
+                    # and log messages built from user-controlled input
+                    # are a log-injection risk (e.g. forged CR/LF-separated
+                    # fake log entries). Strip CR/LF before logging.
+                    safe_po_id = str(po_id).replace("\r", "").replace("\n", "")
+                    safe_err = str(e).replace("\r", "").replace("\n", "")
+                    logger.warning(f"[PO] Failed to parse pending_changes JSON for PO {safe_po_id}: {safe_err}")
             
             if isinstance(pending, dict) and pending:
                 # SECURITY: only these columns may ever be updated via pending_changes.
