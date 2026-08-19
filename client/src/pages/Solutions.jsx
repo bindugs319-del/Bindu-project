@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
+import FeatureCardGrid from '../components/marketing/FeatureCardGrid'
 
 function FAQSection({ faqs }) {
   const [open, setOpen] = useState(null)
@@ -173,66 +174,12 @@ export default function Solutions() {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               Key Features
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
+            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🛡️', title: 'B2B Risk Mitigation', desc: 'Using sophisticated predictive modeling to pinpoint potential financial threats.' },
                 { icon: '🔬', title: 'Exhaustive Evaluation', desc: 'Sector-specific data for a 360-degree view of reliability.' },
                 { icon: '💼', title: 'Debt Resolution', desc: 'Expert support navigating the settlement process on your behalf.' },
                 { icon: '🎯', title: 'Zero-Default Standard', desc: 'Proactive defense system to eliminate bad debt at source.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+              ]} />
 
             <div className="bg-white border border-[#e0e6f0] rounded-lg p-4">
               <h3 className="font-bold text-gray-800 mb-3" style={{ fontSize: '14px', fontWeight: 500 }}>
@@ -316,127 +263,19 @@ export default function Solutions() {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               How We Simplify Your Registration
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
+            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🧭', title: 'Guided Onboarding', desc: 'Step-by-step assistance to ensure every detail is captured accurately.' },
                 { icon: '✅', title: 'Live Validation', desc: 'Instant error-checking to prevent delays or application rejections.' },
                 { icon: '📡', title: 'Live Tracking', desc: 'Users get real-time alerts and progress updates, providing complete visibility into the application status.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+              ]} />
 
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               Maximizing Your Potential with CreditDataWatch
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
+            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🌍', title: 'Establish Market Trust', desc: 'A verified, positive credit profile makes your business more attractive to serious investors and global collaborators.' },
                 { icon: '🔒', title: 'Minimize Risk', desc: 'Use our data to vet your own clients and suppliers, ensuring you only do business with reliable partners.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+              ]} />
           </div>
 
           <div className="mt-12">
@@ -486,66 +325,12 @@ export default function Solutions() {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               Your Comprehensive Ecosystem for Debt Management
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
+            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🚩', title: 'Flag High-Risk Entities', desc: 'Spot potential non-payers before you sign the contract.' },
                 { icon: '🔔', title: 'Deploy Smart Reminders', desc: 'Set up automated nudges via multiple channels.' },
                 { icon: '⚡', title: 'Accelerate Settlements', desc: 'Use our structured process to close overdue accounts faster.' },
                 { icon: '🔍', title: 'Identify Weak Points', desc: 'Use custom analytics to find where your credit cycle is leaking money.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+              ]} />
 
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
@@ -568,66 +353,12 @@ export default function Solutions() {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               Join CreditDataWatch Today
             </h3>
-            <div className="grid grid-cols-2 gap-4">
-              {[
+            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🧠', title: 'Intelligent Credit Scoring', desc: 'High-level indicators of a company\'s financial health.' },
                 { icon: '🤖', title: 'Automated Recovery Suite', desc: 'Hands-free reminders and persistent follow-up tools.' },
                 { icon: '🤝', title: 'Expert Settlement Support', desc: 'Proven methods for clearing old debts.' },
                 { icon: '🎯', title: 'A Centralized Credit Hub', desc: 'One platform to manage all your risks and rewards.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+              ]} />
 
             <p className="text-lg font-semibold text-gray-800 mt-4">
               Register now and make the data-driven decisions that will fuel your company's growth.

@@ -3,6 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text 
 from app.services.notification_service import NotificationService
 from app.utils.role_settings import is_financial_enabled, is_legal_enabled 
+from app.utils.sql_helpers import build_safe_set_clause
 from app.config import settings
 
 class WorkflowService: 
@@ -463,11 +464,11 @@ class WorkflowService:
                 print(f"[WORKFLOW] Types in safe_edits: {[(k, type(v)) for k, v in safe_edits.items()]}")
                 
                 if safe_edits: 
-                    set_sql = ', '.join([f"{k}=:{k}" for k in safe_edits]) 
-                    safe_edits['po_id'] = po_id 
-                    update_stmt = f"UPDATE purchase_orders SET {set_sql}, updated_at=NOW() WHERE id=:po_id"
-                    print(f"[WORKFLOW] Applying PO update: {update_stmt} with params {safe_edits}")
-                    result = await db.execute(text(update_stmt), safe_edits)
+                    set_clause, bind_params = build_safe_set_clause(safe_edits, allowed_fields)
+                    bind_params['po_id'] = po_id
+                    update_stmt = f"UPDATE purchase_orders SET {set_clause}, updated_at=NOW() WHERE id=:po_id"
+                    print(f"[WORKFLOW] Applying PO update with params {bind_params}")
+                    result = await db.execute(text(update_stmt), bind_params)
                     print(f"[WORKFLOW] Update row count: {result.rowcount}")
                 else:
                     print("[WORKFLOW] No safe edits found in edit_data")

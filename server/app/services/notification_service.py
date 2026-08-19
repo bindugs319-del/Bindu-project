@@ -1,7 +1,7 @@
 import uuid 
 import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import text
+from sqlalchemy import text, bindparam
 from app.services.email_service import EmailService
 
 # Keeps a strong reference to background email tasks so they aren't
@@ -147,14 +147,14 @@ CreditDataWatch Notification
             canonical_role = CANONICAL_ROLE.get(role, role)
             roles_to_check = [canonical_role]
 
-            # Handle both SQLite and PostgreSQL
-            # For SQLite, use IN clause with positional params or string format with proper escaping
-            placeholders = ', '.join([f':role{i}' for i in range(len(roles_to_check))])
-            params = {f'role{i}': r for i, r in enumerate(roles_to_check)}
-            
+            # Use SQLAlchemy's expanding bind parameter for the IN (...) list
+            # instead of hand-building placeholders/SQL text — this is the
+            # idiomatic, injection-safe way to bind a variable-length list
+            # and works identically on SQLite and PostgreSQL.
             users = await db.execute(
-                text(f"SELECT email FROM users WHERE role IN ({placeholders}) AND is_active = true"),
-                params
+                text("SELECT email FROM users WHERE role IN :roles AND is_active = true")
+                .bindparams(bindparam("roles", expanding=True)),
+                {"roles": roles_to_check}
             )
             emails = [row[0] for row in users.fetchall()]
             print(f"[NOTIFY] Sending to {len(emails)} {role} users ({emails})")

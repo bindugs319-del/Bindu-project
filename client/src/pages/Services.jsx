@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
+import FeatureCardGrid from '../components/marketing/FeatureCardGrid'
 
 function FAQSection({ faqs }) {
   const [open, setOpen] = useState(null)
@@ -183,135 +184,27 @@ export default function Services() {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               What Our Platform Delivers
             </h3>
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              {[
-                { icon: '✅', title: 'Systematized Confirmations', desc: 'Auto-acceptance capabilities streamline agreements between vendors and clients.' },
-                { icon: '🔔', title: 'Scheduled Follow-Ups', desc: 'Maintain consistent cash flow with automated payment nudges sent before and after due dates.' },
-                { icon: '📊', title: 'Frictionless Reporting', desc: 'Seamlessly flag defaulting businesses once a deadline lapses, supported by documentation.' },
-                { icon: '📉', title: 'Credit Impact', desc: 'Deter chronic non-payment by lowering the defaulting party\'s credibility rating across the Indian market.' },
-                { icon: '⚖️', title: 'Legal Support', desc: 'Access options for formal legal notices and professional legal assistance through qualified lawyers.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+            <FeatureCardGrid items={[
+              { icon: '✅', title: 'Systematized Confirmations', desc: 'Auto-acceptance capabilities streamline agreements between vendors and clients.' },
+              { icon: '🔔', title: 'Scheduled Follow-Ups', desc: 'Maintain consistent cash flow with automated payment nudges sent before and after due dates.' },
+              { icon: '📊', title: 'Frictionless Reporting', desc: 'Seamlessly flag defaulting businesses once a deadline lapses, supported by documentation.' },
+              { icon: '📉', title: 'Credit Impact', desc: 'Deter chronic non-payment by lowering the defaulting party\'s credibility rating across the Indian market.' },
+              { icon: '⚖️', title: 'Legal Support', desc: 'Access options for formal legal notices and professional legal assistance through qualified lawyers.' },
+            ]} />
 
             {/* Why Choose Our Credit Management System? */}
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               Why Choose Our Credit Management System?
             </h3>
-            <div className="grid md:grid-cols-2 gap-3">
-              {[
-                ['🤖', 'Zero Manual Effort', 'Let automated reminders do the heavy lifting for you.'],
-                ['💻', '100% Digital Records', 'Get instant, digital proof of all your trade agreements.'],
-                ['🏢', 'Corporate Standards', 'Upgrade your collection strategy with a highly professional tone.'],
-                ['📋', 'All-in-One Dashboard', 'Keep a close eye on every single credit exchange in one convenient place.'],
-                ['🔒', 'Frictionless Settlements', 'Resolve pending payments smoothly and easily.'],
-                ['⏱️', 'Time & Money Saved', 'Cut down on collection costs and reclaim your working hours.'],
-                ['🚀', 'Fearless Expansion', 'Grow your enterprise safely, knowing your credit lines are thoroughly protected.'],
-              ].map(([icon, title, desc]) => (
-                <div 
-                  key={title} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+            <FeatureCardGrid columns="md:grid-cols-2" className="!gap-3" items={[
+              ['🤖', 'Zero Manual Effort', 'Let automated reminders do the heavy lifting for you.'],
+              ['💻', '100% Digital Records', 'Get instant, digital proof of all your trade agreements.'],
+              ['🏢', 'Corporate Standards', 'Upgrade your collection strategy with a highly professional tone.'],
+              ['📋', 'All-in-One Dashboard', 'Keep a close eye on every single credit exchange in one convenient place.'],
+              ['🔒', 'Frictionless Settlements', 'Resolve pending payments smoothly and easily.'],
+              ['⏱️', 'Time & Money Saved', 'Cut down on collection costs and reclaim your working hours.'],
+              ['🚀', 'Fearless Expansion', 'Grow your enterprise safely, knowing your credit lines are thoroughly protected.'],
+            ]} />
           </div>
 
           <div className="mt-12">
@@ -345,67 +238,13 @@ export default function Services() {
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
               Key Features
             </h3>
-            <div className="grid grid-cols-2 gap-4 mb-8">
-              {[
-                { icon: '🔐', title: 'Verified Network Data', desc: 'Review authenticated default records from a wide range of partner businesses.' },
-                { icon: '🏭', title: 'Cross-Sector Analysis', desc: 'Compare credit backgrounds across multiple different industries.' },
-                { icon: '🚨', title: 'Risk Detection', desc: 'Identify potential non-payers early with our proactive warning system.' },
-                { icon: '🔬', title: 'Deep Financial Auditing', desc: 'Perform a thorough evaluation of a company\'s credit reliability.' },
-                { icon: '📈', title: 'Trend Monitoring', desc: 'Spot specific defaulting patterns within your particular trade sector.' },
-              ].map((item, idx) => (
-                <div 
-                  key={idx} 
-                  className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
-                  style={{
-                    backgroundColor: '#fff',
-                    borderRadius: '16px',
-                    boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-                    padding: '24px'
-                  }}
-                >
-                  <div 
-                    className="flex items-center justify-center mb-3"
-                    style={{
-                      width: '48px',
-                      height: '48px',
-                      backgroundColor: '#EFF6FF',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    <span style={{ color: '#3B82F6', fontSize: '24px' }}>{item.icon}</span>
-                  </div>
-                  <h4 
-                    style={{ 
-                      fontSize: '1.1rem', 
-                      fontWeight: 700, 
-                      color: '#1E3A8A',
-                      marginBottom: '4px'
-                    }}
-                  >
-                    {item.title}
-                  </h4>
-                  <p 
-                    style={{ 
-                      fontSize: '0.9rem', 
-                      color: '#475569',
-                      lineHeight: 1.6
-                    }}
-                  >
-                    {item.desc}
-                  </p>
-                  <div 
-                    className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
-                    style={{ width: '0' }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.width = '100%';
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.width = '0';
-                    }}
-                  ></div>
-                </div>
-              ))}
-            </div>
+            <FeatureCardGrid items={[
+              { icon: '🔐', title: 'Verified Network Data', desc: 'Review authenticated default records from a wide range of partner businesses.' },
+              { icon: '🏭', title: 'Cross-Sector Analysis', desc: 'Compare credit backgrounds across multiple different industries.' },
+              { icon: '🚨', title: 'Risk Detection', desc: 'Identify potential non-payers early with our proactive warning system.' },
+              { icon: '🔬', title: 'Deep Financial Auditing', desc: 'Perform a thorough evaluation of a company\'s credit reliability.' },
+              { icon: '📈', title: 'Trend Monitoring', desc: 'Spot specific defaulting patterns within your particular trade sector.' },
+            ]} />
 
             {/* The Step-by-Step Process */}
             <div className="mb-8">

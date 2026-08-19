@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, text
 from datetime import datetime, timezone
 from app.database import get_db, engine
+from app.utils.sql_helpers import build_safe_set_clause
 from app.models import User, PurchaseOrder, DefaulterCase, CreditReport, Settlement, Company, BusinessRequest, CompanyCredibilityIndex
 from app.models.credibility_index import GlobalCredibilityIndex, CredibilityStatus, AICreditRiskVerdict
 from app.schemas import (
@@ -837,14 +838,13 @@ async def approve_po_edit(
                     "po_number", "notes", "vendor_email", "vendor_phone",
                     "supplier_address", "delivery_address", "invoice_address"
                 }
-                safe_pending = {k: v for k, v in pending.items() if k in ALLOWED_PO_EDIT_FIELDS}
-
-                if safe_pending:
-                    set_clauses = ", ".join([f"{k} = :{k}" for k in safe_pending.keys()])
-                    params = {**safe_pending, "id": po_id}
-                    await db.execute(text(f""" 
-                        UPDATE purchase_orders SET {set_clauses} WHERE id = :id 
-                    """), params) 
+                if any(k in ALLOWED_PO_EDIT_FIELDS for k in pending):
+                    set_clause, bind_params = build_safe_set_clause(pending, ALLOWED_PO_EDIT_FIELDS)
+                    bind_params["id"] = po_id
+                    await db.execute(
+                        text(f"UPDATE purchase_orders SET {set_clause} WHERE id = :id"),
+                        bind_params,
+                    ) 
  
         # Clear approval status 
         await db.execute(text(""" 

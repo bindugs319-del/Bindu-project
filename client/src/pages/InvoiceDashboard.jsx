@@ -1,8 +1,10 @@
 import { useMemo, useEffect, useState } from 'react'
 import QuickActions from '../components/dashboard/QuickActions'
-import NotificationsPanel from '../components/dashboard/NotificationsPanel'
+import DashboardSummaryCards from '../components/dashboard/DashboardSummaryCards'
+import StatLinkCard from '../components/dashboard/StatLinkCard'
 import StatsChart from '../components/ui/StatsChart'
 import { buildMonthlySeries } from '../utils/monthlySeries'
+import { formatCurrency, formatDate, getExpiryDisplay } from '../utils/dashboardDisplay'
 import { useAuth } from '../state/authContext'
 import { invoices, defaulters, settlements, appointments, wallet, adminApi, subscriptions, legal, businessCheck, salesInvoices } from '../services/api/apiClient'
 import { Link } from 'react-router-dom'
@@ -188,107 +190,9 @@ export default function InvoiceDashboard() {
     return 'Inactive'
   }, [subscription, user])
 
-  const getExpiryDisplay = (subscription) => {
-    // Plan durations in days
-    const planDurations = { 
-      'BASE': 30,        // 1 month in days 
-      'ROYAL': 180,      // 6 months 
-      'GROUPS': 365,     // 1 year 
-      'ENTERPRISE': 365, // 1 year 
-      'ADMIN_FREE': 30,  // Default to 30 days for admin free
-      'LIFETIME': 36500  // 100 years for lifetime (shows as Never expires)
-    } 
- 
-    const planName = subscription?.plan_name 
-      || subscription?.subscription_plan 
-      || subscription?.plan 
-      || 'BASE'
- 
-    // If truly lifetime — show Never expires, else calculate days
-    if (planName === 'LIFETIME') { 
-      return { text: 'Never expires', color: 'text-green-500', percent: 100 } 
-    } 
- 
-    // Use end date from DB if available 
-    const endDateRaw = subscription?.subscription_end_date 
-      || subscription?.expires_at 
-      || subscription?.valid_until 
-      || subscription?.subscription_expires_at 
-      || subscription?.expiry_date
- 
-    // Get start date
-    const startRaw = subscription?.subscription_start_date 
-      || subscription?.plan_activated_at 
-      || subscription?.created_at 
-      || subscription?.start_date
- 
-    if (!startRaw) {
-      return { text: 'No expiry info', color: 'text-gray-400', percent: 50 }
-    }
-
-    const start = new Date(startRaw)
-    let end = null
-    let durationDays = planDurations[planName] || 30
-
-    if (endDateRaw) {
-      end = new Date(endDateRaw)
-      const calculatedDuration = Math.ceil((end - start) / (1000 * 60 * 60 * 24))
-      durationDays = calculatedDuration > 0 ? calculatedDuration : durationDays
-    } else {
-      end = new Date(start)
-      end.setDate(end.getDate() + durationDays)
-    }
-      
-    const today = new Date() 
-    const daysLeft = Math.ceil((end - today) / (1000 * 60 * 60 * 24)) 
-    const totalDays = durationDays
-    const usedDays = Math.ceil((today - start) / (1000 * 60 * 60 * 24)) 
-    const percent = Math.min(100, Math.max(0, Math.round((usedDays / totalDays) * 100))) 
- 
-    if (daysLeft <= 0) {
-      return { text: `Expired ${Math.abs(daysLeft)} days ago`, color: 'text-red-500', percent: 100 } 
-    }
-      
-    const months = Math.floor(daysLeft / 30) 
-    const days = daysLeft % 30 
-    const text = months > 0 
-      ? `Expires in ${months} month${months > 1 ? 's' : ''} ${days} days` 
-      : `Expires in ${days} days` 
-      
-    return { text, color: daysLeft < 7 ? 'text-red-500' : 'text-gray-500', percent } 
-  }
-
-  const getActivityIcon = (type) => {
-    switch (type) {
-      case 'invoice':
-        return '💰'
-      case 'defaulter':
-        return '⚠️'
-      case 'credit_report':
-        return '📊'
-      case 'settlement':
-        return '✅'
-      default:
-        return '📄'
-    }
-  }
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 0,
-    }).format(amount)
-  }
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'N/A'
-    return new Date(dateString).toLocaleDateString('en-IN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
-  }
+  // formatCurrency, formatDate, getActivityIcon, and getExpiryDisplay
+  // now live in utils/dashboardDisplay.js (see import above) — they were
+  // previously defined identically here and in Dashboard.jsx.
 
   return (
     <section className="py-8 md:py-12">
@@ -315,99 +219,51 @@ export default function InvoiceDashboard() {
         <div className="flex flex-wrap gap-4">
           {/* All users see Invoices */}
           <>
-            <Link to="/invoices" className="flex items-center justify-between px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-[#16A34A] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-all group w-full sm:w-auto">
-              <div className="flex flex-col">
-                <p className="text-xs text-[#475569]">Invoices</p>
-                <span className="text-xs text-[#16A34A] group-hover:underline inline-block">
-                  View all →
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                {loadingData ? (
-                  <div className="w-10 h-10 rounded-full skeleton-shimmer" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#DCFCE7] flex items-center justify-center">
-                    <span className="text-[#16A34A] text-lg">💰</span>
-                  </div>
-                )}
-                {loadingData ? (
-                  <div className="w-12 h-8 rounded skeleton-shimmer" />
-                ) : (
-                  <p className="text-2xl font-bold text-[#0F172A]">{stats.invoices}</p>
-                )}
-              </div>
-            </Link>
-            <Link to="/invoices" className="flex items-center justify-between px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-[#D97706] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-all group w-full sm:w-auto">
-              <div className="flex flex-col">
-                <p className="text-xs text-[#475569]">Pending Invoices</p>
-                <span className="text-xs text-[#D97706] group-hover:underline inline-block">
-                  {loadingData ? 'Loading...' : `${formatCurrency(pendingInvoices.total_due)} outstanding`}
-                </span>
-              </div>
-              <div className="flex items-center gap-3">
-                {loadingData ? (
-                  <div className="w-10 h-10 rounded-full skeleton-shimmer" />
-                ) : (
-                  <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center">
-                    <span className="text-[#D97706] text-lg">⏳</span>
-                  </div>
-                )}
-                {loadingData ? (
-                  <div className="w-12 h-8 rounded skeleton-shimmer" />
-                ) : (
-                  <p className="text-2xl font-bold text-[#0F172A]">{pendingInvoices.count}</p>
-                )}
-              </div>
-            </Link>
+          <StatLinkCard
+              to="/invoices"
+              label="Invoices"
+              accentColor="#16A34A"
+              subtitle="View all →"
+              icon="💰"
+              iconBg="#DCFCE7"
+              value={stats.invoices}
+              loading={loadingData}
+            />
+          <StatLinkCard
+              to="/invoices"
+              label="Pending Invoices"
+              accentColor="#D97706"
+              subtitle={loadingData ? 'Loading...' : `${formatCurrency(pendingInvoices.total_due)} outstanding`}
+              icon="⏳"
+              iconBg="#FEF3C7"
+              value={pendingInvoices.count}
+              loading={loadingData}
+            />
           </>
 
           {/* All users see Defaulters */}
-          <Link to="/defaulters?context=invoice" className="flex items-center justify-between px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-[#D97706] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-all group w-full sm:w-auto">
-            <div className="flex flex-col">
-              <p className="text-xs text-[#475569]">Defaulters</p>
-              <span className="text-xs text-[#D97706] group-hover:underline inline-block">
-                View all →
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {loadingData ? (
-                <div className="w-10 h-10 rounded-full skeleton-shimmer" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-[#FEF3C7] flex items-center justify-center">
-                  <span className="text-[#D97706] text-lg">⚠️</span>
-                </div>
-              )}
-              {loadingData ? (
-                <div className="w-12 h-8 rounded skeleton-shimmer" />
-              ) : (
-                <p className="text-2xl font-bold text-[#0F172A]">{invoiceDefaultersCount}</p>
-              )}
-            </div>
-          </Link>
+          <StatLinkCard
+            to="/defaulters?context=invoice"
+            label="Defaulters"
+            accentColor="#D97706"
+            subtitle="View all →"
+            icon="⚠️"
+            iconBg="#FEF3C7"
+            value={invoiceDefaultersCount}
+            loading={loadingData}
+          />
 
           {/* Additional stats for admins */}
-          <Link to="/settlement" className="flex items-center justify-between px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-[#1E3A8A] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-all group w-full sm:w-auto">
-            <div className="flex flex-col">
-              <p className="text-xs text-[#475569]">Settlements</p>
-              <span className="text-xs text-[#1E3A8A] group-hover:underline inline-block">
-                View all →
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              {loadingData ? (
-                <div className="w-10 h-10 rounded-full skeleton-shimmer" />
-              ) : (
-                <div className="w-10 h-10 rounded-full bg-[#EFF6FF] flex items-center justify-center">
-                  <span className="text-[#1E3A8A] text-lg">✅</span>
-                </div>
-              )}
-              {loadingData ? (
-                <div className="w-12 h-8 rounded skeleton-shimmer" />
-              ) : (
-                <p className="text-2xl font-bold text-[#0F172A]">{stats.settlements}</p>
-              )}
-            </div>
-          </Link>
+          <StatLinkCard
+            to="/settlement"
+            label="Settlements"
+            accentColor="#1E3A8A"
+            subtitle="View all →"
+            icon="✅"
+            iconBg="#EFF6FF"
+            value={stats.settlements}
+            loading={loadingData}
+          />
         </div>
 
         {/* Quick Actions */}
@@ -550,109 +406,14 @@ export default function InvoiceDashboard() {
         )}
 
         {/* Smaller Dashboard Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-4">
-          {/* Recent Activity */}
-          <div className="flex items-center gap-4 px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-l-[#3B82F6] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-shadow">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm">🕐</span>
-                <h2 className="text-xs text-[#475569] uppercase font-semibold">Recent Activity</h2>
-              </div>
-              {loadingData && (
-                <p className="text-xs text-[#475569]">Loading activity...</p>
-              )}
-              {!loadingData && recentActivity.length === 0 && (
-                <p className="text-xs text-[#475569] py-1">No recent activity</p>
-              )}
-              {!loadingData && recentActivity.length > 0 && (
-                <div className="space-y-1 overflow-y-auto max-h-24 pr-1">
-                  {recentActivity.slice(0, 3).map((activity) => (
-                    <Link
-                      key={`${activity.type}-${activity.title}`}
-                      to={activity.link}
-                      className="flex items-start gap-2 p-1 rounded hover:bg-[#F0F4FF] transition-colors"
-                    >
-                      <span className="text-sm">{getActivityIcon(activity.type)}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[10px] font-semibold text-[#0F172A] truncate">{activity.title}</p>
-                        <p className="text-[9px] text-[#475569] truncate">{activity.description}</p>
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Due Reminders */}
-          <div className="flex items-center gap-4 px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-l-[#D97706] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-shadow">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm">🔔</span>
-                <h2 className="text-xs text-[#475569] uppercase font-semibold">Due Reminders</h2>
-              </div>
-              {loadingData && (
-                <p className="text-xs text-[#475569]">Loading...</p>
-              )}
-              {!loadingData && dueReminders.length === 0 && (
-                <p className="text-xs text-[#475569] py-1">No reminders due</p>
-              )}
-              {!loadingData && dueReminders.length > 0 && (
-                <div className="space-y-1 overflow-y-auto max-h-24 pr-1">
-                  {dueReminders.slice(0, 2).map((invoice) => (
-                    <div key={invoice.id} className="p-1 bg-[#FEF3C7]/50 border border-[#F59E0B]/30 rounded">
-                      <p className="text-[10px] font-semibold text-[#0F172A] truncate">{invoice.invoice_number}</p>
-                      <div className="flex justify-between items-center mt-0.5">
-                        <p className="text-[9px] font-bold text-[#D97706]">
-                          {formatCurrency(invoice.amount)}
-                        </p>
-                        <p className="text-[8px] text-[#475569]">Due: {formatDate(invoice.due_date)}</p>
-                      </div>
-                    </div>
-                  ))}
-                  <Link
-                    to="/invoices"
-                    className="text-[9px] text-[#3B82F6] hover:underline inline-block"
-                  >
-                    View all →
-                  </Link>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Notifications */}
-          <NotificationsPanel dueReminders={dueReminders} />
-
-          {/* Plan Info */}
-          <div className="flex items-center gap-4 px-6 py-5 rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] bg-white border-l-[4px] border-l-[#1E3A8A] hover:shadow-[0_8px_32px_rgba(30,58,138,0.12)] transition-shadow">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-sm">💳</span>
-                <h2 className="text-xs text-[#475569] uppercase font-semibold">Subscription</h2>
-              </div>
-              <div className="flex flex-col gap-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs font-medium text-[#0F172A]">{planLabel}</span>
-                  <span className={`px-3 py-1 rounded-full text-[11px] font-bold uppercase ${planStatus === 'Active' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#FEE2E2] text-[#DC2626]'}`}>
-                    {planStatus}
-                  </span>
-                </div>
-                {(() => {
-                  const expiry = getExpiryDisplay(subscription)
-                  return (
-                    <p className={`text-[9px] ${expiry.color}`}>
-                      {expiry.text}
-                    </p>
-                  )
-                })()}
-                <Link to="/membership" className="inline-flex items-center justify-center bg-[#F0F4FF] border border-[#E2E8F0] text-[#1E3A8A] py-2 rounded text-[10px] font-semibold hover:bg-[#EFF6FF] transition-colors">
-                  Manage Plan
-                </Link>
-              </div>
-            </div>
-          </div>
-        </div>
+        <DashboardSummaryCards
+          loadingData={loadingData}
+          recentActivity={recentActivity}
+          dueReminders={dueReminders}
+          planLabel={planLabel}
+          planStatus={planStatus}
+          subscription={subscription}
+        />
 
         <div>
           <Invoices />

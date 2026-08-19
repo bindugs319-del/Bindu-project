@@ -83,23 +83,21 @@ async def get_activity_logs(
     if role_str not in allowed_roles and not is_developer(current_user): 
         raise HTTPException(status_code=403, detail="Access denied") 
 
-    filters = ["1=1"] 
-    params = {"limit": limit} 
-
-    if user_email: 
-        filters.append("user_email ILIKE :email") 
-        params["email"] = f"%{user_email}%" 
-    if action: 
-        filters.append("action = :action") 
-        params["action"] = action 
-
-    where = " AND ".join(filters) 
+    # Fixed query text with NULL-coalescing bind parameters instead of
+    # building the WHERE clause dynamically from strings (avoids any
+    # SQL string interpolation / injection risk).
+    params = {
+        "limit": limit,
+        "email": f"%{user_email}%" if user_email else None,
+        "action": action or None,
+    }
     try:
-        result = await db.execute(text(f""" 
-            SELECT * FROM user_activity_logs 
-            WHERE {where} 
-            ORDER BY timestamp DESC 
-            LIMIT :limit 
+        result = await db.execute(text("""
+            SELECT * FROM user_activity_logs
+            WHERE (:email IS NULL OR user_email ILIKE :email)
+              AND (:action IS NULL OR action = :action)
+            ORDER BY timestamp DESC
+            LIMIT :limit
         """), params) 
 
         rows = [dict(r._mapping) for r in result.fetchall()] 
