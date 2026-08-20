@@ -19,8 +19,8 @@ export default function FeatureCardGrid({ items, columns = 'grid-cols-2', classN
 
   return (
     <div className={`grid ${columns} gap-4 mb-8 ${className}`}>
-      {normalized.map((item, idx) => (
-        <FeatureCard key={item.title ?? idx} {...item} />
+      {normalized.map((item) => (
+        <FeatureCard key={item.title} {...item} />
       ))}
     </div>
   );
@@ -70,10 +70,10 @@ function FeatureCard({ icon, title, desc }) {
       <div
         className="absolute bottom-0 left-0 h-0.5 bg-[#1E3A8A] transition-all duration-250 ease-out"
         style={{ width: '0' }}
-        onMouseOver={(e) => {
+        onMouseEnter={(e) => {
           e.currentTarget.style.width = '100%';
         }}
-        onMouseOut={(e) => {
+        onMouseLeave={(e) => {
           e.currentTarget.style.width = '0';
         }}
       ></div>

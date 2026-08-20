@@ -2,13 +2,12 @@ import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 
 /**
- * Expand/collapse FAQ list used on ReportOverdue, BusinessCredit,
- * CreditManagement, and BusinessDebt — identical markup and behavior in
- * all 4 pages (only minor inline-style differences), so extracted here.
- * `openFaq` is local/self-contained state — no page used it for anything
- * outside this accordion.
+ * Expand/collapse FAQ list. Used on ReportOverdue, BusinessCredit,
+ * CreditManagement, BusinessDebt, and the homepage FAQSection — all had
+ * near-identical markup and behavior, so this is the one shared
+ * implementation. `openFaq` is local/self-contained state.
  */
-export default function FAQAccordion({ faqs, defaultOpenIndex = -1 }) {
+export default function FAQAccordion({ faqs, defaultOpenIndex = -1, cardClassName = '' }) {
   const [openFaq, setOpenFaq] = useState(defaultOpenIndex)
 
   return (
@@ -17,8 +16,16 @@ export default function FAQAccordion({ faqs, defaultOpenIndex = -1 }) {
         <button
           key={item.q}
           type="button"
-          className="card cursor-pointer w-full text-left"
+          className={`card cursor-pointer w-full text-left ${cardClassName}`}
+          style={{ transition: 'box-shadow 0.3s ease, transform 0.3s ease' }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-2px)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)'
+          }}
           onClick={() => setOpenFaq(openFaq === idx ? -1 : idx)}
+          aria-expanded={openFaq === idx}
         >
           <div className="flex items-start justify-between gap-4">
             <p style={{ fontSize: '14px', fontWeight: 500 }} className="font-semibold text-gray-900">{item.q}</p>

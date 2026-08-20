@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import FAQAccordion from '../marketing/FAQAccordion'
 
 const faqs = [
   {
@@ -25,8 +24,6 @@ const faqs = [
 ]
 
 export default function FAQSection() {
-  const [open, setOpen] = useState(0)
-
   return (
     <section className="section-padding" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 100%)' }}>
       <div className="container-custom max-w-4xl">
@@ -35,57 +32,7 @@ export default function FAQSection() {
           <h2 className="text-3xl md:text-4xl font-heading font-bold mb-3 text-[#0F172A]">Help & Education</h2>
           <p className="text-lg text-[#475569]">Common questions about CreditDataWatch</p>
         </div>
-        <div className="space-y-4">
-          {faqs.map((item, idx) => (
-            <button
-              key={item.q}
-              type="button"
-              className="card cursor-pointer w-full text-left bg-white rounded-2xl"
-              style={{
-                boxShadow: '0 5px 20px -5px rgba(30, 58, 138, 0.1)',
-                transition: 'box-shadow 0.3s ease, transform 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'translateY(-2px)'
-                e.currentTarget.style.boxShadow = '0 10px 30px -5px rgba(30, 58, 138, 0.18)'
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'translateY(0)'
-                e.currentTarget.style.boxShadow = '0 5px 20px -5px rgba(30, 58, 138, 0.1)'
-              }}
-              onClick={() => setOpen(open === idx ? -1 : idx)}
-              aria-expanded={open === idx}
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <p className="font-semibold text-[#0F172A]">{item.q}</p>
-                </div>
-                <svg
-                  className={`h-5 w-5 transition-transform ${open === idx ? 'rotate-180' : ''}`}
-                  style={{ color: '#3B82F6' }}
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-              <AnimatePresence initial={false}>
-                {open === idx && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.25 }}
-                    className="overflow-hidden"
-                  >
-                    <p className="text-[#475569] mt-3 leading-relaxed">{item.a}</p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </button>
-          ))}
-        </div>
+        <FAQAccordion faqs={faqs} defaultOpenIndex={0} cardClassName="bg-white rounded-2xl" />
       </div>
     </section>
   )
