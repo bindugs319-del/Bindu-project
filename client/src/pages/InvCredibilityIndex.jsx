@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
 import { useAuth } from '../state/authContext'
 import { invCredibility, ratings, credibilityIndex } from '../services/api/apiClient'
 import { logActivity, ACTIONS } from '../utils/activityLogger'
-import StarDisplay from '../components/credibility/StarDisplay'
 import NetworkTrustIntelligence from '../components/credibility/NetworkTrustIntelligence'
+import CredibilityFilterBar from '../components/credibility/CredibilityFilterBar'
+import CredibilityLocalTable from '../components/credibility/CredibilityLocalTable'
 
 export default function InvCredibilityIndex() {
   const { loading, user } = useAuth()
@@ -131,101 +131,24 @@ export default function InvCredibilityIndex() {
       {/* Main Content */}
       <section className="py-16 px-4">
         <div className="container-custom max-w-5xl mx-auto space-y-8">
-          {/* Business Credibility Index Search Bar */}
-          <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-full bg-[#F59E0B] text-white flex items-center justify-center text-xl" title="Inv Credibility Index">★</div>
-              <p className="text-xl font-bold text-[#0F172A]">Business Inv Credibility Index</p>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <input
-                value={q}
-                onChange={e => setQ(e.target.value)}
-                placeholder="Search company"
-                className="flex-1 min-w-[200px] px-4 py-3 rounded-[8px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
-              />
-              <select
-                value={risk}
-                onChange={e => setRisk(e.target.value)}
-                className="px-4 py-3 rounded-[8px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
-              >
-                <option value="">All risks</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
-              <select
-                value={sort}
-                onChange={e => setSort(e.target.value)}
-                className="px-4 py-3 rounded-[8px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
-              >
-                <option value="desc">Top score</option>
-                <option value="asc">Lowest score</option>
-              </select>
-            </div>
-          </div>
+          <CredibilityFilterBar
+            title="Business Inv Credibility Index"
+            iconTitle="Inv Credibility Index"
+            q={q} setQ={setQ}
+            risk={risk} setRisk={setRisk}
+            sort={sort} setSort={setSort}
+          />
 
           <div className="space-y-10">
-            {/* Section 1: Local CBI (Invoice-based) */}
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-xl font-bold text-[#0F172A] mb-1">Direct Trade Reliability (Invoice CBI)</h2>
-                <div style={{ width: '60px', height: '3px', backgroundColor: '#F59E0B' }}></div>
-                <p className="text-sm text-[#475569] mt-3">Credibility based on your direct business history with these companies, computed from invoices raised.</p>
-              </div>
-              <div className="bg-white rounded-[12px] border border-[#E2E8F0] shadow-md overflow-hidden relative">
-                <div className="scrollable-container relative max-h-[500px] overflow-y-auto">
-                  <table className="w-full">
-                    <thead className="bg-[#F9FAFB] sticky top-0 z-10 backdrop-blur-sm">
-                      <tr>
-                        <th className="py-4 px-6 text-left text-xs font-bold text-[#374151] uppercase tracking-widest border-b border-[#E2E8F0]">Company</th>
-                        <th className="py-4 px-6 text-left text-xs font-bold text-[#374151] uppercase tracking-widest border-b border-[#E2E8F0]">Performance</th>
-                        <th className="py-4 px-6 text-left text-xs font-bold text-[#374151] uppercase tracking-widest border-b border-[#E2E8F0]">Grade</th>
-                        <th className="py-4 px-6 text-left text-xs font-bold text-[#374151] uppercase tracking-widest border-b border-[#E2E8F0]">Risk</th>
-                        <th className="py-4 px-6 text-left text-xs font-bold text-[#374151] uppercase tracking-widest border-b border-[#E2E8F0]">Invoice Fulfillment</th>
-                        <th className="py-4 px-6 text-left text-xs font-bold text-[#374151] uppercase tracking-widest border-b border-[#E2E8F0]">View</th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-[#F3F4F6]">
-                      {filtered.length === 0 ? (
-                        <tr><td colSpan="6" className="py-8 text-center text-[#9CA3AF]">No local invoice history found.</td></tr>
-                      ) : (
-                        filtered.map(r => (
-                          <tr key={r.company_name} className="transition-colors duration-150 hover:bg-[#EFF6FF]/60 even:bg-[#F9FAFB]/60">
-                            <td className="py-4 px-6 font-medium text-[#0F172A]">{r.company_name}</td>
-                            <td className="py-4 px-6">
-                              <StarDisplay stars={r.stars} color="text-emerald-500" />
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${r.grade === 'A' ? 'bg-[#D1FAE5] text-[#065F46]' : r.grade === 'B' ? 'bg-[#DBEAFE] text-[#1E40AF]' : r.grade === 'C' ? 'bg-[#FEF3C7] text-[#92400E]' : 'bg-[#FEE2E2] text-[#991B1B]'}`}>
-                                {r.grade}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6">
-                              <span className={`${(r.risk || r.risk_level) === 'Low' ? 'text-[#16A34A]' : (r.risk || r.risk_level) === 'Medium' ? 'text-[#F59E0B]' : 'text-[#DC2626]'}`}>
-                                {(r.risk || r.risk_level) === 'Low' ? '✅ Low' : (r.risk || r.risk_level) === 'Medium' ? '⚠️ Medium' : '❌ High'}
-                              </span>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="min-w-[180px]">
-                                <div className="w-full h-[6px] rounded-full bg-[#E2E8F0] overflow-hidden">
-                                  <div className="h-full bg-[#16A34A] inline-block" style={{ width: `${r.total_pos ? Math.round((r.paid_pos / r.total_pos) * 100) : 0}%` }} />
-                                  <div className="h-full bg-[#F59E0B] inline-block" style={{ width: `${r.total_pos ? Math.round(((r.total_pos - r.paid_pos) / r.total_pos) * 100) : 0}%` }} />
-                                </div>
-                                <div className="text-xs text-[#475569] mt-2">{r.paid_pos}/{r.total_pos} Paid</div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <Link to={`/inv-credibility-index/${r.company_id}`} className="text-[#1D4ED8] font-medium hover:underline">View</Link>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
+            <CredibilityLocalTable
+              heading="Direct Trade Reliability (Invoice CBI)"
+              description="Credibility based on your direct business history with these companies, computed from invoices raised."
+              fulfillmentLabel="Invoice Fulfillment"
+              emptyMessage="No local invoice history found."
+              viewPathPrefix="/inv-credibility-index"
+              filtered={filtered}
+              unpaidPercent={r => r.total_pos ? Math.round(((r.total_pos - r.paid_pos) / r.total_pos) * 100) : 0}
+            />
 
             <NetworkTrustIntelligence
               globalCredibilityIndex={globalCredibilityIndex}
