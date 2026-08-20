@@ -56,6 +56,12 @@ class Settings(BaseSettings):
     SENDER_EMAIL: str = "no-reply@creditdatawatch.com"
     SENDER_NAME: str = "CreditDataWatch"
 
+    # Resend (HTTPS email API — used instead of raw SMTP because most hosts,
+    # including Render's free/starter plans, block outbound SMTP ports to
+    # prevent spam abuse. Get a free API key at https://resend.com)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""  # falls back to SENDER_EMAIL if unset
+
     # Main SMTP Config (for general use)
     SMTP_HOST: str = "localhost"
     SMTP_PORT: int = 1025
