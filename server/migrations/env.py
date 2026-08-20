@@ -42,14 +42,21 @@ def run_migrations_offline() -> None:
 
 def run_migrations_online() -> None:
     """Run migrations in online (sync) mode."""
-section = config.get_section(config.config_ini_section) or {}
-connectable = engine_from_config(
-    section,
-    prefix="sqlalchemy.",
-    poolclass=pool.NullPool,
-     )
+    import os
 
-with connectable.connect() as connection:
+    # Prefer an env var for the sync (psycopg2) URL so this works the same
+    # locally and on Render — falls back to alembic.ini if not set.
+    db_url = os.environ.get("ALEMBIC_DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    config.set_main_option("sqlalchemy.url", db_url)
+
+    section = config.get_section(config.config_ini_section) or {}
+    connectable = engine_from_config(
+        section,
+        prefix="sqlalchemy.",
+        poolclass=pool.NullPool,
+    )
+
+    with connectable.connect() as connection:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
