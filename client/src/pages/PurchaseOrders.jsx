@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
-import { purchaseOrders, sendPOReminder, admin } from '../services/api/apiClient'
+import { purchaseOrders, sendPOReminder, admin, api } from '../services/api/apiClient'
 import { isValidGstin } from '../utils/validation'
 import { useAuth } from '../state/authContext'
 import EditPOModal from '../components/po/EditPOModal'
 import CSVImportModal from '../components/po/CSVImportModal'
+import ScanPreviewModal from '../components/po/ScanPreviewModal'
 import ReminderModal from '../components/po/ReminderModal'
 import { formatE164 } from '../utils/phone'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -54,6 +55,9 @@ export default function PurchaseOrders() {
     const [legalSupportReason, setLegalSupportReason] = useState('')
     const [legalSupportFile, setLegalSupportFile] = useState(null)
   const [showCSVImport, setShowCSVImport] = useState(false)
+  const [showScanPreview, setShowScanPreview] = useState(false)
+  const [scannedFile, setScannedFile] = useState(null)
+  const [uploadingDocForId, setUploadingDocForId] = useState(null)
   const [showLegalNotice, setShowLegalNotice] = useState(false);
   const [showLegalConfirm, setShowLegalNoticeConfirm] = useState(null);
   const [showLegalSupportConfirm, setShowLegalSupportConfirm] = useState(null);
@@ -313,6 +317,34 @@ export default function PurchaseOrders() {
 
     const handleEdit = (po) => {
       setEditingPO(po)
+    }
+
+    const handleQuickDocUpload = async (po, file) => {
+      if (!file) return
+      setUploadingDocForId(po.id)
+      try {
+        const formData = new FormData()
+        formData.append('file', file)
+        const uploadRes = await api.post('/upload/evidence', formData)
+        if (!uploadRes.ok) {
+          setStatusMessage(uploadRes.error || 'Failed to upload document')
+          setUploadingDocForId(null)
+          return
+        }
+        const documentUrl = uploadRes.data?.url
+        const res = await purchaseOrders.update(po.id, { document_url: documentUrl })
+        if (res.ok) {
+          setRows((prev) => prev.map(r => r.id === po.id ? { ...r, document_url: documentUrl } : r))
+          setStatusMessage(`Document attached to ${po.po_number}.`)
+          window.dispatchEvent(new Event('poChanged'))
+        } else {
+          setStatusMessage(res.error || 'Failed to attach document to PO')
+        }
+      } catch (err) {
+        setStatusMessage(err.message || 'Failed to upload document')
+      } finally {
+        setUploadingDocForId(null)
+      }
     }
 
     const handleSaveEdit = async (payload) => {
@@ -743,8 +775,18 @@ export default function PurchaseOrders() {
                             >
                               <span>📄</span> View
                             </a>
+                          ) : uploadingDocForId === row.id ? (
+                            <span className="text-gray-400 text-xs">Uploading&hellip;</span>
                           ) : (
-                            <span className="text-gray-400">—</span>
+                            <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer text-sm">
+                              <span>📎</span> Upload
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={(e) => handleQuickDocUpload(row, e.target.files?.[0])}
+                              />
+                            </label>
                           )}
                         </td>
                         <td className="py-5 px-6">
@@ -901,6 +943,14 @@ export default function PurchaseOrders() {
                     📥 Import POs
                   </button>
                 )}
+                {allowed && (
+                  <button
+                    onClick={() => setShowScanPreview(true)}
+                    className="flex-1 text-xs text-primary-700 border border-primary-300 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors font-medium flex items-center justify-center gap-1"
+                  >
+                    🔍 Scan
+                  </button>
+                )}
                 <button 
                   onClick={downloadTemplate} 
                   className="flex-1 text-xs text-blue-600 border border-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center justify-center gap-1" 
@@ -1028,7 +1078,7 @@ export default function PurchaseOrders() {
           )}
 
           {showLegalNotice && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Legal Notice</h3>
                 <textarea
@@ -1073,8 +1123,20 @@ export default function PurchaseOrders() {
             />
           )}
 
+          {showScanPreview && (
+            <ScanPreviewModal
+              onClose={() => setShowScanPreview(false)}
+              onProceedToImport={(file) => {
+                setScannedFile(file)
+                setShowScanPreview(false)
+                setShowCSVImport(true)
+              }}
+            />
+          )}
+
           {showCSVImport && (
             <CSVImportModal
+              initialFile={scannedFile}
               onClose={() => setShowCSVImport(false)}
               onImportComplete={handleImportComplete}
             />
@@ -1161,7 +1223,7 @@ export default function PurchaseOrders() {
           )}
 
           {showLegalConfirm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
                 <div className="text-4xl mb-4">⚖️</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">Send Legal Notice?</h3>
@@ -1189,7 +1251,7 @@ export default function PurchaseOrders() {
           )}
 
           {showLegalSupportConfirm && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
                 <div className="text-4xl mb-4 text-center">🏛️</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Send to Legal Support Team?</h3>
@@ -1261,7 +1323,7 @@ export default function PurchaseOrders() {
           )}
 
           {receiptModal && (
-            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
               <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
                 <div className="text-4xl mb-3 text-center">🧾</div>
                 <h3 className="text-xl font-bold text-gray-900 mb-1 text-center">Payment Receipt</h3>

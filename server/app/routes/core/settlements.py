@@ -115,7 +115,7 @@ async def update_settlement(settlement_id: str, req: SettlementUpdate, current_u
     if req.documents_drive_folder is not None:
         settlement.documents_drive_folder = req.documents_drive_folder
     
-    settlement.updated_at = datetime.now(timezone.utc)
+    settlement.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await log_audit(
         db=db,
         user=current_user,

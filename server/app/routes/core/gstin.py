@@ -147,7 +147,7 @@ async def submit_legal_report(
     business_req.legal_notes = req.legal_notes
     business_req.analyzed_by = current_user.id
     business_req.status = "COMPLETED"
-    business_req.updated_at = datetime.now(timezone.utc)
+    business_req.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     # Also update the company's credibility
     comp_stmt = select(Company).where(Company.gstin == business_req.gstin)
@@ -201,7 +201,7 @@ async def submit_legal_report(
     else:
         idx.risk_level = "High"
         idx.grade = "C"
-    idx.last_calculated_at = datetime.now(timezone.utc)
+    idx.last_calculated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     await log_audit(
         db=db,

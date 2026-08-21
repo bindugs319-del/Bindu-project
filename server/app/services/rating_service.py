@@ -24,7 +24,7 @@ class RatingService:
             # Update existing
             existing.rating = payload.rating
             existing.review = payload.review
-            existing.updated_at = datetime.now(timezone.utc)
+            existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             rating_obj = existing
         else:
             # Create new

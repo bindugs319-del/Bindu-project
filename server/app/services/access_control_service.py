@@ -71,7 +71,7 @@ class AccessControlService:
                 return False
             
             # Check if subscription is expired
-            if subscription.expiry_date and subscription.expiry_date < datetime.now(timezone.utc):
+            if subscription.expiry_date and subscription.expiry_date < datetime.now(timezone.utc).replace(tzinfo=None):
                 return False
             
             # For COMPANY_ADMIN or USER, any active (non-expired) subscription grants access

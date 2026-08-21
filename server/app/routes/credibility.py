@@ -71,7 +71,7 @@ async def _has_active_subscription(user_id: str, db: AsyncSession) -> bool:
     sub = res.scalars().first()
     if not sub:
         return False
-    if sub.expiry_date and sub.expiry_date < __import__("datetime").datetime.now(timezone.utc):
+    if sub.expiry_date and sub.expiry_date < __import__("datetime").datetime.now(timezone.utc).replace(tzinfo=None):
         return False
     return True
 

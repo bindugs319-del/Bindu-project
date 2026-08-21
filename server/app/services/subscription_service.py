@@ -57,7 +57,7 @@ class SubscriptionService:
         if not subscription.is_active:
             return False
         
-        if subscription.expiry_date and subscription.expiry_date < datetime.now(timezone.utc):
+        if subscription.expiry_date and subscription.expiry_date < datetime.now(timezone.utc).replace(tzinfo=None):
             return False
         
         return True
@@ -120,10 +120,10 @@ class SubscriptionService:
         for sub in active_subs:
             sub.is_active = False
             sub.status = MembershipStatus.EXPIRED
-            sub.updated_at = datetime.now(timezone.utc)
+            sub.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         
         # Create new subscription in PENDING status
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         
         new_subscription = Subscription(
             id=str(uuid4()),
@@ -164,7 +164,7 @@ class SubscriptionService:
         if not sub:
             raise HTTPException(status_code=404, detail="Subscription not found")
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         
         if action == "VERIFY":
             if sub.status != MembershipStatus.PENDING:
@@ -243,7 +243,7 @@ class SubscriptionService:
             raise UserNotFound()
         
         # Calculate new expiry date
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         new_expiry = now + timedelta(days=subscription.plan.validity_days)
         
         subscription.expiry_date = new_expiry
@@ -282,7 +282,7 @@ class SubscriptionService:
         """Upload payment proof for a pending subscription"""
         subscription = await SubscriptionService.get_subscription_details(subscription_id, db)
         subscription.payment_proof_url = proof_url
-        subscription.updated_at = datetime.now(timezone.utc)
+        subscription.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await db.flush()
         return subscription
 
@@ -295,7 +295,7 @@ class SubscriptionService:
         
         subscription.status = MembershipStatus.VERIFIED
         subscription.verified_by = financial_user_id
-        subscription.updated_at = datetime.now(timezone.utc)
+        subscription.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await db.flush()
         return subscription
 
@@ -308,7 +308,7 @@ class SubscriptionService:
         
         subscription.status = MembershipStatus.PROCESSED
         subscription.processed_by = operation_user_id
-        subscription.updated_at = datetime.now(timezone.utc)
+        subscription.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await db.flush()
         return subscription
 
@@ -331,7 +331,7 @@ class SubscriptionService:
         plan_res = await db.execute(plan_stmt)
         plan = plan_res.scalars().first()
         
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         subscription.status = MembershipStatus.APPROVED
         subscription.approved_by = admin_user_id
         subscription.is_active = True
@@ -355,7 +355,7 @@ class SubscriptionService:
         subscription = await SubscriptionService.get_subscription_details(subscription_id, db)
         subscription.status = MembershipStatus.REJECTED
         subscription.is_active = False
-        subscription.updated_at = datetime.now(timezone.utc)
+        subscription.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         # You might want to store the reason in a notes field if added to the model
         await db.flush()
         return subscription

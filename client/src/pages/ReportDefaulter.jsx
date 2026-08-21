@@ -392,7 +392,7 @@ export default function Defaulters() {
         </div>
 
         {selectedCase && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
             <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
               <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
                 <div>

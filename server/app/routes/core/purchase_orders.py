@@ -624,9 +624,9 @@ async def update_po(po_id: str, req: PurchaseOrderUpdate, current_user: Annotate
     if req.payment_window_days is not None:
         po.payment_window_days = req.payment_window_days
     
-    po.updated_at = datetime.now(timezone.utc)
+    po.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await db.commit()
-    
+
     # Note: a "PO Paid" notification used to fire here unconditionally on
     # every edit to this endpoint (even unrelated fields like
     # invoice_address), via a NotificationService.notify_po_paid() method
@@ -1227,7 +1227,7 @@ async def process_po_approval(
     if not po:
         raise HTTPException(status_code=404, detail=PO_NOT_FOUND_ERROR)
     
-    # DateTime columns here are timezone-naive; datetime.now(timezone.utc)
+    # DateTime columns here are timezone-naive; datetime.now(timezone.utc).replace(tzinfo=None)
     # is tz-aware and makes asyncpg fail with "can't subtract offset-naive
     # and offset-aware datetimes" at commit time. Use naive UTC instead.
     now = datetime.utcnow()
@@ -1385,7 +1385,7 @@ async def archive_po(po_id: str, req: ArchiveRequest, current_user: Annotated[Us
         raise HTTPException(status_code=404, detail=PO_NOT_FOUND_ERROR)
     
     po.archived = not po.archived
-    po.updated_at = datetime.now(timezone.utc)
+    po.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     await log_audit(
         db=db,
@@ -1785,7 +1785,7 @@ Team CreditWatch"""
             os.remove(pdf_path)
 
         # Update DB
-        po.legal_notice_sent_at = datetime.now(timezone.utc)
+        po.legal_notice_sent_at = datetime.now(timezone.utc).replace(tzinfo=None)
         await log_audit(
             db=db,
             user=current_user,

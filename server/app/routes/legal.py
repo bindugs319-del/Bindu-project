@@ -107,7 +107,7 @@ async def analyze_business_request(
     request.recommendation = recommendation
     request.legal_notes = legal_notes
     request.analyzed_by = current_user.id
-    request.updated_at = datetime.now(timezone.utc)
+    request.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     await db.commit()
     
@@ -211,8 +211,8 @@ async def complete_report(
     report.status = "Ready"
     report.report_url = report_url
     report.credit_score = credit_score
-    report.last_updated = datetime.now(timezone.utc)
-    report.updated_at = datetime.now(timezone.utc)
+    report.last_updated = datetime.now(timezone.utc).replace(tzinfo=None)
+    report.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     
     await db.commit()
     

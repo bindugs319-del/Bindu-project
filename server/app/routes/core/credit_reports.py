@@ -120,7 +120,7 @@ async def update_credit_report(report_id: str, req: CreditReportUpdate, current_
     if req.last_updated is not None:
         report.last_updated = req.last_updated
     
-    report.updated_at = datetime.now(timezone.utc)
+    report.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await log_audit(
         db=db,
         user=current_user,

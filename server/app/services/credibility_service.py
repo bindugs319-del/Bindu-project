@@ -13,14 +13,14 @@ class CredibilityService:
         res = await db.execute(stmt)
         cfg = res.scalars().first()
         if not cfg:
-            cfg = CredibilityConfig(id=str(uuid4()), calculation_window_days=90, last_updated_at=datetime.now(timezone.utc))
+            cfg = CredibilityConfig(id=str(uuid4()), calculation_window_days=90, last_updated_at=datetime.now(timezone.utc).replace(tzinfo=None))
             db.add(cfg)
             await db.flush()
         return int(getattr(cfg, "calculation_window_days", 90))
 
     @staticmethod
     async def aggregate_metrics(db: AsyncSession, window_days: int) -> dict:
-        cutoff = datetime.now(timezone.utc) - timedelta(days=window_days) 
+        cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=window_days) 
     
         companies = (await db.execute(select(Company))).scalars().all() 
     
@@ -158,7 +158,7 @@ class CredibilityService:
         stmt = select(CompanyCredibilityIndex).where(CompanyCredibilityIndex.company_id == company_id)
         res = await db.execute(stmt)
         row = res.scalars().first()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
         if row:
             row.score = s["score"]
             row.grade = s["grade"]

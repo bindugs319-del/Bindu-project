@@ -61,7 +61,7 @@ async def update_admin_settings(req: AdminSettingsRequest, current_user: Annotat
         db.add(settings)
     else:
         settings.payment_window_days = payment_window_days
-        settings.updated_at = datetime.now(timezone.utc)
+        settings.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
         
     await log_audit(db, current_user, "UPDATE_SETTINGS", reason=f"Payment window updated to {payment_window_days} days")
     await db.commit()
@@ -212,7 +212,7 @@ async def get_subscription(current_user: Annotated[User, Depends(get_current_use
             "id": current_user.id,
             "plan": "ADMIN_FREE",
             "is_active": True,
-            "start_date": datetime.now(timezone.utc),
+            "start_date": datetime.now(timezone.utc).replace(tzinfo=None),
             "expiry_date": None,
         }
         return ResponseFormatter.create_success(data=data)

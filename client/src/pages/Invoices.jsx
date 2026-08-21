@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { salesInvoices as invoicesApi, purchaseOrders as poApi } from '../services/api/apiClient'
+import { salesInvoices as invoicesApi, purchaseOrders as poApi, api } from '../services/api/apiClient'
+import InvoiceCSVImportModal from '../components/invoices/InvoiceCSVImportModal'
+import ScanPreviewModal from '../components/po/ScanPreviewModal'
 
 /**
  * Turn whatever shape an API error comes back as into a readable string.
@@ -43,6 +45,10 @@ function formatError(error) {
 export default function Invoices() {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
+  const [showInvoiceImport, setShowInvoiceImport] = useState(false)
+  const [showInvoiceScan, setShowInvoiceScan] = useState(false)
+  const [scannedInvoiceFile, setScannedInvoiceFile] = useState(null)
+  const [uploadingDocForInvoiceId, setUploadingDocForInvoiceId] = useState(null)
   const [error, setError] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(true)
   const [selectedInvoice, setSelectedInvoice] = useState(null)
@@ -169,6 +175,33 @@ export default function Invoices() {
     fetchInvoices()
   }, [fetchInvoices])
 
+  const handleQuickInvoiceDocUpload = async (invoice, file) => {
+    if (!file) return
+    setUploadingDocForInvoiceId(invoice.id)
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const uploadRes = await api.post('/upload/evidence', formData)
+      if (!uploadRes.ok) {
+        setError(uploadRes.error || 'Failed to upload document')
+        setUploadingDocForInvoiceId(null)
+        return
+      }
+      const documentUrl = uploadRes.data?.url
+      const res = await invoicesApi.update(invoice.id, { document_url: documentUrl })
+      if (res.ok) {
+        setInvoices((prev) => prev.map(inv => inv.id === invoice.id ? { ...inv, document_url: documentUrl } : inv))
+      } else {
+        setError(res.error || 'Failed to attach document to invoice')
+      }
+    } catch (err) {
+      setError(err.message || 'Failed to upload document')
+    } finally {
+      setUploadingDocForInvoiceId(null)
+    }
+  }
+
+
   // The Add Invoice panel is now always visible (mirroring the
   // Purchase Orders page's always-visible Add PO panel) instead of a
   // modal opened by a button, so prefill it once on mount.
@@ -208,6 +241,25 @@ export default function Invoices() {
       alert('Network error while archiving invoice')
     }
     setArchivingId(null)
+  }
+
+  const downloadInvoiceTemplate = () => {
+    const templateHeaders = [
+      'Invoice #', 'Counterparty Name', 'Email', 'Phone', 'GSTIN',
+      'Subtotal', 'Tax Rate (%)', 'Total', 'Invoice Date', 'Due Date', 'Status'
+    ]
+    const example = [
+      'INV-2026-01', 'Test Customer', 'customer@email.com', '9876543210', '22AAAAA0000A1Z5',
+      '45000', '18', '', '2026-04-01', '2026-04-30', 'Draft'
+    ]
+    const csv = [templateHeaders.join(','), example.join(',')].join('\n')
+    const blob = new Blob([csv], { type: 'text/csv' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = 'Invoice_Upload_Template.csv'
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const downloadInvoicesAsCSV = () => {
@@ -775,6 +827,32 @@ export default function Invoices() {
                     </button>
                   )}
                 </div>
+
+                {!editingInvoiceId && (
+                  <div className="flex flex-wrap gap-2 mb-6">
+                    <button
+                      type="button"
+                      onClick={() => setShowInvoiceImport(true)}
+                      className="flex-1 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center justify-center gap-1"
+                    >
+                      📥 Import Invoices
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowInvoiceScan(true)}
+                      className="flex-1 text-xs text-primary-700 border border-primary-300 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors font-medium flex items-center justify-center gap-1"
+                    >
+                      🔍 Scan
+                    </button>
+                    <button
+                      type="button"
+                      onClick={downloadInvoiceTemplate}
+                      className="flex-1 text-xs text-blue-600 border border-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center justify-center gap-1"
+                    >
+                      📄 Template
+                    </button>
+                  </div>
+                )}
 
 
                 {/* INVOICE INFORMATION */}
@@ -1460,6 +1538,25 @@ export default function Invoices() {
           </div>
         </div>
 
+        {showInvoiceScan && (
+          <ScanPreviewModal
+            onClose={() => setShowInvoiceScan(false)}
+            onProceedToImport={(file) => {
+              setScannedInvoiceFile(file)
+              setShowInvoiceScan(false)
+              setShowInvoiceImport(true)
+            }}
+          />
+        )}
+
+        {showInvoiceImport && (
+          <InvoiceCSVImportModal
+            initialFile={scannedInvoiceFile}
+            onClose={() => { setShowInvoiceImport(false); setScannedInvoiceFile(null) }}
+            onImportComplete={() => { fetchInvoices() }}
+          />
+        )}
+
         {error && (
           <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
             {formatError(error)}
@@ -1566,8 +1663,18 @@ export default function Invoices() {
                         <a href={invoice.document_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                           📄 View
                         </a>
+                      ) : uploadingDocForInvoiceId === invoice.id ? (
+                        <span className="text-gray-400 text-xs">Uploading&hellip;</span>
                       ) : (
-                        <span className="text-gray-400">—</span>
+                        <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer text-sm">
+                          <span>📎</span> Upload
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={(e) => handleQuickInvoiceDocUpload(invoice, e.target.files?.[0])}
+                          />
+                        </label>
                       )}
                     </td>
 
@@ -1890,7 +1997,7 @@ export default function Invoices() {
       )}
 
       {reasonModal.open && reasonModal.action === 'MARK_PAID' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Mark Invoice as Paid</h3>
             <p className="text-sm text-gray-600 mb-4">
@@ -1933,7 +2040,7 @@ export default function Invoices() {
       )}
 
       {reminderModalInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full flex flex-col max-h-[90vh]">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <h3 className="text-xl font-bold text-gray-900">Send Payment Reminder</h3>
@@ -2027,7 +2134,7 @@ export default function Invoices() {
       )}
 
       {showLegalSupportConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
             <div className="text-4xl mb-4 text-center">⚖️</div>
             <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Send to Legal Support Team?</h3>

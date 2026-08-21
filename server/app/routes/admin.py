@@ -412,7 +412,7 @@ async def create_invitation(
     # `invitations.expires_at` is TIMESTAMP WITHOUT TIME ZONE. asyncpg (used by
     # the live app, unlike psycopg2 used by Alembic) rejects a tz-aware
     # datetime here with "can't subtract offset-naive and offset-aware
-    # datetimes" — so this must stay naive UTC, not datetime.now(timezone.utc).
+    # datetimes" — so this must stay naive UTC, not datetime.now(timezone.utc).replace(tzinfo=None).
     now = datetime.utcnow().replace(microsecond=0)
     expires_at = now + timedelta(hours=expiry_hours)
 
@@ -538,7 +538,7 @@ async def update_invitation(
     # Role must remain USER for invitations
     inv.role = "USER"
     if payload.expiry_hours is not None:
-        now = datetime.now(timezone.utc).replace(microsecond=0)
+        now = datetime.now(timezone.utc).replace(tzinfo=None).replace(microsecond=0)
         inv.expires_at = now + timedelta(hours=payload.expiry_hours)
     
     await log_audit(

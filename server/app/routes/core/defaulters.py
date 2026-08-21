@@ -177,7 +177,7 @@ async def update_defaulter(case_id: str, req: DefaulterCaseUpdate, current_user:
         raise HTTPException(status_code=400, detail=INVALID_PAN_FORMAT)
     
     _apply_defaulter_updates(case, req)
-    case.updated_at = datetime.now(timezone.utc)
+    case.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await log_audit(
         db=db,
         user=current_user,
@@ -249,7 +249,7 @@ async def upload_defaulter_document(
     if req.ca_certificate_url is not None:
         case.ca_certificate_url = req.ca_certificate_url
     
-    case.updated_at = datetime.now(timezone.utc)
+    case.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
     await log_audit(
         db=db,
         user=current_user,
