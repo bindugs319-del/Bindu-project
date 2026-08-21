@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { purchaseOrders, sendPOReminder, admin, api } from '../services/api/apiClient'
+import { purchaseOrders, sendPOReminder, admin, api, STATIC_BASE_URL } from '../services/api/apiClient'
 import { isValidGstin } from '../utils/validation'
 import { useAuth } from '../state/authContext'
 import EditPOModal from '../components/po/EditPOModal'
@@ -768,7 +768,7 @@ export default function PurchaseOrders() {
                         <td className="py-5 px-6 whitespace-nowrap">
                           {row.document_url ? (
                             <a
-                              href={row.document_url.startsWith('http') ? row.document_url : `http://localhost:8000${row.document_url}`}
+                              href={row.document_url.startsWith('http') ? row.document_url : `${STATIC_BASE_URL}${row.document_url}`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-blue-600 hover:text-blue-800 flex items-center gap-1"

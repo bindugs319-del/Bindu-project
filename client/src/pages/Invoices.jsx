@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
-import { salesInvoices as invoicesApi, purchaseOrders as poApi, api } from '../services/api/apiClient'
+import { salesInvoices as invoicesApi, purchaseOrders as poApi, api, STATIC_BASE_URL } from '../services/api/apiClient'
 import InvoiceCSVImportModal from '../components/invoices/InvoiceCSVImportModal'
 import ScanPreviewModal from '../components/po/ScanPreviewModal'
 
@@ -1338,7 +1338,7 @@ export default function Invoices() {
                   )}
                   {editingInvoiceId && formData.document_url && !invoiceFile && (
                     <a
-                      href={formData.document_url.startsWith('http') ? formData.document_url : `http://localhost:8000${formData.document_url}`}
+                      href={formData.document_url.startsWith('http') ? formData.document_url : `${STATIC_BASE_URL}${formData.document_url}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-sm text-blue-600 hover:underline mt-2 inline-block"
@@ -1660,7 +1660,7 @@ export default function Invoices() {
 
                     <td className="p-4">
                       {invoice.document_url ? (
-                        <a href={invoice.document_url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                        <a href={invoice.document_url.startsWith('http') ? invoice.document_url : `${STATIC_BASE_URL}${invoice.document_url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                           📄 View
                         </a>
                       ) : uploadingDocForInvoiceId === invoice.id ? (

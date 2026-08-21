@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../state/authContext'
-import { api, adminApi, salesInvoices as invoicesApi } from '../../services/api/apiClient'
+import { api, adminApi, salesInvoices as invoicesApi, STATIC_BASE_URL } from '../../services/api/apiClient'
 import RoleToggleSection from '../../components/RoleToggleSection'
 import CreateUserForm from '../../components/CreateUserForm'
 
@@ -925,7 +925,7 @@ export default function RoleDashboard() {
                   <p className="text-xs text-gray-500 mt-1">Reason: {inv.pending_change_reason}</p>
                 )}
                 {inv.pending_change_evidence_url && (
-                  <a href={inv.pending_change_evidence_url.startsWith('http') ? inv.pending_change_evidence_url : `http://localhost:8000${inv.pending_change_evidence_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
+                  <a href={inv.pending_change_evidence_url.startsWith('http') ? inv.pending_change_evidence_url : `${STATIC_BASE_URL}${inv.pending_change_evidence_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
                     📎 View evidence
                   </a>
                 )}
@@ -1691,7 +1691,7 @@ export default function RoleDashboard() {
                       <p className="text-xs text-gray-500 mt-1">Reason: {inv.pending_change_reason}</p>
                     )}
                     {inv.pending_change_evidence_url && (
-                      <a href={inv.pending_change_evidence_url.startsWith('http') ? inv.pending_change_evidence_url : `http://localhost:8000${inv.pending_change_evidence_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">
+                      <a href={inv.pending_change_evidence_url.startsWith('http') ? inv.pending_change_evidence_url : `${STATIC_BASE_URL}${inv.pending_change_evidence_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">
                         📎 View evidence
                       </a>
                     )}
