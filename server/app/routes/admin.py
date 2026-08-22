@@ -647,6 +647,65 @@ async def delete_user(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.delete("/companies/{company_id}")
+async def delete_company(
+    company_id: str,
+    confirm: bool = False,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Delete a company and everything tied to it (users, purchase orders,
+    sales invoices, ratings) via the ORM's cascade="all, delete-orphan"
+    relationships already defined on the Company model.
+
+    Two-step confirm flow, matching the frontend's preview-then-confirm UX:
+    - confirm=false (default): just counts what WOULD be deleted, no writes.
+    - confirm=true: actually performs the delete.
+    """
+    user_role_val = getattr(current_user.role, "value", str(current_user.role)).upper()
+    if "." in user_role_val:
+        user_role_val = user_role_val.split(".")[-1]
+    if user_role_val != "MASTER_ADMIN" and not is_developer(current_user):
+        raise HTTPException(status_code=403, detail="Only MASTER_ADMIN can delete companies")
+
+    company_result = await db.execute(select(Company).where(Company.id == company_id))
+    company = company_result.scalar_one_or_none()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+
+    users_count = (await db.execute(
+        text("SELECT COUNT(*) FROM users WHERE company_id = :cid"), {"cid": company_id}
+    )).scalar() or 0
+    pos_count = (await db.execute(
+        text("SELECT COUNT(*) FROM purchase_orders WHERE company_id = :cid"), {"cid": company_id}
+    )).scalar() or 0
+    invoices_count = (await db.execute(
+        text("SELECT COUNT(*) FROM sales_invoices WHERE company_id = :cid"), {"cid": company_id}
+    )).scalar() or 0
+
+    if not confirm:
+        return {
+            "success": True,
+            "will_also_delete": {
+                "users": users_count,
+                "purchase_orders": pos_count,
+                "sales_invoices": invoices_count,
+            },
+        }
+
+    try:
+        await db.delete(company)
+        await db.commit()
+        return {
+            "success": True,
+            "message": f"Deleted \"{company.company_name}\" and {users_count} user(s), {pos_count} PO(s), {invoices_count} invoice(s).",
+        }
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/companies/{company_id}")
 async def get_company_details(
     company_id: str,

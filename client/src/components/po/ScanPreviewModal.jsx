@@ -100,18 +100,22 @@ export default function ScanPreviewModal({ onClose, onProceedToImport }) {
 
           {!file && (
             <div className="relative group">
+              <label htmlFor="scan-file" className="block text-sm font-medium text-gray-700 mb-2">
+                Select File (CSV or Excel)
+              </label>
               <input
                 id="scan-file"
                 type="file"
                 accept=".csv,.xlsx,.xls"
                 onChange={handleFileChange}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 top-7"
               />
               <div className="w-full py-12 px-4 border-2 border-dashed border-gray-300 group-hover:border-primary-400 rounded-xl flex flex-col items-center justify-center transition-colors">
                 <svg className="w-12 h-12 mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                 </svg>
                 <span className="text-base font-medium text-gray-600">Click or drag file to scan</span>
+                <span className="text-xs text-gray-400 mt-1">Accepted formats: .csv, .xlsx, .xls</span>
               </div>
             </div>
           )}

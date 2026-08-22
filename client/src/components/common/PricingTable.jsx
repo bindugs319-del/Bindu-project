@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 export default function PricingTable({ content }) {
     // content = { plans: [ { name, price, features: [] } ] }
@@ -98,8 +99,8 @@ export default function PricingTable({ content }) {
                                 ))}
                             </ul>
 
-                            <a
-                                href="/membership"
+                            <Link
+                                to="/membership"
                                 className={`block w-full text-center py-3 rounded-[10px] font-bold transition-all duration-200 ${
                                     plan.featured 
                                         ? 'text-[#0F172A] hover:brightness-110' 
@@ -112,7 +113,7 @@ export default function PricingTable({ content }) {
                                 }}
                             >
                                 Get started
-                            </a>
+                            </Link>
                         </div>
                     </div>
                 ))}

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import PricingTable from '../components/common/PricingTable'
 
 const DEFAULT_CONTENT = {
@@ -131,15 +132,15 @@ export default function Offerings() {
           <p className="text-[#93C5FD] text-lg mb-8">
             Join thousands of Indian businesses using CreditDataWatch
           </p>
-          <a 
-            href="/membership"
+          <Link 
+            to="/membership"
             className="inline-block px-8 py-4 rounded-[10px] font-bold text-[#0F172A] transition-all duration-200 hover:scale-105"
             style={{
               background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
             }}
           >
             Get Started Now
-          </a>
+          </Link>
         </div>
       </section>
     </motion.div>
