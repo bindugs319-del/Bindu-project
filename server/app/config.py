@@ -56,11 +56,21 @@ class Settings(BaseSettings):
     SENDER_EMAIL: str = "no-reply@creditdatawatch.com"
     SENDER_NAME: str = "CreditDataWatch"
 
-    # Resend (HTTPS email API — used instead of raw SMTP because most hosts,
-    # including Render's free/starter plans, block outbound SMTP ports to
-    # prevent spam abuse. Get a free API key at https://resend.com)
+    # Brevo / Sendinblue (HTTPS email API — used instead of raw SMTP
+    # because most hosts, including Render's free/starter plans, block
+    # outbound SMTP ports to prevent spam abuse. Get a free API key at
+    # https://brevo.com, then verify a Sender email address under
+    # Settings > Senders, Domains & Dedicated IPs — no custom domain
+    # needed for a verified single sender.)
+    BREVO_API_KEY: str = ""
+    BREVO_FROM_EMAIL: str = ""  # must be the exact email you verified in Brevo; falls back to SENDER_EMAIL if unset
+
+    # Legacy SendGrid/Resend settings — no longer used by email_service.py,
+    # kept only so old env vars don't cause a startup validation error.
+    SENDGRID_API_KEY: str = ""
+    SENDGRID_FROM_EMAIL: str = ""
     RESEND_API_KEY: str = ""
-    RESEND_FROM_EMAIL: str = ""  # falls back to SENDER_EMAIL if unset
+    RESEND_FROM_EMAIL: str = ""
 
     # Main SMTP Config (for general use)
     SMTP_HOST: str = "localhost"
