@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import PropTypes from 'prop-types'
 import * as XLSX from 'xlsx'
+import ModalShell from './ModalShell'
 
 /**
  * Shared upload -> map columns -> confirm -> results flow for bulk
@@ -189,39 +190,80 @@ export default function GenericCSVImportModal({ onClose, onImportComplete, initi
   }
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col">
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200 px-6 py-4 flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-heading font-bold text-gray-900">{modalTitle}</h2>
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors" type="button" disabled={importing}>
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-          {/* Steps Indicator */}
-          <div className="flex items-center mt-4 gap-4">
-            {[1, 2, 3].map(s => (
-              <div key={s} className="flex items-center gap-2">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step === s ? 'bg-primary-600 text-white' :
-                  step > s ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
-                }`}>
-                  {step > s ? '✓' : s}
-                </div>
-                <span className={`text-xs font-medium ${step === s ? 'text-primary-700' : 'text-gray-500'}`}>
-                  {s === 1 ? 'Upload' : s === 2 ? 'Review' : 'Results'}
-                </span>
-                {s < 3 && <div className="w-8 h-px bg-gray-200" />}
+    <ModalShell
+      title={modalTitle}
+      onClose={onClose}
+      closeDisabled={importing}
+      maxWidth="max-w-3xl"
+      headerExtra={
+        <div className="flex items-center mt-4 gap-4">
+          {[1, 2, 3].map(s => (
+            <div key={s} className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+                step === s ? 'bg-primary-600 text-white' :
+                step > s ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-500'
+              }`}>
+                {step > s ? '✓' : s}
               </div>
-            ))}
-          </div>
+              <span className={`text-xs font-medium ${step === s ? 'text-primary-700' : 'text-gray-500'}`}>
+                {s === 1 ? 'Upload' : s === 2 ? 'Review' : 'Results'}
+              </span>
+              {s < 3 && <div className="w-8 h-px bg-gray-200" />}
+            </div>
+          ))}
         </div>
-
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-grow">
+      }
+      footer={
+        <>
+          <button
+            onClick={onClose}
+            className="flex-1 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors font-medium"
+            disabled={importing}
+          >
+            {step === 3 ? 'Close' : 'Cancel'}
+          </button>
+          {step === 2 && (
+            <button
+              onClick={() => setStep(1)}
+              className="flex-1 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors font-medium"
+              disabled={importing}
+            >
+              Back
+            </button>
+          )}
+          {step === 2 && (
+            <div className="flex-1 flex flex-col gap-2">
+              {importing && (
+                <div className="w-full">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] font-bold text-primary-700 uppercase">Importing Rows...</span>
+                    <span className="text-[10px] font-bold text-primary-700">{importProgress}%</span>
+                  </div>
+                  <div className="w-full h-2 bg-primary-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary-600 transition-all duration-300"
+                      style={{ width: `${importProgress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+              <button
+                onClick={handleConfirmImport}
+                className="w-full btn-primary disabled:opacity-50"
+                disabled={importing}
+              >
+                {importing ? 'Processing...' : 'Confirm & Import'}
+              </button>
+            </div>
+          )}
+          {step === 3 && (
+            <button onClick={onClose} className="flex-1 btn-primary">
+              Done
+            </button>
+          )}
+        </>
+      }
+    >
           {error && (
             <div className="mb-4 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
               {typeof error === 'object' ? (error.message || error.detail || JSON.stringify(error)) : String(error)}
@@ -403,59 +445,8 @@ export default function GenericCSVImportModal({ onClose, onImportComplete, initi
               </div>
             </div>
           )}
-        </div>
 
-        {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl flex gap-3 flex-shrink-0">
-          <button
-            onClick={onClose}
-            className="flex-1 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors font-medium"
-            disabled={importing}
-          >
-            {step === 3 ? 'Close' : 'Cancel'}
-          </button>
-          {step === 2 && (
-            <button
-              onClick={() => setStep(1)}
-              className="flex-1 px-6 py-3 rounded-lg border border-gray-300 text-gray-700 bg-white hover:bg-gray-50 transition-colors font-medium"
-              disabled={importing}
-            >
-              Back
-            </button>
-          )}
-          {step === 2 && (
-            <div className="flex-1 flex flex-col gap-2">
-              {importing && (
-                <div className="w-full">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-[10px] font-bold text-primary-700 uppercase">Importing Rows...</span>
-                    <span className="text-[10px] font-bold text-primary-700">{importProgress}%</span>
-                  </div>
-                  <div className="w-full h-2 bg-primary-100 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary-600 transition-all duration-300"
-                      style={{ width: `${importProgress}%` }}
-                    />
-                  </div>
-                </div>
-              )}
-              <button
-                onClick={handleConfirmImport}
-                className="w-full btn-primary disabled:opacity-50"
-                disabled={importing}
-              >
-                {importing ? 'Processing...' : 'Confirm & Import'}
-              </button>
-            </div>
-          )}
-          {step === 3 && (
-            <button onClick={onClose} className="flex-1 btn-primary">
-              Done
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    </ModalShell>
   )
 }
 
