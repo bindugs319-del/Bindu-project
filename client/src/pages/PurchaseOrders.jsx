@@ -4,7 +4,7 @@ import { isValidGstin } from '../utils/validation'
 import { useAuth } from '../state/authContext'
 import EditPOModal from '../components/po/EditPOModal'
 import CSVImportModal from '../components/po/CSVImportModal'
-import ScanPreviewModal from '../components/po/ScanPreviewModal'
+import PDFImportModal from '../components/po/PDFImportModal'
 import ReminderModal from '../components/po/ReminderModal'
 import { formatE164 } from '../utils/phone'
 import LoadingSpinner from '../components/common/LoadingSpinner'
@@ -55,8 +55,7 @@ export default function PurchaseOrders() {
     const [legalSupportReason, setLegalSupportReason] = useState('')
     const [legalSupportFile, setLegalSupportFile] = useState(null)
   const [showCSVImport, setShowCSVImport] = useState(false)
-  const [showScanPreview, setShowScanPreview] = useState(false)
-  const [scannedFile, setScannedFile] = useState(null)
+  const [showPdfImport, setShowPdfImport] = useState(false)
   const [uploadingDocForId, setUploadingDocForId] = useState(null)
   const [showLegalNotice, setShowLegalNotice] = useState(false);
   const [showLegalConfirm, setShowLegalNoticeConfirm] = useState(null);
@@ -719,7 +718,6 @@ export default function PurchaseOrders() {
                 <thead className="bg-gray-50/80 sticky top-0 z-10 backdrop-blur-sm">
                   <tr>
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">PO #</th>
-                    <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Document</th>
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Vendor</th>
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Email</th>
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Mobile</th>
@@ -728,6 +726,7 @@ export default function PurchaseOrders() {
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Due</th>
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Days Left</th>
                     <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Status</th>
+                    <th className="py-5 px-6 text-left text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Document</th>
                     <th className="py-5 px-6 text-right text-xs font-bold text-gray-800 uppercase tracking-widest border-b border-gray-200">Actions</th>
                   </tr>
                 </thead>
@@ -765,30 +764,6 @@ export default function PurchaseOrders() {
                           <span className="font-bold text-gray-900">{row.po_number}</span>
                           {row.legal_notice_sent_at && <span className="ml-2">⚖️</span>}
                         </td>
-                        <td className="py-5 px-6 whitespace-nowrap">
-                          {row.document_url ? (
-                            <a
-                              href={row.document_url.startsWith('http') ? row.document_url : `${STATIC_BASE_URL}${row.document_url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                            >
-                              <span>📄</span> View
-                            </a>
-                          ) : uploadingDocForId === row.id ? (
-                            <span className="text-gray-400 text-xs">Uploading&hellip;</span>
-                          ) : (
-                            <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer text-sm">
-                              <span>📎</span> Upload
-                              <input
-                                type="file"
-                                accept=".pdf,.jpg,.jpeg,.png"
-                                className="hidden"
-                                onChange={(e) => handleQuickDocUpload(row, e.target.files?.[0])}
-                              />
-                            </label>
-                          )}
-                        </td>
                         <td className="py-5 px-6">
                           <div className="text-sm font-medium text-gray-900">{row.vendor}</div>
                         </td>
@@ -812,6 +787,30 @@ export default function PurchaseOrders() {
                         </td>
                         <td className="py-5 px-6 whitespace-nowrap">
                           {getStatusBadge(row)}
+                        </td>
+                        <td className="py-5 px-6 whitespace-nowrap">
+                          {row.document_url ? (
+                            <a
+                              href={row.document_url.startsWith('http') ? row.document_url : `${STATIC_BASE_URL}${row.document_url}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            >
+                              <span>📄</span> View
+                            </a>
+                          ) : uploadingDocForId === row.id ? (
+                            <span className="text-gray-400 text-xs">Uploading&hellip;</span>
+                          ) : (
+                            <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer text-sm">
+                              <span>📎</span> Upload
+                              <input
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png"
+                                className="hidden"
+                                onChange={(e) => handleQuickDocUpload(row, e.target.files?.[0])}
+                              />
+                            </label>
+                          )}
                         </td>
                         <td className="py-5 px-6 text-right whitespace-nowrap">
                           <div className="flex justify-end gap-1.5">
@@ -940,22 +939,22 @@ export default function PurchaseOrders() {
                     onClick={() => setShowCSVImport(true)}
                     className="flex-1 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center justify-center gap-1"
                   >
-                    📥 Import POs
+                    📥 Import (CSV &amp; XLS)
                   </button>
                 )}
                 {allowed && (
                   <button
-                    onClick={() => setShowScanPreview(true)}
+                    onClick={() => setShowPdfImport(true)}
                     className="flex-1 text-xs text-primary-700 border border-primary-300 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors font-medium flex items-center justify-center gap-1"
                   >
-                    🔍 Scan
+                    📄 Import (.pdf)
                   </button>
                 )}
                 <button 
                   onClick={downloadTemplate} 
                   className="flex-1 text-xs text-blue-600 border border-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center justify-center gap-1" 
                 > 
-                  📄 Template 
+                  📄 Template (CSV) 
                 </button>
               </div>
             </div>
@@ -1123,20 +1122,15 @@ export default function PurchaseOrders() {
             />
           )}
 
-          {showScanPreview && (
-            <ScanPreviewModal
-              onClose={() => setShowScanPreview(false)}
-              onProceedToImport={(file) => {
-                setScannedFile(file)
-                setShowScanPreview(false)
-                setShowCSVImport(true)
-              }}
+          {showPdfImport && (
+            <PDFImportModal
+              onClose={() => setShowPdfImport(false)}
+              onImportComplete={handleImportComplete}
             />
           )}
 
           {showCSVImport && (
             <CSVImportModal
-              initialFile={scannedFile}
               onClose={() => setShowCSVImport(false)}
               onImportComplete={handleImportComplete}
             />

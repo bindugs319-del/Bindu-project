@@ -479,6 +479,168 @@ async def get_next_numbers(
     )
 
 
+@router.post("/scan-pdf")
+async def scan_sales_invoice_pdf(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(...),
+):
+    """Reads an uploaded invoice PDF and extracts fields for preview only —
+    nothing is saved here. Mirrors /purchase-orders/scan-pdf."""
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+
+    ALLOWED_SCAN_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp")
+    if not file.filename.lower().endswith(ALLOWED_SCAN_EXTENSIONS):
+        raise HTTPException(status_code=400, detail="Please upload a PDF or an image (.pdf, .jpg, .jpeg, .png)")
+
+    from app.services.invoice_pdf_scan_service import extract_invoice_fields
+    pdf_bytes = await file.read()
+    result = extract_invoice_fields(pdf_bytes, filename=file.filename)
+
+    will_update = False
+    existing_invoice_id = None
+    invoice_number = (result.get("fields") or {}).get("invoice_number")
+    if invoice_number:
+        stmt = select(SalesInvoice).where(
+            SalesInvoice.user_id == current_user.id,
+            SalesInvoice.invoice_number == invoice_number,
+            SalesInvoice.archived == False,  # noqa: E712
+        )
+        existing = (await db.execute(stmt)).scalar_one_or_none()
+        if existing:
+            will_update = True
+            existing_invoice_id = existing.id
+
+    return ResponseFormatter.create_success(data={
+        **result,
+        "will_update_existing": will_update,
+        "existing_invoice_id": existing_invoice_id,
+    })
+
+
+@router.post("/import-pdf")
+async def import_sales_invoice_pdf(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    invoice_number: str = Form(...),
+    counterparty_name: str = Form(...),
+    counterparty_gstin: str = Form(None),
+    counterparty_email: str = Form(None),
+    counterparty_phone: str = Form(None),
+    subtotal: float = Form(0),
+    tax_amount: float = Form(0),
+    total: float = Form(0),
+    invoice_date: str = Form(...),
+    payment_due_date: str = Form(...),
+):
+    """Confirms a scanned invoice PDF's fields and either updates the
+    matching open invoice for this user, or creates a new one if no
+    invoice with that number exists yet. Mirrors /purchase-orders/import-pdf.
+    Line items aren't extracted from the PDF, so a matched invoice keeps
+    its existing items untouched, and a newly created one starts with none."""
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+
+    try:
+        invoice_date_obj = datetime.strptime(invoice_date.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invoice date could not be parsed; please re-check it in the preview.")
+    try:
+        due_date_obj = datetime.strptime(payment_due_date.strip(), "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Due date could not be parsed; please re-check it in the preview.")
+
+    gstin_norm = counterparty_gstin.strip().upper() if counterparty_gstin else None
+
+    stmt = select(SalesInvoice).where(
+        SalesInvoice.user_id == current_user.id,
+        SalesInvoice.invoice_number == invoice_number,
+        SalesInvoice.archived == False,  # noqa: E712
+    )
+    existing = (await db.execute(stmt)).scalar_one_or_none()
+
+    if existing:
+        if existing.status == "Paid":
+            raise HTTPException(status_code=400, detail=f"Invoice {invoice_number} is already paid; cannot update it via scan.")
+        existing.counterparty_name = counterparty_name
+        if gstin_norm:
+            existing.counterparty_gstin = gstin_norm
+        if counterparty_email:
+            existing.counterparty_email = counterparty_email
+        if counterparty_phone:
+            existing.counterparty_phone = counterparty_phone
+        if subtotal:
+            existing.subtotal = subtotal
+        if tax_amount:
+            existing.tax_amount = tax_amount
+        if total:
+            existing.total = total
+        existing.invoice_date = invoice_date_obj
+        existing.payment_due_date = due_date_obj
+        existing.updated_at = datetime.utcnow()
+        await db.commit()
+        from app.utils.audit import log_audit
+        await log_audit(
+            db=db, user=current_user, action="SALES_INVOICE_UPDATED",
+            entity_obj=existing, reason=f"Sales invoice {invoice_number} updated from scanned PDF",
+        )
+        await db.commit()
+        return ResponseFormatter.create_success(
+            data={"id": existing.id, "action": "updated"},
+            message=f"Existing invoice {invoice_number} updated from scanned PDF",
+        )
+
+    profile = await BusinessProfileService.get_or_create_profile(current_user.id, db)
+    now = datetime.utcnow()
+    invoice = SalesInvoice(
+        id=str(uuid4()),
+        user_id=current_user.id,
+        company_id=getattr(current_user, "company_id", None),
+        company_name=profile.registered_name or profile.name,
+        company_address=profile.address,
+        company_gstin=profile.gstin,
+        company_pan=profile.pan,
+        cin=profile.cin,
+        msme_no=profile.msme_no,
+        bank_account_name=profile.bank_account_name,
+        bank_account_number=profile.bank_account_number,
+        bank_ifsc=profile.bank_ifsc,
+        bank_name=profile.bank_name,
+        bank_upi_id=profile.bank_upi_id,
+        invoice_number=invoice_number,
+        invoice_date=invoice_date_obj,
+        payment_due_date=due_date_obj,
+        counterparty_name=counterparty_name,
+        counterparty_gstin=gstin_norm,
+        counterparty_email=counterparty_email,
+        counterparty_phone=counterparty_phone,
+        country="IN",
+        currency="INR",
+        exchange_rate=1.0,
+        items=[],
+        subtotal=subtotal or 0.0,
+        tax_amount=tax_amount or 0.0,
+        total=total or 0.0,
+        balance_due=total or 0.0,
+        status="Draft",
+        created_at=now,
+        updated_at=now,
+    )
+    db.add(invoice)
+    await db.commit()
+    from app.utils.audit import log_audit
+    await log_audit(
+        db=db, user=current_user, action="SALES_INVOICE_CREATED",
+        entity_obj=invoice, reason=f"Sales invoice {invoice_number} created from scanned PDF",
+    )
+    await db.commit()
+    return ResponseFormatter.create_success(
+        data={"id": invoice.id, "action": "created"},
+        message=f"New invoice {invoice_number} created from scanned PDF",
+    )
+
+
 @router.post("")
 async def create_sales_invoice(
     payload: SalesInvoiceCreate,

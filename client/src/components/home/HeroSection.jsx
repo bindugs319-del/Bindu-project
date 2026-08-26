@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import ParticleBackground from '../ui/ParticleBackground'
 import TypewriterText from '../ui/TypewriterText'
+import HeroTileGrid from './HeroTileGrid'
 
 const tiles = [
   { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
@@ -112,33 +113,7 @@ export default function HeroSection() {
           </div>
         </div>
 
-        <div 
-          className="grid grid-cols-2 md:grid-cols-3 gap-4"
-          style={{ 
-            filter: 'drop-shadow(0 0 40px rgba(59,130,246,0.3))' 
-          }}
-        >
-          {tiles.map((tile, idx) => (
-            <div 
-              key={tile.title} 
-              className="group"
-            >
-              <Link to={tile.to} className="block">
-                <div 
-                  className="card h-full bg-white/10 border border-white/20 text-white backdrop-blur-md hover:bg-white/15"
-                >
-                  <div className="flex items-start justify-between">
-                    <p className="font-semibold leading-snug text-base">{tile.title}</p>
-                    <span className="text-sm text-white/80 group-hover:rotate-45 group-hover:translate-x-1 transition-all duration-300">
-                      →
-                    </span>
-                  </div>
-                  <div className="mt-3 h-1.5 w-12 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] group-hover:w-full transition-all duration-300" />
-                </div>
-              </Link>
-            </div>
-          ))}
-        </div>
+        <HeroTileGrid tiles={tiles} />
       </div>
       
       {/* Wave divider */}

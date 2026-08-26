@@ -28,3 +28,8 @@ isort
 flake8
 python-json-logger
 reportlab
+pypdf
+pytesseract
+pdf2image
+Pillow
+pdfplumber

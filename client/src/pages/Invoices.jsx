@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { salesInvoices as invoicesApi, purchaseOrders as poApi, api, STATIC_BASE_URL } from '../services/api/apiClient'
 import InvoiceCSVImportModal from '../components/invoices/InvoiceCSVImportModal'
-import ScanPreviewModal from '../components/po/ScanPreviewModal'
+import InvoicePDFImportModal from '../components/invoices/InvoicePDFImportModal'
 
 /**
  * Turn whatever shape an API error comes back as into a readable string.
@@ -46,8 +46,7 @@ export default function Invoices() {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [showInvoiceImport, setShowInvoiceImport] = useState(false)
-  const [showInvoiceScan, setShowInvoiceScan] = useState(false)
-  const [scannedInvoiceFile, setScannedInvoiceFile] = useState(null)
+  const [showInvoicePdfImport, setShowInvoicePdfImport] = useState(false)
   const [uploadingDocForInvoiceId, setUploadingDocForInvoiceId] = useState(null)
   const [error, setError] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(true)
@@ -839,17 +838,17 @@ export default function Invoices() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => setShowInvoiceScan(true)}
+                      onClick={() => setShowInvoicePdfImport(true)}
                       className="flex-1 text-xs text-primary-700 border border-primary-300 px-3 py-1.5 rounded-lg hover:bg-primary-50 transition-colors font-medium flex items-center justify-center gap-1"
                     >
-                      🔍 Scan
+                      📄 Import (.pdf)
                     </button>
                     <button
                       type="button"
                       onClick={downloadInvoiceTemplate}
                       className="flex-1 text-xs text-blue-600 border border-blue-600 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors font-medium flex items-center justify-center gap-1"
                     >
-                      📄 Template
+                      📄 Template (CSV)
                     </button>
                   </div>
                 )}
@@ -1538,21 +1537,16 @@ export default function Invoices() {
           </div>
         </div>
 
-        {showInvoiceScan && (
-          <ScanPreviewModal
-            onClose={() => setShowInvoiceScan(false)}
-            onProceedToImport={(file) => {
-              setScannedInvoiceFile(file)
-              setShowInvoiceScan(false)
-              setShowInvoiceImport(true)
-            }}
+        {showInvoicePdfImport && (
+          <InvoicePDFImportModal
+            onClose={() => setShowInvoicePdfImport(false)}
+            onImportComplete={() => { fetchInvoices() }}
           />
         )}
 
         {showInvoiceImport && (
           <InvoiceCSVImportModal
-            initialFile={scannedInvoiceFile}
-            onClose={() => { setShowInvoiceImport(false); setScannedInvoiceFile(null) }}
+            onClose={() => setShowInvoiceImport(false)}
             onImportComplete={() => { fetchInvoices() }}
           />
         )}
@@ -1632,7 +1626,6 @@ export default function Invoices() {
               <thead className="bg-gray-100">
                 <tr>
                   <th className="p-4 text-left whitespace-nowrap">Invoice #</th>
-                  <th className="p-4 text-left whitespace-nowrap">Document</th>
                   <th className="p-4 text-left whitespace-nowrap">Customer</th>
                   <th className="p-4 text-left whitespace-nowrap">Email</th>
                   <th className="p-4 text-left whitespace-nowrap">Mobile</th>
@@ -1641,6 +1634,7 @@ export default function Invoices() {
                   <th className="p-4 text-left whitespace-nowrap">Due Date</th>
                   <th className="p-4 text-left whitespace-nowrap">Days Left</th>
                   <th className="p-4 text-left whitespace-nowrap">Status</th>
+                  <th className="p-4 text-left whitespace-nowrap">Document</th>
                   <th className="p-4 text-right whitespace-nowrap">Actions</th>
                 </tr>
               </thead>
@@ -1655,26 +1649,6 @@ export default function Invoices() {
                       <div className="font-medium">{invoice.invoice_number}</div>
                       {approvalBadge(invoice) && (
                         <div className="text-[11px] mt-0.5">{approvalBadge(invoice)}</div>
-                      )}
-                    </td>
-
-                    <td className="p-4">
-                      {invoice.document_url ? (
-                        <a href={invoice.document_url.startsWith('http') ? invoice.document_url : `${STATIC_BASE_URL}${invoice.document_url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          📄 View
-                        </a>
-                      ) : uploadingDocForInvoiceId === invoice.id ? (
-                        <span className="text-gray-400 text-xs">Uploading&hellip;</span>
-                      ) : (
-                        <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer text-sm">
-                          <span>📎</span> Upload
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={(e) => handleQuickInvoiceDocUpload(invoice, e.target.files?.[0])}
-                          />
-                        </label>
                       )}
                     </td>
 
@@ -1708,6 +1682,26 @@ export default function Invoices() {
 
                     <td className="p-4 whitespace-nowrap">
                       {getStatusPill(invoice)}
+                    </td>
+
+                    <td className="p-4">
+                      {invoice.document_url ? (
+                        <a href={invoice.document_url.startsWith('http') ? invoice.document_url : `${STATIC_BASE_URL}${invoice.document_url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
+                          📄 View
+                        </a>
+                      ) : uploadingDocForInvoiceId === invoice.id ? (
+                        <span className="text-gray-400 text-xs">Uploading&hellip;</span>
+                      ) : (
+                        <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer text-sm">
+                          <span>📎</span> Upload
+                          <input
+                            type="file"
+                            accept=".pdf,.jpg,.jpeg,.png"
+                            className="hidden"
+                            onChange={(e) => handleQuickInvoiceDocUpload(invoice, e.target.files?.[0])}
+                          />
+                        </label>
+                      )}
                     </td>
 
                     <td className="p-4">

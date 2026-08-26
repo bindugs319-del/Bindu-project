@@ -1,11 +1,6 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
-import Services from './Services'
-import Solutions from './Solutions'
 
 export default function About() {
-  const [tab, setTab] = useState('overview')
-
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -32,34 +27,6 @@ export default function About() {
         </div>
       </section>
 
-      {/* Tab Switcher — consolidates About / Services / Solutions into one page */}
-      <div className="sticky top-[72px] z-30 bg-white border-b border-[#E2E8F0] shadow-sm">
-        <div className="max-w-5xl mx-auto px-4 flex gap-1 overflow-x-auto">
-          {[
-            { key: 'overview', label: 'Overview' },
-            { key: 'services', label: 'Services' },
-            { key: 'solutions', label: 'Solutions' },
-          ].map(t => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className={`px-5 py-4 text-sm font-semibold whitespace-nowrap border-b-2 transition-colors ${
-                tab === t.key
-                  ? 'border-[#3B82F6] text-[#1E3A8A]'
-                  : 'border-transparent text-[#64748B] hover:text-[#1E3A8A]'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {tab === 'services' && <Services />}
-      {tab === 'solutions' && <Solutions />}
-
-      {tab === 'overview' && (
-      <>
       {/* Platform Overview */}
       <section className="py-16 px-4 bg-white">
         <div className="max-w-5xl mx-auto">
@@ -100,13 +67,17 @@ export default function About() {
           <div className="grid lg:grid-cols-2 gap-8 items-stretch">
             {/* Flow Diagram */}
             <div className="flex flex-col">
-              <h2 className="text-3xl font-bold text-[#0F172A] mb-6 relative inline-block">
+              <h2 className="text-3xl font-bold text-[#0F172A] mb-2 relative inline-block">
                 Our Process Flow
                 <span 
                   className="absolute -bottom-2 left-0 w-12 h-1.5"
                   style={{ backgroundColor: '#F59E0B' }}
                 ></span>
               </h2>
+              {/* Invisible spacer mirroring the other column's subtitle text
+                  exactly, so both "card" boxes below start at the same
+                  vertical position regardless of viewport width. */}
+              <p className="mb-6 opacity-0 select-none" aria-hidden="true">A transparent, verified, and GST-first approach to credit intelligence</p>
               <div 
                 className="card flex-1"
                 style={{ borderTop: '3px solid #1E3A8A', boxShadow: '0 4px 24px rgba(30, 58, 138, 0.15)' }}
@@ -245,8 +216,6 @@ export default function About() {
           </div>
         </div>
       </section>
-      </>
-      )}
 
     </div>
   )

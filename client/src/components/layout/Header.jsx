@@ -1,9 +1,67 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../state/authContext'
 import { api } from '../../services/api/apiClient'
 import NotificationBell from '../NotificationBell'
+
+// A nav item that shows a small dropdown of 2 options on click, closing
+// when an option is chosen or when clicking anywhere outside it.
+function NavDropdown({ label, options }) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handleClickOutside = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [open])
+
+  return (
+    <div className="relative" ref={ref}>
+      <motion.button
+        type="button"
+        whileHover={{ y: -1 }}
+        onClick={() => setOpen((prev) => !prev)}
+        className="relative flex items-center gap-1 text-sm font-medium text-[#374151] hover:text-[#1E3A8A] transition-all duration-200"
+      >
+        {label}
+        <svg className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </motion.button>
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.15 }}
+            className="absolute left-0 top-full mt-2 w-56 bg-white rounded-xl shadow-lg border border-[#E2E8F0] py-2 z-50"
+          >
+            {options.map((opt) => (
+              <NavLink
+                key={opt.to}
+                to={opt.to}
+                onClick={() => setOpen(false)}
+                className={({ isActive }) =>
+                  `block px-4 py-2.5 text-sm font-medium transition-colors ${
+                    isActive ? 'text-[#1E3A8A] bg-primary-50' : 'text-[#374151] hover:bg-primary-50/60 hover:text-[#1E3A8A]'
+                  }`
+                }
+              >
+                {opt.label}
+              </NavLink>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
 
 export default function Header() {
   const [open, setOpen] = useState(false)
@@ -26,14 +84,22 @@ export default function Header() {
 
   const navLinks = [
     { label: 'About', to: '/about' },
+    { label: 'Services', to: '/services' },
+    { label: 'Solutions', to: '/solutions' },
     { label: 'Offerings', to: '/offerings' },
     { label: 'Membership', to: '/membership' },
     { label: 'Wallet', to: '/wallet' },
     { label: 'Contact', to: '/contact' },
-    { label: 'PO dashboard', to: getDashboardLink() },
-    { label: 'invoice dashboard', to: '/invoice-dashboard' },
+  ]
+
+  const invoiceOptions = [
+    { label: 'Invoice Dashboard', to: '/invoice-dashboard' },
+    { label: 'Invoice Credibility Index', to: '/inv-credibility-index' },
+  ]
+
+  const poOptions = [
+    { label: 'PO Dashboard', to: getDashboardLink() },
     { label: 'PO Credibility Index', to: '/credibility-index' },
-    { label: 'invoice credibility Index', to: '/inv-credibility-index' },
   ]
 
   useEffect(() => {
@@ -123,6 +189,8 @@ export default function Header() {
               )}
             </NavLink>
           ))}
+          <NavDropdown label="Invoice" options={invoiceOptions} />
+          <NavDropdown label="PO" options={poOptions} />
           {/* Always-visible Login link — separate from the account avatar below,
               so it stays in the nav even after you're logged in. */}
           <NavLink
@@ -270,6 +338,41 @@ export default function Header() {
                   {link.label}
                 </NavLink>
               ))}
+
+              {/* Invoice / PO — shown as always-expanded sub-groups here
+                  since the mobile menu is already a scrollable list; a
+                  nested toggle would just add an extra tap. */}
+              <div>
+                <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">Invoice</div>
+                {invoiceOptions.map((opt) => (
+                  <NavLink
+                    key={opt.to}
+                    to={opt.to}
+                    className={({ isActive }) =>
+                      `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
+                    }
+                    onClick={() => setOpen(false)}
+                  >
+                    {opt.label}
+                  </NavLink>
+                ))}
+              </div>
+
+              <div>
+                <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">PO</div>
+                {poOptions.map((opt) => (
+                  <NavLink
+                    key={opt.to}
+                    to={opt.to}
+                    className={({ isActive }) =>
+                      `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
+                    }
+                    onClick={() => setOpen(false)}
+                  >
+                    {opt.label}
+                  </NavLink>
+                ))}
+              </div>
               
               {/* Always-visible Login link, same as desktop/tablet */}
               <Link

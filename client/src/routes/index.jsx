@@ -334,14 +334,15 @@ export default function AppRoutes() {
             <Route path="privacy" element={<Privacy />} />
             <Route path="terms" element={<Terms />} />
 
+            <Route path="auth" element={<AuthLanding />} />
+            <Route path="auth/login" element={<Login />} />
+            <Route path="auth/register" element={<Register />} />
+            <Route path="auth/forgot-password" element={<ForgotPassword />} />
+            <Route path="accept-invite" element={<AcceptInvite />} />
+
             <Route path="*" element={<NotFound />} />
           </Route>
 
-          <Route path="auth" element={<AuthLanding />} />
-          <Route path="auth/login" element={<Login />} />
-          <Route path="auth/register" element={<Register />} />
-          <Route path="auth/forgot-password" element={<ForgotPassword />} />
-          <Route path="accept-invite" element={<AcceptInvite />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </motion.div>

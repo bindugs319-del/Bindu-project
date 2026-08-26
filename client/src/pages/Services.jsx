@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import FeatureCardGrid from '../components/marketing/FeatureCardGrid'
+import HeroTileGrid from '../components/home/HeroTileGrid'
 
 function FAQSection({ faqs }) {
   const [open, setOpen] = useState(null)
@@ -87,6 +88,17 @@ export default function Services() {
           <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
             Comprehensive credit intelligence, risk management, and debt recovery tools designed for Indian businesses and MSMEs.
           </p>
+          <div className="mt-10 text-left">
+            <HeroTileGrid
+              columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+              tiles={[
+                { title: 'Report Overdue Payer', to: '/services/report-overdue' },
+                { title: 'Credit Management', to: '/services/credit-management' },
+                { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
+                { title: 'Finalization Steps', to: '/services/finalization' },
+              ]}
+            />
+          </div>
         </div>
       </section>
 

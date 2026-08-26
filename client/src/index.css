@@ -82,7 +82,7 @@
   }
 
   h1, h2, h3, h4 {
-    @apply font-heading text-[#0F172A];
+    @apply font-heading text-[#9bb2e5];
   }
   
   p, span, label, input, button, td, th {

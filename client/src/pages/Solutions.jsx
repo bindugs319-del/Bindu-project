@@ -1,7 +1,8 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import FeatureCardGrid from '../components/marketing/FeatureCardGrid'
+import HeroTileGrid from '../components/home/HeroTileGrid'
 
 function FAQSection({ faqs }) {
   const [open, setOpen] = useState(null)
@@ -63,6 +64,17 @@ const businessDebtFaqs = [
 ]
 
 export default function Solutions() {
+  // Clicking a card (from this page or from the homepage) navigates to
+  // /solutions#section-id — React Router's client-side navigation doesn't
+  // auto-scroll to hash fragments the way a normal page load would, so
+  // this does it manually whenever the hash changes.
+  const location = useLocation()
+  useEffect(() => {
+    if (!location.hash) return
+    const el = document.querySelector(location.hash)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash])
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -86,13 +98,16 @@ export default function Solutions() {
           <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
             Empowering Indian businesses with advanced credit intelligence, risk management, and debt recovery tools built for the modern economy.
           </p>
-          <div className="flex flex-wrap justify-center gap-3 mt-8">
-            {['B2B Solutions','MSME Solutions','Business Credit','Business Debt'].map(tab => (
-              <a key={tab} href={`#${tab.toLowerCase().replaceAll(' ','-')}`}
-                className="bg-white/10 hover:bg-white/20 border border-white/30 text-white text-sm px-4 py-2 rounded-full transition-colors">
-                {tab}
-              </a>
-            ))}
+          <div className="mt-10 text-left">
+            <HeroTileGrid
+              columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+              tiles={[
+                { title: 'B2B Solutions', to: '/solutions/b2b' },
+                { title: 'MSME Solutions', to: '/solutions/msme' },
+                { title: 'Business Credit', to: '/solutions/business-credit' },
+                { title: 'Business Debt', to: '/solutions/business-debt' },
+              ]}
+            />
           </div>
         </div>
       </section>

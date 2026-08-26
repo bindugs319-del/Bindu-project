@@ -1,0 +1,14 @@
+# Don't ship local dev artifacts or secrets into the Docker image
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.flake8
+*.dump
+uploads/*
+!uploads/.gitkeep
+.env
+.env.*
+!.envexample
+*.md
+credentials/

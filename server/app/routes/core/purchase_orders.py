@@ -3,7 +3,7 @@ Purchase order lifecycle endpoints (create, approve, pay, archive, legal escalat
 """
 from fastapi import APIRouter, Depends, Request, HTTPException, File, UploadFile, Form
 from typing import Annotated
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, or_, text, update as sa_update
 from datetime import datetime, timezone
@@ -274,6 +274,149 @@ async def create_po(
         error_msg = f"ERROR creating PO: {str(e)}\n{traceback.format_exc()}"
         logger.error(error_msg)
         return JSONResponse(status_code=500, content={"success": False, "detail": str(e)})
+
+
+@po_router.post("/scan-pdf")
+async def scan_po_pdf(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    file: UploadFile = File(...),
+):
+    """
+    Reads an uploaded PO PDF and extracts the same fields the CSV/Excel
+    importer uses, for preview only — nothing is saved to the database here.
+    The frontend shows these fields in an editable preview, and only calls
+    /purchase-orders/import-pdf once the user confirms them.
+    """
+    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
+        raise UnauthorizedFeature(PO_FEATURE_NAME)
+
+    ALLOWED_SCAN_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".webp")
+    if not file.filename.lower().endswith(ALLOWED_SCAN_EXTENSIONS):
+        raise HTTPException(status_code=400, detail="Please upload a PDF or an image (.pdf, .jpg, .jpeg, .png)")
+
+    from app.services.po_pdf_scan_service import extract_po_fields
+    pdf_bytes = await file.read()
+    result = extract_po_fields(pdf_bytes, filename=file.filename)
+
+    # Let the frontend know up front whether an open PO with this number
+    # already exists, so the preview screen can say "this will update an
+    # existing PO" vs "this will create a new PO" before the user confirms.
+    will_update = False
+    existing_po_id = None
+    po_number = (result.get("fields") or {}).get("po_number")
+    if po_number:
+        stmt = select(PurchaseOrder).where(
+            PurchaseOrder.company_id == current_user.company_id,
+            PurchaseOrder.po_number == po_number,
+            PurchaseOrder.archived == False,
+        )
+        existing = (await db.execute(stmt)).scalars().first()
+        if existing:
+            will_update = True
+            existing_po_id = existing.id
+
+    return ResponseFormatter.create_success(data={
+        **result,
+        "will_update_existing": will_update,
+        "existing_po_id": existing_po_id,
+    })
+
+
+@po_router.post("/import-pdf")
+async def import_po_pdf(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    po_number: str = Form(...),
+    vendor: str = Form(...),
+    gstin: str = Form(None),
+    vendor_email: str = Form(None),
+    vendor_phone: str = Form(None),
+    amount: float = Form(...),
+    due_date: str = Form(...),
+    payment_window_days: int = Form(50),
+    file: UploadFile = File(None),
+):
+    """
+    Confirms a scanned PDF's (possibly user-corrected) fields and either
+    updates the matching open PO for this company, or creates a new one if
+    no PO with that number exists yet — "recognize and update the open PO"
+    as opposed to blindly creating a duplicate every time the same PO is
+    re-scanned.
+    """
+    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
+        raise UnauthorizedFeature(PO_FEATURE_NAME)
+
+    from datetime import datetime as _dt, timedelta as _td
+    try:
+        due_date_obj = _dt.strptime(due_date.strip(), "%Y-%m-%d")
+    except ValueError:
+        due_date_obj = _dt.utcnow() + _td(days=30)
+
+    gstin_norm = gstin.strip().upper() if gstin else None
+    document_url_final = None
+
+    if file and file.filename:
+        from app.utils.uploads import get_upload_subdir
+        upload_dir = get_upload_subdir("purchase_orders")
+        filename = f"{uuid.uuid4()}_{file.filename}"
+        filepath = upload_dir / filename
+        with open(filepath, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        document_url_final = f"/uploads/purchase_orders/{filename}"
+
+    stmt = select(PurchaseOrder).where(
+        PurchaseOrder.company_id == current_user.company_id,
+        PurchaseOrder.po_number == po_number,
+        PurchaseOrder.archived == False,
+    )
+    existing = (await db.execute(stmt)).scalars().first()
+
+    if existing:
+        if existing.payment_completed_at is not None:
+            raise HTTPException(status_code=400, detail=f"PO {po_number} is already paid and locked; cannot update it via scan.")
+        existing.vendor = vendor
+        if gstin_norm:
+            existing.gstin = gstin_norm
+        if vendor_email:
+            existing.vendor_email = vendor_email
+        if vendor_phone:
+            existing.vendor_phone = vendor_phone
+        existing.amount = amount
+        existing.due_date = due_date_obj
+        existing.payment_window_days = payment_window_days
+        if document_url_final:
+            existing.document_url = document_url_final
+        existing.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
+        await db.commit()
+        await db.refresh(existing)
+        return ResponseFormatter.create_success(
+            data={"id": existing.id, "action": "updated"},
+            message=f"Existing PO {po_number} updated from scanned PDF",
+        )
+
+    po = PurchaseOrder(
+        id=str(uuid.uuid4()),
+        user_id=current_user.id,
+        company_id=current_user.company_id,
+        po_number=po_number,
+        vendor=vendor,
+        gstin=gstin_norm,
+        vendor_email=vendor_email,
+        vendor_phone=vendor_phone,
+        amount=amount,
+        due_date=due_date_obj,
+        status="Open",
+        document_url=document_url_final,
+        payment_window_days=payment_window_days,
+    )
+    db.add(po)
+    await db.commit()
+    await db.refresh(po)
+    return ResponseFormatter.create_success(
+        data={"id": po.id, "action": "created"},
+        message=f"New PO {po_number} created from scanned PDF",
+    )
 
 
 @po_router.get("/search")

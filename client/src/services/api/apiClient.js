@@ -427,6 +427,27 @@ export const purchaseOrders = {
   approve: (id) => apiRequest(`/purchase-orders/${id}/approve`, { method: 'POST' }),
   reject: (id, reason) => apiRequest(`/purchase-orders/${id}/reject`, { method: 'POST', body: JSON.stringify({ reason }) }),
   listPending: () => apiRequest('/purchase-orders/workflow/pending'),
+  // PDF scan-import: step 1 reads the PDF and returns extracted fields for preview (nothing saved yet)
+  scanPdf: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiRequest('/purchase-orders/scan-pdf', { method: 'POST', body: formData, headers: {} })
+  },
+  // PDF scan-import: step 2 confirms the (possibly corrected) fields; creates a new PO
+  // or updates the matching existing open PO if one with that PO number already exists
+  importPdf: (data) => {
+    const formData = new FormData()
+    formData.append('po_number', data.po_number || '')
+    formData.append('vendor', data.vendor || '')
+    if (data.gstin) formData.append('gstin', data.gstin)
+    if (data.vendor_email) formData.append('vendor_email', data.vendor_email)
+    if (data.vendor_phone) formData.append('vendor_phone', data.vendor_phone)
+    formData.append('amount', data.amount ?? '')
+    formData.append('due_date', data.due_date || '')
+    formData.append('payment_window_days', data.payment_window_days ?? 50)
+    if (data.file) formData.append('file', data.file)
+    return apiRequest('/purchase-orders/import-pdf', { method: 'POST', body: formData, headers: {} })
+  },
 }
 
 export const admin = {
@@ -507,6 +528,28 @@ export const accountProfile = {
 
 export const salesInvoices = {
   create: (data) => apiRequest('/sales-invoices', { method: 'POST', body: JSON.stringify(data) }),
+  // PDF scan-import: step 1 reads the PDF and returns extracted fields for preview (nothing saved yet)
+  scanPdf: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiRequest('/sales-invoices/scan-pdf', { method: 'POST', body: formData, headers: {} })
+  },
+  // PDF scan-import: step 2 confirms the (possibly corrected) fields; creates a new invoice
+  // or updates the matching existing open invoice if one with that invoice number already exists
+  importPdf: (data) => {
+    const formData = new FormData()
+    formData.append('invoice_number', data.invoice_number || '')
+    formData.append('counterparty_name', data.counterparty_name || '')
+    if (data.counterparty_gstin) formData.append('counterparty_gstin', data.counterparty_gstin)
+    if (data.counterparty_email) formData.append('counterparty_email', data.counterparty_email)
+    if (data.counterparty_phone) formData.append('counterparty_phone', data.counterparty_phone)
+    formData.append('subtotal', data.subtotal ?? 0)
+    formData.append('tax_amount', data.tax_amount ?? 0)
+    formData.append('total', data.total ?? 0)
+    formData.append('invoice_date', data.invoice_date || '')
+    formData.append('payment_due_date', data.payment_due_date || '')
+    return apiRequest('/sales-invoices/import-pdf', { method: 'POST', body: formData, headers: {} })
+  },
   list: (params = {}, opt = {}) => {
     const queryParams = new URLSearchParams()
     if (params.skip !== undefined) queryParams.append('skip', params.skip)
