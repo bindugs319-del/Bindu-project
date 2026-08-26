@@ -10,7 +10,7 @@ const solutions = [
       'Trade acknowledgement with dual consent',
       'Portfolio-level overdue heatmaps',
     ],
-    to: '/solutions/b2b',
+    to: '/solutions#b2b-solutions',
     tone: 'from-primary-500/90 to-primary-700/90',
   },
   {
@@ -21,7 +21,7 @@ const solutions = [
       'Automated reminder cadences',
       'Guided dispute resolution steps',
     ],
-    to: '/solutions/msme',
+    to: '/solutions#msme-solutions',
     tone: 'from-emerald-500/90 to-emerald-600/90',
   },
   {
@@ -32,7 +32,7 @@ const solutions = [
       'Positive trade line submissions',
       'Identity & compliance guardrails',
     ],
-    to: '/solutions/business-credit',
+    to: '/solutions#business-credit',
     tone: 'from-indigo-500/90 to-indigo-600/90',
   },
   {
@@ -43,7 +43,7 @@ const solutions = [
       'Negotiation playbooks',
       'Settlement documentation vault',
     ],
-    to: '/solutions/business-debt',
+    to: '/solutions#business-debt',
     tone: 'from-amber-500/90 to-amber-600/90',
   },
 ]

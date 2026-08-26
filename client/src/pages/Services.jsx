@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { Link, useLocation } from 'react-router-dom'
 import PropTypes from 'prop-types'
 import FeatureCardGrid from '../components/marketing/FeatureCardGrid'
 import HeroTileGrid from '../components/home/HeroTileGrid'
@@ -65,6 +65,17 @@ const creditManagementFaqs = [
 ]
 
 export default function Services() {
+  // Clicking a tile navigates to /services#section-id — React Router's
+  // client-side navigation doesn't auto-scroll to hash fragments the way
+  // a normal page load would, so this does it manually whenever the hash
+  // changes (matches the same fix used on the Solutions page).
+  const location = useLocation()
+  useEffect(() => {
+    if (!location.hash) return
+    const el = document.querySelector(location.hash)
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [location.hash])
+
   return (
     <div className="min-h-screen bg-gray-50">
 
@@ -92,10 +103,10 @@ export default function Services() {
             <HeroTileGrid
               columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
               tiles={[
-                { title: 'Report Overdue Payer', to: '/services/report-overdue' },
-                { title: 'Credit Management', to: '/services/credit-management' },
-                { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
-                { title: 'Finalization Steps', to: '/services/finalization' },
+                { title: 'Report Overdue Payer', to: '/services#report-overdue-payer' },
+                { title: 'Credit Management', to: '/services#streamlined-credit-management' },
+                { title: 'Partners Credit Overdue Report', to: '/services#partners-credit-overdue-report' },
+                { title: 'Finalization Steps', to: '/services#resolution-finalization-guide' },
               ]}
             />
           </div>
@@ -285,7 +296,7 @@ export default function Services() {
             </div>
 
             {/* Resolution & Finalization Guide */}
-            <div className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
+            <div id="resolution-finalization-guide" className="bg-amber-50 rounded-2xl p-6 border border-amber-200">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold text-amber-900 mb-4">
                 Resolution & Finalization Guide
               </h3>
