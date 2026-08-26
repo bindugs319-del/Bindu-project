@@ -122,73 +122,15 @@ export default function Solutions() {
               <div style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B', marginTop: '4px' }}></div>
             </div>
           </div>
-          
+
           <div className="space-y-6">
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
               Empowering Enterprises through Strategic B2B Innovation
             </h3>
-            <h4 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
-              How CreditDataWatch's Custom Solutions Are Transforming the Industry
-            </h4>
             <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              In the current high-stakes commercial market, the strength and agility of your B2B tools are vital for long-term scalability. CreditDataWatch, a premier authority in financial intelligence and risk mitigation, provides a specialized suite of B2B services designed to revolutionize your operational framework.
-            </p>
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              By integrating our B2B architecture, your organization can harness the true potential of data-centric strategy. We deliver precise, deep-dive credit insights that allow you to select partners, vendors, and clients with absolute confidence. Whether you are vetting a new prospect's financial stability or monitoring the risk levels of your current portfolio, our solutions provide the clarity needed to master the complexities of corporate credit.
-            </p>
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              Our platform is engineered to modernize and digitize your entire credit workflow. By utilizing cutting-edge analytics and high-speed technology, CreditDataWatch automates the heavy lifting of background checks and ongoing account surveillance. This digital transformation does more than just reclaim your time — it creates a proactive defense against revenue loss, protecting your business from the impact of late payments and bad debt.
+              In the current high-stakes commercial market, the strength and agility of your B2B tools are vital for long-term scalability. CreditDataWatch provides a specialized suite of B2B services — risk mitigation, exhaustive credit evaluation, debt resolution, and a Zero-Default Standard — designed to revolutionize your operational framework.
             </p>
 
-            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Setting the Gold Standard in B2B Support
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                CreditDataWatch is a leader in the B2B sector, distinguished by an unwavering dedication to client success. We prioritize a superior service experience, ensuring every partner receives world-class support from day one. When you collaborate with us, you aren't just a number — you receive individualized focus from a specialized team committed to exceeding your business expectations.
-              </p>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed mt-3">
-                We recognize that no two organizations are identical. Our experts conduct a deep dive into your specific operational challenges to build custom strategies that mirror your corporate mission. Whether your focus is on mitigating financial risk, implementing recovery strategies, or retrieving real-time business credit intelligence, CreditDataWatch possesses the deep industry knowledge required to drive exceptional outcomes for your enterprise.
-              </p>
-            </div>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              Advanced Strategies for Enterprise Credit
-            </h3>
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              CreditDataWatch offers high-impact credit solutions engineered to strengthen your organization's financial foundation. Regardless of your organization's size, we provide the specialized resources and industry knowledge necessary to optimize your credit operations.
-            </p>
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed mt-3">
-              A cornerstone of our platform is our B2B Risk Mitigation Service. By utilizing sophisticated predictive modeling and intelligent algorithms, we help you pinpoint potential financial threats before they materialize. From evaluating the stability of new prospects to tracking the ongoing payment habits of existing clients, our insights empower you to make data-backed choices that safeguard your company's fiscal health.
-            </p>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-3">
-                Revolutionizing Credit Oversight
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Our approach to risk management is defined by an exhaustive evaluation framework. We go beyond basic credit scores, integrating sector-specific data and proprietary analytics to provide a 360-degree view of a customer's reliability. This deep-dive analysis allows you to approve credit lines and establish limits with total precision.
-              </p>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed mt-3">
-                Beyond monitoring and assessment, CreditDataWatch provides expert B2B Debt Resolution support and tracking. Should a client fail to meet their obligations, our team assists in navigating the settlement process. We handle the complexities of recovery on your behalf, allowing you to manage your business credit portfolio with absolute certainty.
-              </p>
-            </div>
-
-            <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-3">
-                Preserving a Default-Free Environment
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Unpaid invoices are one of the most significant threats to an organization's liquidity. To address this, CreditDataWatch advocates for a "Zero-Default Standard," prioritizing the long-term vitality of your accounts receivable.
-              </p>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed mt-3">
-                We maintain an uncompromising stance toward chronic non-payment. By tapping into our massive Credit DataWatch database and real-time risk indicators, we identify high-risk entities and provide early warnings before you commit to a transaction. This proactive defense system is designed to eliminate bad debt at the source, preventing financial leakage and ensuring your business remains profitable.
-              </p>
-            </div>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              Key Features
-            </h3>
             <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🛡️', title: 'B2B Risk Mitigation', desc: 'Using sophisticated predictive modeling to pinpoint potential financial threats.' },
                 { icon: '🔬', title: 'Exhaustive Evaluation', desc: 'Sector-specific data for a 360-degree view of reliability.' },
@@ -196,29 +138,13 @@ export default function Solutions() {
                 { icon: '🎯', title: 'Zero-Default Standard', desc: 'Proactive defense system to eliminate bad debt at source.' },
               ]} />
 
-            <div className="bg-white border border-[#e0e6f0] rounded-lg p-4">
-              <h3 className="font-bold text-gray-800 mb-3" style={{ fontSize: '14px', fontWeight: 500 }}>
-                Payment Settlement Timeline
-              </h3>
-              <div className="relative pl-8 space-y-6">
-                <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-[#dce6f5]"></div>
-                {[
-                  ['Reporting', 'The unpaid debt is logged on the platform.'],
-                  ['Notification', 'We initiate communication with the buyer to inform them of the report.'],
-                  ['Resolution', 'Both parties can use our tools to track and negotiate terms.'],
-                  ['Completion', 'Once the payment is received, the creditor marks the case as "Settled."'],
-                  ['Status Update', 'The listing is updated or removed based on the agreement, helping the buyer restore their credit standing.'],
-                ].map(([title, desc], idx) => (
-                  <div key={idx} className="relative">
-                    <div className="absolute -left-8 w-6 h-6 rounded-full bg-[#185FA5] flex items-center justify-center text-white text-xs font-bold">
-                      {idx + 1}
-                    </div>
-                    <p className="font-bold text-gray-800" style={{ fontSize: '15px' }}>{title}</p>
-                    <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="mt-1">{desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Link
+              to="/solutions/b2b"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:text-[#1D4ED8] transition-colors"
+            >
+              Learn more about B2B Solutions
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
           <div className="mt-12">
@@ -244,53 +170,23 @@ export default function Solutions() {
               Driving National Growth: The Power of Indian MSMEs
             </h3>
             <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              Micro, Small, and Medium Enterprises (MSMEs) have become the backbone of India's economic engine. With a massive network of over 80 million registered units, this sector is a powerhouse for creating jobs, fostering local innovation, and boosting global exports. Currently, MSMEs generate approximately 29% of the nation's GDP, acting as a primary catalyst for widespread financial development.
-            </p>
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              To foster this vital sector, the Indian government has launched several supportive frameworks. These include digitized registration systems, easier access to capital, and technological grants. Small businesses today benefit from lower-interest loans, tax breaks, and priority status in government tenders. Together, these initiatives create a supportive environment where small enterprises can scale and contribute to the country's wealth.
+              Micro, Small, and Medium Enterprises (MSMEs) generate roughly 29% of India's GDP. CreditDataWatch simplifies MSME registration, credit rating, and enrollment — cutting through paperwork with guided onboarding, live validation, and real-time tracking.
             </p>
 
-            <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Interpreting the MSME Credit Report
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                For business leaders and policymakers, staying in tune with the sector's financial health is essential. The MSME Credit Report serves as a vital diagnostic tool, offering a deep dive into the borrowing habits and repayment trends of small businesses across India. This report identifies emerging risks and growth opportunities, allowing business owners to pivot their strategies based on data-backed insights.
-              </p>
-            </div>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              Seamless MSME Enrollment Services
-            </h3>
-            <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              While obtaining an official MSME status is the gateway to government support, the paperwork can often be overwhelming. CreditDataWatch bridges this gap by offering a simplified, expert-led registration journey. We eliminate the frustration of navigating complex government portals and dense legal forms. Our intuitive platform guides entrepreneurs through every requirement, ensuring compliance. By automating the registration workflow, we significantly cut down processing times, giving business owners more time to focus on their daily operations.
-            </p>
-
-            <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Why Your MSME Credit Rating Matters
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                A solid financial reputation is the key to unlocking affordable capital. For a small business, a high MSME Credit Rating — powered by CreditDataWatch — is a badge of reliability. By analyzing past payment behavior and debt management, this score tells lenders you are a safe bet. Beyond just loans, a strong score boosts your market standing, helping you win larger contracts and attract higher-quality business partners.
-              </p>
-            </div>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              How We Simplify Your Registration
-            </h3>
             <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
                 { icon: '🧭', title: 'Guided Onboarding', desc: 'Step-by-step assistance to ensure every detail is captured accurately.' },
                 { icon: '✅', title: 'Live Validation', desc: 'Instant error-checking to prevent delays or application rejections.' },
-                { icon: '📡', title: 'Live Tracking', desc: 'Users get real-time alerts and progress updates, providing complete visibility into the application status.' },
+                { icon: '📡', title: 'Live Tracking', desc: 'Real-time alerts and progress updates, providing complete visibility into application status.' },
+                { icon: '🌍', title: 'Establish Market Trust', desc: 'A verified, positive credit profile makes your business more attractive to investors.' },
               ]} />
 
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              Maximizing Your Potential with CreditDataWatch
-            </h3>
-            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
-                { icon: '🌍', title: 'Establish Market Trust', desc: 'A verified, positive credit profile makes your business more attractive to serious investors and global collaborators.' },
-                { icon: '🔒', title: 'Minimize Risk', desc: 'Use our data to vet your own clients and suppliers, ensuring you only do business with reliable partners.' },
-              ]} />
+            <Link
+              to="/solutions/msme"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:text-[#1D4ED8] transition-colors"
+            >
+              Learn more about MSME Solutions
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
           <div className="mt-12">
@@ -316,68 +212,16 @@ export default function Solutions() {
               Advanced Credit Intelligence with Automated Recovery Tools
             </h3>
             <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              In the fast-paced world of modern commerce, maintaining financial stability requires a combination of accurate data and proactive collection strategies. CreditDataWatch provides a suite of smart reporting, risk evaluation, and automated follow-up systems designed to secure your revenue and eliminate the risk of bad debt.
+              In the fast-paced world of modern commerce, maintaining financial stability requires a combination of accurate data and proactive collection strategies. CreditDataWatch provides smart reporting, risk evaluation, and automated follow-up systems designed to secure your revenue and eliminate the risk of bad debt.
             </p>
 
-            <div className="bg-purple-50 rounded-2xl p-6 border border-purple-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Evaluate Risks with Precision Business Credit Profiles
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Our in-depth company credit profiles offer a transparent view of any business's financial habits, including their track record of payments, current debt levels, and credit usage. For vendors and smaller enterprises (MSMEs), these insights are vital for vetting new clients and avoiding high-risk agreements. By utilizing our sophisticated database, you can cross-reference records of chronic non-payers. This builds a foundation of trust and allows you to implement highly effective payment recovery plans.
-              </p>
-            </div>
-
-            <div className="bg-blue-50 rounded-2xl p-6 border border-blue-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Optimize Your Receivables with Automated Collection Workflows
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                CreditDataWatch simplifies the entire lifecycle of an invoice. Our intelligent platform manages everything from the initial Payment Alert to the final Account Resolution. With our Scheduled Follow-Up System, your business can automate the chasing process. This ensures that late payments are addressed immediately, resolving potential issues before they turn into major financial losses.
-              </p>
-            </div>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              Your Comprehensive Ecosystem for Debt Management
-            </h3>
-            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
-                { icon: '🚩', title: 'Flag High-Risk Entities', desc: 'Spot potential non-payers before you sign the contract.' },
-                { icon: '🔔', title: 'Deploy Smart Reminders', desc: 'Set up automated nudges via multiple channels.' },
-                { icon: '⚡', title: 'Accelerate Settlements', desc: 'Use our structured process to close overdue accounts faster.' },
-                { icon: '🔍', title: 'Identify Weak Points', desc: 'Use custom analytics to find where your credit cycle is leaking money.' },
-              ]} />
-
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Struggling with Late Payments? We Have the Solution.
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Delayed invoices can paralyze your operations. Our system doesn't just wait for a default; it uses predictive trends and early-warning alerts to help you resolve credit issues before they escalate. We provide a clear, step-by-step roadmap to turn your pending receivables into liquid cash.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Empowering MSMEs with Seamless Credit Control
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Our platform is specifically tuned to the needs of small and medium businesses. From identifying problematic buyers to facilitating smooth settlements, we put financial control back in your hands. By combining real-time risk signals with automated outreach, we make complex credit management simple and effective.
-              </p>
-            </div>
-
-            <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-4">
-              Join CreditDataWatch Today
-            </h3>
-            <FeatureCardGrid columns="grid-cols-2 gap-4" items={[
-                { icon: '🧠', title: 'Intelligent Credit Scoring', desc: 'High-level indicators of a company\'s financial health.' },
-                { icon: '🤖', title: 'Automated Recovery Suite', desc: 'Hands-free reminders and persistent follow-up tools.' },
-                { icon: '🤝', title: 'Expert Settlement Support', desc: 'Proven methods for clearing old debts.' },
-                { icon: '🎯', title: 'A Centralized Credit Hub', desc: 'One platform to manage all your risks and rewards.' },
-              ]} />
-
-            <p className="text-lg font-semibold text-gray-800 mt-4">
-              Register now and make the data-driven decisions that will fuel your company's growth.
-            </p>
+            <Link
+              to="/solutions/business-credit"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:text-[#1D4ED8] transition-colors"
+            >
+              Learn more about Business Credit
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
           <div className="mt-12">
@@ -391,7 +235,7 @@ export default function Solutions() {
       <section id="business-debt" className="py-16 px-4 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">💰</span>
+            <span className="text-3xl">⚖️</span>
             <div>
               <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A' }}>Business Debt</h2>
               <div style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B', marginTop: '4px' }}></div>
@@ -400,97 +244,19 @@ export default function Solutions() {
 
           <div className="space-y-6">
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
-              Business Debt Solutions — Empowering Small Businesses with CreditDataWatch
+              Managing Business Debts with CreditDataWatch
             </h3>
             <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-              In today's competitive business landscape, small enterprises often struggle with the challenge of managing debt. The weight of unpaid dues can restrict growth and profitability, making financial stability harder to achieve. CreditDataWatch, a trusted business credit reporting agency, offers tailored debt-management services designed to meet the unique needs of small businesses.
+              Armed with holistic business credit reporting, small businesses gain insight into the creditworthiness of prospective partners, customers, or suppliers — helping minimize the risk of bad debt through defaulter reporting, payment history tracking, and structured settlement tools.
             </p>
 
-            <div className="bg-red-50 rounded-2xl p-6 border border-red-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Proactive Debt Resolution Techniques
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Debt settlement is always better prevented than resolved. This means managing cash flow actively, preparing realistic budgets, and maintaining open lines of communication regarding debts. A prevention-first attitude keeps debts from piling up and avoids costly settlements.
-              </p>
-            </div>
-
-            <div className="bg-orange-50 rounded-2xl p-6 border border-orange-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Managing Business Debts with CreditDataWatch
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Armed with holistic business credit reporting services, small businesses gain insight into the creditworthiness of prospective partners, customers, or suppliers. With accurate business credit reports, businesses are empowered to make informed decisions that minimize the risk of transacting with unreliable entities and mitigate the chances of accumulating bad debt.
-              </p>
-            </div>
-
-            <div className="bg-yellow-50 rounded-2xl p-6 border border-yellow-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Expert Tips for Debtor Management
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                From establishing effective communication channels to implementing collection strategies, CreditDataWatch equips businesses with the tools they need to streamline their debtor management processes and improve settlement rates.
-              </p>
-            </div>
-
-            <div className="bg-green-50 rounded-2xl p-6 border border-green-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                CreditDataWatch — Your Trusted Business Credit Reporting Agency
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                We offer comprehensive company credit reports that provide valuable insights into the financial health and creditworthiness of businesses. By leveraging CreditDataWatch's reports, small businesses can make informed decisions when extending credit or entering partnerships, minimizing the risk of bad debt and potential losses.
-              </p>
-            </div>
-
-            <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                The Debt Settlement Process at CreditDataWatch
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                We initiate negotiations with creditors on behalf of small businesses and work towards achieving the best possible settlement terms. By leveraging strong relationships with creditors and an in-depth understanding of debt settlement regulations, CreditDataWatch ensures small businesses can pursue debt settlement with confidence.
-              </p>
-            </div>
-
-            <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-2xl p-6 border border-purple-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Elevating Business Credit Management
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                From credit risk assessment to credit monitoring, CreditDataWatch provides the necessary tools and resources to help businesses make sound credit decisions, strengthen their creditworthiness, and build solid relationships with creditors.
-              </p>
-            </div>
-
-            <div className="bg-amber-50 rounded-2xl p-6 border border-amber-100">
-              <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
-                Streamlining the Payment Settlement Process
-              </h3>
-              <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                CreditDataWatch offers innovative solutions that simplify payment settlement and tracking. By automating payment processes and providing real-time updates, CreditDataWatch enables small businesses to focus on their core operations while ensuring smooth cash flow management.
-              </p>
-            </div>
-
-            <div className="bg-white border border-[#e0e6f0] rounded-lg p-4">
-              <h3 className="font-bold text-gray-800 mb-3" style={{ fontSize: '14px', fontWeight: 500 }}>
-                Debt Settlement Timeline
-              </h3>
-              <div className="relative pl-8 space-y-6">
-                <div className="absolute left-3 top-2 bottom-2 w-0.5 bg-[#dce6f5]"></div>
-                {[
-                  ['Report the Defaulter', 'Add the non-paying business to the CreditDataWatch system.'],
-                  ['Negotiate Terms', 'Work with the defaulter to agree on repayment conditions.'],
-                  ['Confirm Settlement', 'Update the record once dues are cleared.'],
-                  ['Ensure Transparency', 'The defaulter\'s past record remains visible, encouraging accountability in future transactions.'],
-                ].map(([title, desc], idx) => (
-                  <div key={idx} className="relative">
-                    <div className="absolute -left-8 w-6 h-6 rounded-full bg-[#185FA5] flex items-center justify-center text-white text-xs font-bold">
-                      {idx + 1}
-                    </div>
-                    <p className="font-bold text-gray-800" style={{ fontSize: '15px' }}>{title}</p>
-                    <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="mt-1">{desc}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <Link
+              to="/solutions/business-debt"
+              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:text-[#1D4ED8] transition-colors"
+            >
+              Learn more about Business Debt
+              <span aria-hidden="true">→</span>
+            </Link>
           </div>
 
           <div className="mt-12">
@@ -499,8 +265,6 @@ export default function Solutions() {
           </div>
         </div>
       </section>
-
-
 
     </div>
   )

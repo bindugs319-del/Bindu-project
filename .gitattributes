@@ -1,2 +1,14 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Auto detect text files and perform LF normalization.
+# `eol=lf` additionally FORCES line endings to LF in the repository
+# regardless of the committer's local core.autocrlf setting (e.g. Git for
+# Windows often defaults to converting LF -> CRLF on checkout/commit).
+# Without this, a line-ending-only "change" can make git (and therefore
+# SonarCloud's New Code detection) think an entire file was modified even
+# when only a few real lines changed — inflating New Code duplication/
+# issue counts with old, already-existing content that just got swept up
+# by the line-ending churn.
+* text=auto eol=lf
+
+# Keep Windows-only script files as CRLF, since that's what they need.
+*.ps1 text eol=crlf
+*.bat text eol=crlf
