@@ -29,15 +29,26 @@ const faqs = [
 export default function BusinessDebt() {
 
   return (
-    <section className="section-padding bg-gray-50">
+    <div className="min-h-screen bg-gray-50">
+
+      {/* Hero */}
+      <section
+        className="py-20 px-4 text-white text-center"
+        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)' }}
+      >
+        <div className="max-w-5xl mx-auto">
+          <div className="text-4xl mb-3">⚖️</div>
+          <h1 className="text-4xl md:text-5xl font-bold mb-4">Business Debt Solutions</h1>
+          <div className="mx-auto mb-4" style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B' }}></div>
+          <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
+            Udhaar Ko Kaise Settlement Karu: Empowering Small Businesses
+          </p>
+        </div>
+      </section>
+
+      <section className="section-padding">
       <div className="container-custom max-w-5xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-
-          {/* Header */}
-          <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">Business Debt Solutions</h1>
-            <p className="text-xl text-gray-600">Udhaar Ko Kaise Settlement Karu: Empowering Small Businesses</p>
-          </div>
 
           {/* Section 1: Intro */}
           <div className="card space-y-4">
@@ -165,6 +176,7 @@ export default function BusinessDebt() {
 
         </motion.div>
       </div>
-    </section>
+      </section>
+    </div>
   )
 }
