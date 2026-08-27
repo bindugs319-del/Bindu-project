@@ -34,7 +34,7 @@ export default function CreditManagement() {
           
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4">Streamlined Credit Management</h1>
+            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">Streamlined Credit Management</h1>
           </div>
 
           {/* Main Description */}

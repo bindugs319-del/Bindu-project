@@ -19,7 +19,7 @@ export default function BusinessCredit() {
 
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4">Business Credit</h1>
+            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">Business Credit</h1>
           </div>
 
           <div className="space-y-6">

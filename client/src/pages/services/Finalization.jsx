@@ -41,7 +41,7 @@ export default function Finalization() {
           
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4">Finalization Steps</h1>
+            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">Finalization Steps</h1>
             <p className="text-xl text-gray-600">Complete guide to finalizing defaulter cases on CreditDataWatch</p>
           </div>
 

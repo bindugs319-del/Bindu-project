@@ -17,7 +17,7 @@ export default function PartnersReport() {
           
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4">Partners Credit Overdue Report</h1>
+            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">Partners Credit Overdue Report</h1>
           </div>
 
           {/* Intro */}

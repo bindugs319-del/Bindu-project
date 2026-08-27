@@ -35,7 +35,7 @@ export default function BusinessDebt() {
 
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4">Business Debt Solutions</h1>
+            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">Business Debt Solutions</h1>
             <p className="text-xl text-gray-600">Udhaar Ko Kaise Settlement Karu: Empowering Small Businesses</p>
           </div>
 

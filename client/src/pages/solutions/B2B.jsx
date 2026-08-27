@@ -20,7 +20,7 @@ export default function B2B() {
 
           {/* Header */}
           <div className="text-center">
-            <h1 className="text-4xl font-heading font-bold mb-4">B2B Solutions</h1>
+            <h1 className="text-4xl font-heading font-bold mb-4 text-gray-900">B2B Solutions</h1>
           </div>
 
           <div className="space-y-6">
