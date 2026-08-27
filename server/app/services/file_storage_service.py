@@ -64,11 +64,19 @@ async def store_uploaded_file(file_bytes: bytes, filename: str, mime_type: str, 
         logger.warning(f"Drive upload failed or not configured, falling back to local disk: {e}")
 
     # Fallback: local disk (existing behavior, unchanged)
+    import asyncio
     from app.utils.uploads import get_upload_subdir
     upload_dir = get_upload_subdir(subfolder)
     filepath = upload_dir / filename
-    with open(filepath, "wb") as f:
-        f.write(file_bytes)
+
+    # Plain (blocking) open()/write() here would stall the whole event
+    # loop while waiting on disk I/O — asyncio.to_thread() runs it on a
+    # worker thread instead, same fix as applied to email_service.py.
+    def _write_file_bytes(path, data: bytes) -> None:
+        with open(path, "wb") as f:
+            f.write(data)
+
+    await asyncio.to_thread(_write_file_bytes, filepath, file_bytes)
     return {"url": f"/uploads/{subfolder}/{filename}", "storage": "local"}
 
 
