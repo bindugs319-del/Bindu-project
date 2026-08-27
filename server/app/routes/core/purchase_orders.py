@@ -228,18 +228,13 @@ async def create_po(
         document_url_final = document_url
         
         if file:
-            import shutil
             import uuid
-            from app.utils.uploads import get_upload_subdir
+            from app.services.file_storage_service import store_uploaded_file
             
-            upload_dir = get_upload_subdir("purchase_orders")
             filename = f"{uuid.uuid4()}_{file.filename}"
-            filepath = upload_dir / filename
-            
-            with open(filepath, "wb") as f:
-                shutil.copyfileobj(file.file, f)
-            
-            document_url_final = f"/uploads/purchase_orders/{filename}"
+            file_bytes = await file.read()
+            result = await store_uploaded_file(file_bytes, filename, file.content_type, "purchase_orders")
+            document_url_final = result["url"]
         
         po = PurchaseOrder(
             id=str(uuid.uuid4()),
@@ -357,13 +352,11 @@ async def import_po_pdf(
     document_url_final = None
 
     if file and file.filename:
-        from app.utils.uploads import get_upload_subdir
-        upload_dir = get_upload_subdir("purchase_orders")
+        from app.services.file_storage_service import store_uploaded_file
         filename = f"{uuid.uuid4()}_{file.filename}"
-        filepath = upload_dir / filename
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        document_url_final = f"/uploads/purchase_orders/{filename}"
+        file_bytes = await file.read()
+        result = await store_uploaded_file(file_bytes, filename, file.content_type, "purchase_orders")
+        document_url_final = result["url"]
 
     stmt = select(PurchaseOrder).where(
         PurchaseOrder.company_id == current_user.company_id,
@@ -1165,19 +1158,13 @@ async def mark_paid(
         
         # Handle file upload if provided
         if file:
-            import shutil
             import uuid
-            from app.utils.uploads import get_upload_subdir
-            
-            upload_dir = get_upload_subdir("payment_receipts")
+            from app.services.file_storage_service import store_uploaded_file
             
             filename = f"{uuid.uuid4()}_{file.filename}"
-            filepath = upload_dir / filename
-            
-            with open(filepath, "wb") as f:
-                shutil.copyfileobj(file.file, f)
-            
-            po.payment_receipt_url = f"{settings.BASE_URL}/uploads/payment_receipts/{filename}"
+            file_bytes = await file.read()
+            result = await store_uploaded_file(file_bytes, filename, file.content_type, "payment_receipts")
+            po.payment_receipt_url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
             po.payment_receipt_filename = file.filename
         
         # Update status to PAID as requested
@@ -1257,19 +1244,14 @@ async def upload_payment_receipt(
     """Upload payment receipt for a purchase order"""
     if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
         raise UnauthorizedFeature(PO_FEATURE_NAME)
-    import shutil
     import uuid
-    from app.utils.uploads import get_upload_subdir
+    from app.services.file_storage_service import store_uploaded_file
 
     try:
-        upload_dir = get_upload_subdir("payment_receipts")
         filename = f"{uuid.uuid4()}_{file.filename}"
-        filepath = upload_dir / filename
-
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-
-        url = f"{settings.BASE_URL}/uploads/payment_receipts/{filename}"
+        file_bytes = await file.read()
+        result = await store_uploaded_file(file_bytes, filename, file.content_type, "payment_receipts")
+        url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
         return ResponseFormatter.create_success(data={"url": url, "filename": file.filename})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
@@ -1751,16 +1733,14 @@ async def send_to_legal_support(
                 file = form_data['file']
                 if file and isinstance(file, UploadFile):
                     try:
-                        from app.utils.uploads import get_upload_subdir
-                        upload_dir = get_upload_subdir("legal_evidence")
+                        from app.services.file_storage_service import store_uploaded_file
                         file_ext = file.filename.split(".")[-1] if file.filename else 'pdf'
                         file_id = str(uuid.uuid4())
-                        file_path = upload_dir / f"{file_id}.{file_ext}"
-                        
-                        with open(file_path, "wb") as buffer:
-                            shutil.copyfileobj(file.file, buffer)
-                            
-                        evidence_url = f"{settings.BASE_URL}/uploads/legal_evidence/{file_id}.{file_ext}"
+                        filename = f"{file_id}.{file_ext}"
+                        file_bytes = await file.read()
+                        result = await store_uploaded_file(file_bytes, filename, file.content_type, "legal_evidence")
+
+                        evidence_url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
                         evidence_filename = file.filename
                     except Exception as e:
                         raise HTTPException(status_code=500, detail=f"Failed to upload evidence: {str(e)}")

@@ -170,15 +170,12 @@ async def upload_sales_invoice_document(
     if not invoice:
         raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
 
-    import shutil
-    from app.utils.uploads import get_upload_subdir
+    from app.services.file_storage_service import store_uploaded_file
 
-    upload_dir = get_upload_subdir("sales_invoices")
     filename = f"{uuid4()}_{file.filename}"
-    filepath = upload_dir / filename
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
-    invoice.document_url = f"/uploads/sales_invoices/{filename}"
+    file_bytes = await file.read()
+    result = await store_uploaded_file(file_bytes, filename, file.content_type, "sales_invoices")
+    invoice.document_url = result["url"]
     invoice.updated_at = get_utc_now()
 
     await db.commit()
@@ -236,15 +233,12 @@ async def mark_sales_invoice_paid(
         raise HTTPException(status_code=400, detail="Already marked paid")
 
     if file:
-        import shutil
-        from app.utils.uploads import get_upload_subdir
+        from app.services.file_storage_service import store_uploaded_file
 
-        upload_dir = get_upload_subdir("payment_receipts")
         filename = f"{uuid4()}_{file.filename}"
-        filepath = upload_dir / filename
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        invoice.payment_receipt_url = f"{settings.BASE_URL}/uploads/payment_receipts/{filename}"
+        file_bytes = await file.read()
+        result = await store_uploaded_file(file_bytes, filename, file.content_type, "payment_receipts")
+        invoice.payment_receipt_url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
         invoice.payment_receipt_filename = file.filename
 
     invoice.status = "Paid"
@@ -385,16 +379,13 @@ async def send_sales_invoice_to_legal_support(
     evidence_url = None
     evidence_filename = None
     if file:
-        import shutil
-        from app.utils.uploads import get_upload_subdir
+        from app.services.file_storage_service import store_uploaded_file
 
-        upload_dir = get_upload_subdir("legal_evidence")
         file_ext = file.filename.split(".")[-1] if file.filename else "pdf"
         fname = f"{uuid4()}.{file_ext}"
-        file_path = upload_dir / fname
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        evidence_url = f"{settings.BASE_URL}/uploads/legal_evidence/{fname}"
+        file_bytes = await file.read()
+        result = await store_uploaded_file(file_bytes, fname, file.content_type, "legal_evidence")
+        evidence_url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
         evidence_filename = file.filename
 
     invoice.legal_support_status = "PENDING_LEGAL"
@@ -874,17 +865,14 @@ async def upload_sales_invoice_evidence(
     if not invoice:
         raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
 
-    import shutil
-    from app.utils.uploads import get_upload_subdir
+    from app.services.file_storage_service import store_uploaded_file
 
-    upload_dir = get_upload_subdir("sales_invoice_evidence")
     filename = f"{uuid4()}_{file.filename}"
-    filepath = upload_dir / filename
-    with open(filepath, "wb") as f:
-        shutil.copyfileobj(file.file, f)
+    file_bytes = await file.read()
+    result = await store_uploaded_file(file_bytes, filename, file.content_type, "sales_invoice_evidence")
 
     return success_response(data={
-        "url": f"/uploads/sales_invoice_evidence/{filename}",
+        "url": result["url"],
         "filename": file.filename,
     })
 

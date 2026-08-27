@@ -43,18 +43,33 @@ class DriveService:
     @staticmethod
     def get_service_account_credentials() -> Credentials:
         """
-        Get credentials from service account file OR token.json (User OAuth)
+        Get credentials from (in priority order): a raw JSON env var, a
+        service account file, or token.json (per-user OAuth).
+
+        The env var check comes first specifically for platforms like
+        Render, where a file written to disk at runtime (or even a
+        "Secret File" in some configurations) isn't guaranteed to survive
+        every deploy — pasting the service account key's JSON content
+        directly into an environment variable sidesteps that entirely.
         """
         from google.oauth2 import service_account
         from google.oauth2.credentials import Credentials as UserCredentials
-        
-        # 1. Try Service Account
+
+        # 1. Try raw JSON from an environment variable
+        if settings.GOOGLE_SERVICE_ACCOUNT_JSON:
+            try:
+                info = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+                return service_account.Credentials.from_service_account_info(info, scopes=SCOPES)
+            except Exception as e:
+                logger.error(f"Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
+
+        # 2. Try Service Account file
         if os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
              return service_account.Credentials.from_service_account_file(
                 settings.GOOGLE_SERVICE_ACCOUNT_FILE, scopes=SCOPES
             )
             
-        # 2. Try User Token (OAuth)
+        # 3. Try User Token (OAuth)
         token_path = os.path.join(os.path.dirname(settings.GOOGLE_CLIENT_CREDENTIALS_FILE), 'token.json')
         if os.path.exists(token_path):
             try:
@@ -64,8 +79,8 @@ class DriveService:
             except Exception as e:
                 logger.error(f"Failed to load token.json: {e}")
         
-        # 3. Fail
-        logger.warning(f"No valid credentials found (checked service-account.json and token.json)")
+        # 4. Fail
+        logger.warning(f"No valid credentials found (checked GOOGLE_SERVICE_ACCOUNT_JSON, service-account.json, and token.json)")
         raise DriveAccessDenied("Google Drive credentials not configured. Please run 'python authorize_drive.py' or add service-account.json.")
 
     @staticmethod
@@ -208,6 +223,25 @@ class DriveService:
             return file.get("webContentLink")
         except HttpError as e:
             logger.error(f"Failed to get download URL: {str(e)}")
+            raise DriveAccessDenied()
+
+    @staticmethod
+    async def make_public(credentials, file_id: str) -> None:
+        """
+        Grants "anyone with the link can view" access to a file. Needed
+        because a freshly uploaded file is private to the uploading
+        account by default — without this, the webViewLink/webContentLink
+        returned by upload_file() leads to a 403/login-required page for
+        anyone else who opens it.
+        """
+        try:
+            service = build("drive", "v3", credentials=credentials)
+            service.permissions().create(
+                fileId=file_id,
+                body={"type": "anyone", "role": "reader"},
+            ).execute()
+        except HttpError as e:
+            logger.error(f"Failed to set public permission on file {file_id}: {str(e)}")
             raise DriveAccessDenied()
 
     @staticmethod

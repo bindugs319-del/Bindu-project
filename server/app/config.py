@@ -87,6 +87,7 @@ class Settings(BaseSettings):
     # Google Drive OAuth2
     GOOGLE_CLIENT_CREDENTIALS_FILE: str = "server/credentials/client-credentials.json"
     GOOGLE_SERVICE_ACCOUNT_FILE: str = "server/credentials/service-account.json"
+    GOOGLE_SERVICE_ACCOUNT_JSON: str = ""  # raw JSON key content, for platforms (e.g. Render) where writing a secret file to disk isn't reliable
     GOOGLE_FOLDER_ID: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/drive/callback"
 
@@ -136,6 +137,12 @@ class Settings(BaseSettings):
         # Retain default for environments that run from server/ directory
         env_file = ".env"
         case_sensitive = True
+        # IMPORTANT: without this, ANY unrecognized key in .env (e.g.
+        # ALEMBIC_DATABASE_URL, which is only read by Alembic via alembic.ini,
+        # not by this Settings class) crashes app startup entirely with a
+        # pydantic "extra_forbidden" ValidationError. "ignore" makes Settings
+        # tolerate — not silently misuse — variables meant for other tools.
+        extra = "ignore"
 
 
 settings = Settings()
