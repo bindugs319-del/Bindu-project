@@ -147,7 +147,7 @@ export default function Header() {
 
   return (
     <header 
-      className="sticky top-0 z-[100] bg-white/92 backdrop-blur-[12px] border-b border-[#E2E8F0] shadow-[0_2px_16px_rgba(30,58,138,0.06)]"
+     className="sticky top-0 z-[100] bg-white backdrop-blur-[12px] border-b border-[#E2E8F0] shadow-[0_2px_16px_rgba(30,58,138,0.06)]"
     >
       <div className="container-custom h-[72px] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 sm:gap-3 mr-8">
