@@ -171,6 +171,7 @@ async def send_email_with_attachment(
     attachment_name: str = "Legal_Notice.pdf"
 ):
     import os
+    import asyncio
 
     svc = EmailService()
 
@@ -182,8 +183,17 @@ async def send_email_with_attachment(
     payload["textContent"] = body
 
     if attachment_path and os.path.exists(attachment_path):
-        with open(attachment_path, "rb") as f:
-            file_bytes = f.read()
+        # Reading the file with the plain (blocking) open() here would
+        # block the whole event loop while it waits on disk I/O, which is
+        # a real problem in an async server handling concurrent requests.
+        # asyncio.to_thread() runs it on a worker thread instead, keeping
+        # this coroutine non-blocking without adding a new dependency
+        # (e.g. aiofiles) for what's normally a small, occasional read.
+        def _read_file_bytes(path: str) -> bytes:
+            with open(path, "rb") as f:
+                return f.read()
+
+        file_bytes = await asyncio.to_thread(_read_file_bytes, attachment_path)
         payload["attachment"] = [{
             "name": attachment_name,
             "content": base64.b64encode(file_bytes).decode("ascii"),
