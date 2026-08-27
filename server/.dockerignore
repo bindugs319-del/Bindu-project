@@ -12,3 +12,13 @@ uploads/*
 !.envexample
 *.md
 credentials/
+
+# Extra safety net for the recursive `COPY . .` in the Dockerfile — these
+# patterns catch common places secrets/keys end up even if someone adds a
+# new one later without remembering to update this file explicitly above.
+.git/
+*.pem
+*.key
+*.p12
+id_rsa*
+*.log

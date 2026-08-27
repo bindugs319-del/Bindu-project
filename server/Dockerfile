@@ -23,11 +23,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /app
 
 # --- Python dependencies -------------------------------------------------
+# Dependencies are version-pinned in requirements.txt (verified to resolve
+# and install cleanly together — see the file for how those pins were
+# derived). --only-binary :all: additionally refuses to fall back to
+# building any package from a source distribution, which would otherwise
+# let that package's setup.py execute arbitrary code during install —
+# confirmed every pinned dependency here actually has a prebuilt wheel
+# for this image, so this doesn't risk breaking the build.
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir --only-binary :all: -r requirements.txt
 
 # --- Application code ------------------------------------------------------
+# COPY . . pulls in the whole build context recursively — .dockerignore
+# (in this same directory) is what keeps secrets/dev artifacts (.env,
+# credentials/, venv/, *.dump, uploads/*) out of the resulting image.
+# Update .dockerignore, not this line, if a new kind of sensitive file
+# needs excluding.
 COPY . .
 
 # Uploads directory (evidence files, PO/invoice documents) — created here so
