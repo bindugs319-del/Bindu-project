@@ -103,10 +103,10 @@ export default function Services() {
             <HeroTileGrid
               columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
               tiles={[
-                { title: 'Report Overdue Payer', to: '/services#report-overdue-payer' },
-                { title: 'Credit Management', to: '/services#streamlined-credit-management' },
-                { title: 'Partners Credit Overdue Report', to: '/services#partners-credit-overdue-report' },
-                { title: 'Finalization Steps', to: '/services#resolution-finalization-guide' },
+                { title: 'Report Overdue Payer', to: '/services/report-overdue' },
+                { title: 'Credit Management', to: '/services/credit-management' },
+                { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
+                { title: 'Finalization Steps', to: '/services/finalization' },
               ]}
             />
           </div>

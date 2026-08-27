@@ -102,10 +102,10 @@ export default function Solutions() {
             <HeroTileGrid
               columns="grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
               tiles={[
-                { title: 'B2B Solutions', to: '/solutions#b2b-solutions' },
-                { title: 'MSME Solutions', to: '/solutions#msme-solutions' },
-                { title: 'Business Credit', to: '/solutions#business-credit' },
-                { title: 'Business Debt', to: '/solutions#business-debt' },
+                { title: 'B2B Solutions', to: '/solutions/b2b' },
+                { title: 'MSME Solutions', to: '/solutions/msme' },
+                { title: 'Business Credit', to: '/solutions/business-credit' },
+                { title: 'Business Debt', to: '/solutions/business-debt' },
               ]}
             />
           </div>
