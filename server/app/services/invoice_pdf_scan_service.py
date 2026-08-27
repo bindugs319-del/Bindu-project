@@ -18,7 +18,8 @@ except ImportError:  # pragma: no cover
 
 from app.services.po_pdf_scan_service import (
     _normalize_lines, _find_label_value, _find_all_label_values,
-    _parse_date, _parse_amount, _looks_like_money, EMAIL_RE, PHONE_RE, GSTIN_RE,
+    _parse_date, _parse_amount, _looks_like_money, _read_document_text,
+    EMAIL_RE, PHONE_RE, GSTIN_RE,
 )
 
 INVOICE_NUMBER_LABELS = ["invoice number", "invoice #", "invoice no", "bill no", "reference"]
@@ -54,44 +55,13 @@ def _counterparty_block_range(lines: list):
 
 
 def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> dict:
+    doc_result = _read_document_text(pdf_bytes, filename)
+    if doc_result["early_result"] is not None:
+        return doc_result["early_result"]
+    text = doc_result["text"]
+    used_ocr = doc_result["used_ocr"]
+
     warnings = []
-    from app.services.ocr_utils import IMAGE_EXTENSIONS, get_document_text
-    is_image = filename.lower().endswith(IMAGE_EXTENSIONS)
-
-    pdf_text = ""
-    if not is_image:
-        try:
-            reader = PdfReader(io.BytesIO(pdf_bytes))
-            pdf_text = reader.pages[0].extract_text() or ""
-            if len(pdf_text.strip()) < 20 and len(reader.pages) > 1:
-                pdf_text = "\n".join((p.extract_text() or "") for p in reader.pages[:3])
-        except Exception:
-            pdf_text = ""
-
-    doc = get_document_text(pdf_bytes, filename, existing_text=pdf_text)
-    text = doc["text"]
-    used_ocr = doc["source"] in ("ocr_pdf", "ocr_image")
-
-    if doc["ocr_unavailable"] and len((pdf_text or "").strip()) < 10:
-        return {
-            "fields": {},
-            "warnings": [
-                "This looks like a scanned/photographed document with no embedded text, and OCR isn't "
-                "available on this server right now (missing tesseract/poppler). Ask your admin to enable "
-                "OCR support, or upload a text-based PDF instead."
-            ],
-            "raw_text_available": False,
-            "used_ocr": False,
-        }
-
-    if len(text.strip()) < 10:
-        return {
-            "fields": {},
-            "warnings": ["Couldn't find or recognize any text in this file."],
-            "raw_text_available": False,
-            "used_ocr": used_ocr,
-        }
-
     if used_ocr:
         warnings.append(
             "This was read using OCR (scanned/photographed document) rather than a text layer — "

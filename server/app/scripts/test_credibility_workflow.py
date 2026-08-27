@@ -23,50 +23,17 @@ from app.models.credibility_index import (
     LegalStatus,
     OperationalReliability
 )
-
-async def create_test_user(session, email, role, company_name, gstin):
-    res_comp = await session.execute(select(Company).where(Company.gstin == gstin))
-    comp = res_comp.scalars().first()
-    if not comp:
-        comp = Company(id=str(uuid4()), company_name=company_name, gstin=gstin, domain_name=email.split('@')[1], is_verified=True)
-        session.add(comp)
-        await session.flush()
-    
-    res_user = await session.execute(select(User).where(User.email == email))
-    user = res_user.scalars().first()
-    if not user:
-        user = User(
-            id=str(uuid4()),
-            company_id=comp.id,
-            name=company_name,
-            email=email,
-            password_hash='test_hash',
-            role=role,
-            status='ACTIVE',
-            phone='+919999999999',
-            gstin=gstin,
-            company_name=company_name,
-            is_active=True,
-            subscription_status='ACTIVE',
-            subscription_bypass=True,
-            full_access=True
-        )
-        session.add(user)
-        await session.flush()
-    else:
-        user.role = role
-        await session.flush()
-    return user
+from app.scripts.test_helpers import create_test_user
 
 async def test_credibility_workflow():
     print("\n--- Testing Credibility Index Workflow ---")
     async with AsyncSessionLocal() as session:
         # 1. Setup Users
-        user = await create_test_user(session, "cred_client@test.com", UserRole.COMPANY_ADMIN, "Cred Client Corp", "27CREDC0000A1Z")
-        fin = await create_test_user(session, "cred_fin@test.com", UserRole.FINANCIAL, "Internal Cred Finance", "27CREDF0001Z")
-        legal = await create_test_user(session, "cred_legal@test.com", UserRole.LEGAL, "Internal Cred Legal", "27CREDL0001Z")
-        ops = await create_test_user(session, "cred_ops@test.com", UserRole.OPERATION, "Internal Cred Ops", "27CREDO0001Z")
-        master = await create_test_user(session, "cred_master@test.com", UserRole.MASTER_ADMIN, "Cred Master Admin", "27CREDM000A1Z")
+        user = await create_test_user(session, "cred_client@test.com", UserRole.COMPANY_ADMIN, "Cred Client Corp", "27CREDC0000A1Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
+        fin = await create_test_user(session, "cred_fin@test.com", UserRole.FINANCIAL, "Internal Cred Finance", "27CREDF0001Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
+        legal = await create_test_user(session, "cred_legal@test.com", UserRole.LEGAL, "Internal Cred Legal", "27CREDL0001Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
+        ops = await create_test_user(session, "cred_ops@test.com", UserRole.OPERATION, "Internal Cred Ops", "27CREDO0001Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
+        master = await create_test_user(session, "cred_master@test.com", UserRole.MASTER_ADMIN, "Cred Master Admin", "27CREDM000A1Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
         await session.commit()
 
         # 2. Create a Business Request
@@ -205,9 +172,9 @@ async def test_business_request_access():
     async with AsyncSessionLocal() as session:
         # Check if users with FINANCIAL/LEGAL/OPERATION roles can access business requests
         # We'll just verify the user roles exist
-        fin = await create_test_user(session, "test_access_fin@test.com", UserRole.FINANCIAL, "Test Access Fin", "27TESTA0001Z")
-        legal = await create_test_user(session, "test_access_legal@test.com", UserRole.LEGAL, "Test Access Legal", "27TESTA0002Z")
-        ops = await create_test_user(session, "test_access_ops@test.com", UserRole.OPERATION, "Test Access Ops", "27TESTA0003Z")
+        fin = await create_test_user(session, "test_access_fin@test.com", UserRole.FINANCIAL, "Test Access Fin", "27TESTA0001Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
+        legal = await create_test_user(session, "test_access_legal@test.com", UserRole.LEGAL, "Test Access Legal", "27TESTA0002Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
+        ops = await create_test_user(session, "test_access_ops@test.com", UserRole.OPERATION, "Test Access Ops", "27TESTA0003Z", subscription_status="ACTIVE", subscription_bypass=True, full_access=True)
         await session.commit()
         
         print(f"  FINANCIAL role user exists: {fin.email}")

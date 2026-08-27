@@ -15,6 +15,7 @@ from app.database import AsyncSessionLocal, engine, Base
 from app.models import Company, User, UserRole, PurchaseOrder, Subscription, Plan
 from app.services.workflow_service import WorkflowService
 from app.services.notification_service import NotificationService
+from app.scripts.test_helpers import create_test_user
 
 async def setup_db(session):
     # Instead of relying on create_all, we manually ensure the workflow tables exist for SQLite
@@ -108,41 +109,6 @@ async def setup_db(session):
         )
     """))
     await session.commit()
-
-async def create_test_user(session, email, role, company_name, gstin):
-    # Check if company exists
-    res_comp = await session.execute(select(Company).where(Company.gstin == gstin))
-    comp = res_comp.scalars().first()
-    if not comp:
-        comp = Company(id=str(uuid4()), company_name=company_name, gstin=gstin, domain_name=email.split('@')[1], is_verified=True)
-        session.add(comp)
-        await session.flush()
-    
-    # Check if user exists
-    res_user = await session.execute(select(User).where(User.email == email))
-    user = res_user.scalars().first()
-    if not user:
-        user = User(
-            id=str(uuid4()),
-            company_id=comp.id,
-            name=company_name,
-            email=email,
-            password_hash='test_hash',
-            role=role,
-            status='ACTIVE',
-            phone='+919999999999',
-            gstin=gstin,
-            company_name=company_name,
-            is_active=True,
-            subscription_status='INACTIVE'
-        )
-        session.add(user)
-        await session.flush()
-    else:
-        # Update role if user exists
-        user.role = role
-        await session.flush()
-    return user
 
 async def create_test_plan(session):
     res_plan = await session.execute(select(Plan).where(Plan.name == 'premium'))
