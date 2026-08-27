@@ -834,7 +834,7 @@ export default function Invoices() {
                       onClick={() => setShowInvoiceImport(true)}
                       className="flex-1 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center justify-center gap-1"
                     >
-                      📥 Import Invoices
+                     📥 Import (CSV & XLS)
                     </button>
                     <button
                       type="button"
