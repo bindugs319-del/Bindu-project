@@ -219,29 +219,16 @@ export default function Register() {
               </div>
               <div>
                 <label htmlFor="phone" className="text-sm font-medium text-[#0F172A]">Phone</label>
-                <div className="mt-2 flex gap-2 items-stretch">
-                  <input
-                    id="phone"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    required
-                    placeholder="+91XXXXXXXXXX"
-                    disabled={otpSent}
-                    className="flex-1 min-w-0 px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)] disabled:bg-[#F1F5F9]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={sendingOtp || timer > 0}
-                    className="px-4 py-3 rounded-[12px] text-white text-sm font-semibold whitespace-nowrap transition-all duration-200 disabled:opacity-60"
-                    style={{
-                      background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)'
-                    }}
-                  >
-                    {sendingOtp ? 'Sending...' : timer > 0 ? `Resend in ${timer}s` : otpSent ? 'Resend OTP' : 'Send OTP'}
-                  </button>
-                </div>
+                <input
+                  id="phone"
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  required
+                  placeholder="+91XXXXXXXXXX"
+                  disabled={otpSent}
+                  className="mt-2 w-full px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)] disabled:bg-[#F1F5F9]"
+                />
                 <p className="text-xs text-[#64748B] mt-1">Include country code (e.g., +91 for India)</p>
               </div>
             </div>
@@ -296,18 +283,35 @@ export default function Register() {
               </div>
             </div>
 
-            {/* Work Email (Full Width) */}
+            {/* Work Email + Send OTP (Full Width) — OTP verification is
+                keyed to email, not phone, since email delivery is the
+                channel that reliably works. */}
             <div>
               <label htmlFor="email" className="text-sm font-medium text-[#0F172A]">Work Email</label>
-              <input
-                id="email"
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                required
-                className="mt-2 w-full px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
-              />
+              <div className="mt-2 flex gap-2 items-stretch">
+                <input
+                  id="email"
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
+                  disabled={otpSent}
+                  className="flex-1 min-w-0 px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)] disabled:bg-[#F1F5F9]"
+                />
+                <button
+                  type="button"
+                  onClick={handleSendOtp}
+                  disabled={sendingOtp || timer > 0}
+                  className="px-6 py-3 rounded-[12px] text-white font-semibold whitespace-nowrap transition-all duration-200 disabled:opacity-60"
+                  style={{
+                    background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)'
+                  }}
+                >
+                  {sendingOtp ? 'Sending...' : timer > 0 ? `Resend in ${timer}s` : otpSent ? 'Resend OTP' : 'Send OTP'}
+                </button>
+              </div>
+              <p className="text-xs text-[#64748B] mt-1">We'll send a verification code to this email.</p>
             </div>
 
             {/* GSTIN Field (Full Width Below Phone) */}
