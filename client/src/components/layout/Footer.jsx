@@ -15,10 +15,10 @@ const columns = [
   {
     title: 'Services',
     links: [
-      { label: 'Report Defaulters', to: '/defaulters' },
-      { label: 'Purchase Orders', to: '/purchase-orders' },
-      { label: 'Credit Reports', to: '/credit-reports' },
-      { label: 'Settlement', to: '/settlement' },
+      { label: 'Report Overdue Payer', to: '/services/report-overdue' },
+      { label: 'Credit Management', to: '/services/credit-management' },
+      { label: 'Partners Credit Overdue Report', to: '/services/partners-report' },
+      { label: 'Finalization Steps', to: '/services/finalization' },
     ],
   },
   {
