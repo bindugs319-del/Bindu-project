@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { isValidGstin } from '../../utils/validation'
@@ -6,6 +6,12 @@ import { useAuth } from '../../state/authContext'
 import authService from '../../services/authService'
 import { logActivity, ACTIONS } from '../../utils/activityLogger'
 import AuthBrandingPanel from '../../components/auth/AuthBrandingPanel'
+
+// "Remember me" persists just the email + GSTIN (never the password) so a
+// returning visitor doesn't have to retype them — the checkbox existed in
+// the UI before but had no logic behind it at all, so nothing was ever
+// actually saved or restored.
+const REMEMBER_KEY = 'cdw_remembered_login'
 
 export default function Login() {
   const navigate = useNavigate()
@@ -21,6 +27,21 @@ export default function Login() {
   const [sendingOtp, setSendingOtp] = useState(false)
   const [submittingOtp, setSubmittingOtp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [rememberMe, setRememberMe] = useState(false)
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null')
+      if (saved?.email) {
+        setForm((f) => ({ ...f, email: saved.email, gstin: saved.gstin || '' }))
+        setOtpEmail(saved.email)
+        setOtpGstin(saved.gstin || '')
+        setRememberMe(true)
+      }
+    } catch {
+      // Corrupted/unexpected localStorage content — just skip prefill.
+    }
+  }, [])
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
   
@@ -53,6 +74,15 @@ export default function Login() {
       })
       
       if (success) {
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_KEY, JSON.stringify({
+            email: form.email.trim().toLowerCase(),
+            gstin: form.gstin.trim().toUpperCase(),
+          }))
+        } else {
+          localStorage.removeItem(REMEMBER_KEY)
+        }
+
         logActivity(ACTIONS.LOGIN, { details: 'User logged in successfully' }) 
         setStatus({ type: 'success', message: 'Login successful! Redirecting...' })
         
@@ -259,6 +289,8 @@ export default function Login() {
                 <div className="flex items-center">
                   <input
                     type="checkbox"
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
                     className="h-4 w-4 text-[#1D4ED8] focus:ring-[#1D4ED8] border-[#E2E8F0] rounded"
                   />
                   <label className="ml-2 block text-sm text-[#475569]">
