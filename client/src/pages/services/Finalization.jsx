@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import HeroTileGrid from '../../components/home/HeroTileGrid'
+import PageHero from '../../components/shared/PageHero'
 
 export default function Finalization() {
   const steps = [
@@ -38,31 +38,17 @@ export default function Finalization() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Hero */}
-      <section
-        className="py-20 px-4 text-white text-center"
-        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)' }}
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="text-4xl mb-3">✅</div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">Finalization Steps</h1>
-          <div className="mx-auto mb-4" style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B' }}></div>
-          <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
-            Complete guide to finalizing defaulter cases on CreditDataWatch.
-          </p>
-          <div className="mt-10 text-left">
-            <p className="text-white/70 text-xs uppercase tracking-wide font-bold mb-3 text-center sm:text-left">Explore Other Services</p>
-            <HeroTileGrid
-              columns="grid-cols-1 sm:grid-cols-3"
-              tiles={[
-                { title: 'Report Overdue Payer', to: '/services/report-overdue' },
-                { title: 'Credit Management', to: '/services/credit-management' },
-                { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
-              ]}
-            />
-          </div>
-        </div>
-      </section>
+      <PageHero
+        icon="✅"
+        title="Finalization Steps"
+        subtitle="Complete guide to finalizing defaulter cases on CreditDataWatch."
+        exploreLabel="Explore Other Services"
+        tiles={[
+          { title: 'Report Overdue Payer', to: '/services/report-overdue' },
+          { title: 'Credit Management', to: '/services/credit-management' },
+          { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
+        ]}
+      />
 
       <section className="section-padding">
       <div className="container-custom max-w-5xl">

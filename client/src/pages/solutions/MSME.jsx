@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
-import HeroTileGrid from '../../components/home/HeroTileGrid'
+import PageHero from '../../components/shared/PageHero'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
 import { Link } from 'react-router-dom'
 
@@ -16,31 +16,17 @@ export default function MSME() {
   return (
     <div className="min-h-screen bg-gray-50">
 
-      {/* Hero */}
-      <section
-        className="py-20 px-4 text-white text-center"
-        style={{ background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)' }}
-      >
-        <div className="max-w-5xl mx-auto">
-          <div className="text-4xl mb-3">🏭</div>
-          <h1 className="text-4xl md:text-5xl font-bold mb-4">MSME Solutions</h1>
-          <div className="mx-auto mb-4" style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B' }}></div>
-          <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
-            Driving National Growth: The Power of Indian MSMEs
-          </p>
-          <div className="mt-10 text-left">
-            <p className="text-white/70 text-xs uppercase tracking-wide font-bold mb-3 text-center sm:text-left">Explore Other Solutions</p>
-            <HeroTileGrid
-              columns="grid-cols-1 sm:grid-cols-3"
-              tiles={[
-                { title: 'B2B Solutions', to: '/solutions/b2b' },
-                { title: 'Business Credit', to: '/solutions/business-credit' },
-                { title: 'Business Debt', to: '/solutions/business-debt' },
-              ]}
-            />
-          </div>
-        </div>
-      </section>
+      <PageHero
+        icon="🏭"
+        title="MSME Solutions"
+        subtitle="Driving National Growth: The Power of Indian MSMEs"
+        exploreLabel="Explore Other Solutions"
+        tiles={[
+          { title: 'B2B Solutions', to: '/solutions/b2b' },
+          { title: 'Business Credit', to: '/solutions/business-credit' },
+          { title: 'Business Debt', to: '/solutions/business-debt' },
+        ]}
+      />
 
       <section className="section-padding">
       <div className="container-custom max-w-5xl">
