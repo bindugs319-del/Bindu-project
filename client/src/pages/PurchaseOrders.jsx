@@ -1138,7 +1138,7 @@ export default function PurchaseOrders() {
 
           {/* Reason Modal */} 
           {reasonModal.open && ( 
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"> 
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110] p-4"> 
               <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-xl"> 
                 <h3 className="text-lg font-bold text-gray-800 mb-1"> 
                   ⚠️ Confirm {reasonModal.action} 

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import HeroTileGrid from '../../components/home/HeroTileGrid'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
 import { Link } from 'react-router-dom'
 
@@ -27,6 +28,17 @@ export default function BusinessCredit() {
           <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
             Advanced Credit Intelligence with Automated Recovery Tools
           </p>
+          <div className="mt-10 text-left">
+            <p className="text-white/70 text-xs uppercase tracking-wide font-bold mb-3 text-center sm:text-left">Explore Other Solutions</p>
+            <HeroTileGrid
+              columns="grid-cols-1 sm:grid-cols-3"
+              tiles={[
+                { title: 'B2B Solutions', to: '/solutions/b2b' },
+                { title: 'MSME Solutions', to: '/solutions/msme' },
+                { title: 'Business Debt', to: '/solutions/business-debt' },
+              ]}
+            />
+          </div>
         </div>
       </section>
 

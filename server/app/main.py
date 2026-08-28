@@ -1137,7 +1137,7 @@ async def _overdue_legal_notifier_runner():
                             ntype="LEGAL_ALERT",
                             action_url="http://localhost:3001/dashboard/admin"
                         )
-                        po.legal_support_requested_at = datetime.now(timezone.utc) 
+                        po.legal_support_requested_at = datetime.now(timezone.utc).replace(tzinfo=None)
                         logger.info(f"[LEGAL] Auto alert sent for overdue PO: {po.po_number}")
                     except Exception as e: 
                         logger.error(f"[LEGAL ERROR] Failed to send auto alert: {e}") 

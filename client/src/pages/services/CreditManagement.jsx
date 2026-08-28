@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import HeroTileGrid from '../../components/home/HeroTileGrid'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
 
 const faqs = [
@@ -42,16 +43,26 @@ export default function CreditManagement() {
           <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
             Centralize payment reminders, validation workflows, and dispute tracking.
           </p>
+          <div className="mt-10 text-left">
+            <p className="text-white/70 text-xs uppercase tracking-wide font-bold mb-3 text-center sm:text-left">Explore Other Services</p>
+            <HeroTileGrid
+              columns="grid-cols-1 sm:grid-cols-3"
+              tiles={[
+                { title: 'Report Overdue Payer', to: '/services/report-overdue' },
+                { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
+                { title: 'Finalization Steps', to: '/services/finalization' },
+              ]}
+            />
+          </div>
         </div>
       </section>
 
       <section className="section-padding">
       <div className="container-custom max-w-5xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
-          
+
           {/* Main Description */}
           <div className="card space-y-4">
-            <h2 className="text-2xl font-heading font-bold text-primary-700">Main content</h2>
             <p className="text-gray-700 leading-relaxed">
               Safeguard your B2B transactions with our Business Credit Management tool. Because most supplier-buyer deals involve credit, the threat of non-payment is always present. CreditDataWatch helps you drastically reduce the risk of financial or material defaults by digitizing the entire process. From the initial agreement to digital acknowledgments and final tracking, we keep your credit transactions secure, transparent, and highly organized.
             </p>

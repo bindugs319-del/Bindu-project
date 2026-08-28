@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { useState } from 'react'
+import HeroTileGrid from '../../components/home/HeroTileGrid'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
 import { Link } from 'react-router-dom'
 
@@ -27,6 +28,17 @@ export default function MSME() {
           <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
             Driving National Growth: The Power of Indian MSMEs
           </p>
+          <div className="mt-10 text-left">
+            <p className="text-white/70 text-xs uppercase tracking-wide font-bold mb-3 text-center sm:text-left">Explore Other Solutions</p>
+            <HeroTileGrid
+              columns="grid-cols-1 sm:grid-cols-3"
+              tiles={[
+                { title: 'B2B Solutions', to: '/solutions/b2b' },
+                { title: 'Business Credit', to: '/solutions/business-credit' },
+                { title: 'Business Debt', to: '/solutions/business-debt' },
+              ]}
+            />
+          </div>
         </div>
       </section>
 

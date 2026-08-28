@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
+import HeroTileGrid from '../../components/home/HeroTileGrid'
 
 export default function Finalization() {
   const steps = [
@@ -49,13 +50,24 @@ export default function Finalization() {
           <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
             Complete guide to finalizing defaulter cases on CreditDataWatch.
           </p>
+          <div className="mt-10 text-left">
+            <p className="text-white/70 text-xs uppercase tracking-wide font-bold mb-3 text-center sm:text-left">Explore Other Services</p>
+            <HeroTileGrid
+              columns="grid-cols-1 sm:grid-cols-3"
+              tiles={[
+                { title: 'Report Overdue Payer', to: '/services/report-overdue' },
+                { title: 'Credit Management', to: '/services/credit-management' },
+                { title: 'Partners Credit Overdue Report', to: '/services/partners-report' },
+              ]}
+            />
+          </div>
         </div>
       </section>
 
       <section className="section-padding">
       <div className="container-custom max-w-5xl">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
-          
+
           {/* Introduction */}
           <div className="card space-y-4">
             <h2 className="text-2xl font-heading font-bold text-primary-700">Settlement & Case Closure Process</h2>
