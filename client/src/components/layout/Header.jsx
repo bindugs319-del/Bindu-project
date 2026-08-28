@@ -71,17 +71,6 @@ export default function Header() {
   const role = String(user?.role || '').toUpperCase()
   const isMasterAdmin = role === 'MASTER_ADMIN'
 
-  // Dynamic Dashboard Link based on role
-  const getDashboardLink = () => {
-    if (!isAuthenticated) return '/dashboard'
-    
-    if (isMasterAdmin) return '/dashboard/admin'
-    if (role === 'FINANCIAL' || role === 'FINANCE') return '/dashboard/financial'
-    if (role === 'OPERATION' || role === 'OPERATIONS') return '/dashboard/operation'
-    if (role === 'LEGAL') return '/dashboard/legal'
-    return '/dashboard/user'
-  }
-
   const navLinks = [
     { label: 'About', to: '/about' },
     { label: 'Services', to: '/services' },
@@ -98,8 +87,16 @@ export default function Header() {
   ]
 
   const poOptions = [
-    { label: 'PO Dashboard', to: getDashboardLink() },
+    // "PO Dashboard" means the actual PO management page (Open POs, Add
+    // PO, import/export) for every role — it used to call
+    // getDashboardLink() here, which sent Master Admin to their own
+    // Control Center instead, since that's their "home" dashboard. That
+    // meant Master Admin had no way to reach the PO list at all (even
+    // though RoleRoute already grants them access once there — there
+    // was just never a link pointing at it).
+    { label: 'PO Dashboard', to: '/dashboard/user' },
     { label: 'PO Credibility Index', to: '/credibility-index' },
+    ...(isMasterAdmin ? [{ label: 'Admin Control Center', to: '/dashboard/admin' }] : []),
   ]
 
   useEffect(() => {
@@ -147,7 +144,7 @@ export default function Header() {
 
   return (
     <header 
-     className="sticky top-0 z-[100] bg-white backdrop-blur-[12px] border-b border-[#E2E8F0] shadow-[0_2px_16px_rgba(30,58,138,0.06)]"
+      className="sticky top-0 z-[100] bg-white/92 backdrop-blur-[12px] border-b border-[#E2E8F0] shadow-[0_2px_16px_rgba(30,58,138,0.06)]"
     >
       <div className="container-custom h-[72px] flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2 sm:gap-3 mr-8">
