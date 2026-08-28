@@ -281,6 +281,7 @@ class SalesInvoiceResponse(BaseModel):
     legal_support_reason: Optional[str] = None
     legal_support_evidence_url: Optional[str] = None
     legal_support_evidence_filename: Optional[str] = None
+    legal_notice_sent_at: Optional[datetime] = None
 
     document_url: Optional[str] = None
     notes: Optional[str] = None
@@ -327,3 +328,5 @@ class SalesInvoiceReminderRequest(BaseModel):
     subject: Optional[str] = None
     body: Optional[str] = None
     scheduled_at: Optional[str] = None
+    include_legal_notice: bool = False
+    legal_notice_content: Optional[str] = None

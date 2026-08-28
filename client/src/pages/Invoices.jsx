@@ -374,6 +374,10 @@ export default function Invoices() {
   const [reminderScheduleType, setReminderScheduleType] = useState('now')
   const [reminderScheduledAt, setReminderScheduledAt] = useState('')
   const [reminderSending, setReminderSending] = useState(false)
+  // "Attach Legal Notice as PDF" option, mirroring PO's ReminderModal.
+  const [reminderIncludeLegalNotice, setReminderIncludeLegalNotice] = useState(false)
+  const [reminderLegalNoticeContent, setReminderLegalNoticeContent] = useState('')
+  const [showInvoiceLegalNoticeConfirm, setShowInvoiceLegalNoticeConfirm] = useState(null)
 
   const handleSendReminder = (invoice) => {
     const dueDateStr = invoice.payment_due_date?.slice(0, 10) || 'N/A'
@@ -387,6 +391,16 @@ export default function Invoices() {
     )
     setReminderScheduleType('now')
     setReminderScheduledAt('')
+    setReminderIncludeLegalNotice(false)
+    setReminderLegalNoticeContent(
+      `To: ${invoice.counterparty_name || ''}\n` +
+      `RE: Outstanding Payment - Invoice ${invoice.invoice_number || ''}\n\n` +
+      `Dear ${invoice.counterparty_name || ''},\n\n` +
+      `This is a formal legal notice that payment of ${amountStr} for Invoice ${invoice.invoice_number || ''} due on ${dueDateStr} remains unpaid/pending.\n\n` +
+      `You are required to clear this payment within 7 days of receiving this notice, failing which legal proceedings will be initiated without further notice.\n\n` +
+      `Issued by: ${invoice.company_name || ''}\n` +
+      `Date: ${new Date().toLocaleDateString('en-IN')}`
+    )
     setReminderModalInvoice(invoice)
   }
 
@@ -396,17 +410,18 @@ export default function Invoices() {
     setReminderBody('')
     setReminderScheduleType('now')
     setReminderScheduledAt('')
+    setReminderIncludeLegalNotice(false)
+    setReminderLegalNoticeContent('')
   }
 
-  const handleConfirmReminder = async () => {
+  // Actually calls the API. Separated from handleConfirmReminder so the
+  // "Send Legal Notice?" confirmation step (below) can call this same
+  // function once the user confirms, mirroring PO's
+  // handleConfirmReminder(payload) / showLegalConfirm flow.
+  const sendReminderRequest = async (payload) => {
     setReminderSending(true)
     setReminderLoadingId(reminderModalInvoice.id)
     try {
-      const payload = {
-        subject: reminderSubject,
-        body: reminderBody,
-        scheduled_at: reminderScheduleType === 'later' ? new Date(reminderScheduledAt).toISOString() : null,
-      }
       const res = await invoicesApi.sendReminder(reminderModalInvoice.id, payload)
       if (res.ok) {
         // Always surface the backend's actual message — it may say the
@@ -415,6 +430,7 @@ export default function Invoices() {
         // identically to a real success with zero visible feedback either way.
         alert(res.message || res.data?.message || 'Reminder processed.')
         closeReminderModal()
+        setShowInvoiceLegalNoticeConfirm(null)
         fetchInvoices()
       } else {
         alert(res.error || 'Failed to send reminder')
@@ -425,6 +441,23 @@ export default function Invoices() {
       setReminderSending(false)
       setReminderLoadingId(null)
     }
+  }
+
+  const handleConfirmReminder = async () => {
+    const payload = {
+      subject: reminderSubject,
+      body: reminderBody,
+      scheduled_at: reminderScheduleType === 'later' ? new Date(reminderScheduledAt).toISOString() : null,
+      include_legal_notice: reminderIncludeLegalNotice,
+      legal_notice_content: reminderIncludeLegalNotice ? reminderLegalNoticeContent : null,
+    }
+    // Sending now with a legal notice attached needs an explicit
+    // confirmation step first, mirroring the Purchase Orders page.
+    if (reminderIncludeLegalNotice && reminderScheduleType === 'now') {
+      setShowInvoiceLegalNoticeConfirm({ invoice: reminderModalInvoice, payload })
+      return
+    }
+    await sendReminderRequest(payload)
   }
 
   const handleSendToLegal = async (invoice) => {
@@ -1652,7 +1685,10 @@ export default function Invoices() {
                     className={`border-t ${invoice.archived ? 'opacity-60' : ''}`}
                   >
                     <td className="p-4">
-                      <div className="font-medium">{invoice.invoice_number}</div>
+                      <div className="font-medium">
+                        {invoice.invoice_number}
+                        {invoice.legal_notice_sent_at && <span className="ml-2">⚖️</span>}
+                      </div>
                       {approvalBadge(invoice) && (
                         <div className="text-[11px] mt-0.5">{approvalBadge(invoice)}</div>
                       )}
@@ -2072,6 +2108,36 @@ export default function Invoices() {
                 </div>
               </div>
 
+              {/* Legal Notice Section — mirrors PO's ReminderModal */}
+              <div className="legal-notice-section">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={reminderIncludeLegalNotice}
+                    onChange={(e) => setReminderIncludeLegalNotice(e.target.checked)}
+                  />
+                  ⚖️ Attach Legal Notice as PDF
+                </label>
+
+                {reminderIncludeLegalNotice && (
+                  <div className="mt-2">
+                    <p className="text-xs text-gray-500">
+                      📄 Edit legal notice below. It will be sent as a PDF attachment.
+                    </p>
+                    <textarea
+                      value={reminderLegalNoticeContent}
+                      onChange={(e) => setReminderLegalNoticeContent(e.target.value)}
+                      rows={12}
+                      className="w-full mt-2 rounded-lg border-gray-300 font-mono text-xs focus:border-blue-500 focus:ring-blue-500"
+                      placeholder="Legal notice content will appear here..."
+                    />
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      ✅ This will be generated as a PDF and attached to the email
+                    </p>
+                  </div>
+                )}
+              </div>
+
               <div className="border-t border-gray-100 pt-6">
                 <h4 className="text-sm font-bold text-gray-900 mb-4 uppercase tracking-wider">Schedule Reminder</h4>
                 <div className="space-y-3">
@@ -2127,6 +2193,35 @@ export default function Invoices() {
                 className="px-8 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {reminderSending ? 'Processing...' : reminderScheduleType === 'later' ? 'Schedule Reminder' : 'Send Reminder'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInvoiceLegalNoticeConfirm && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
+            <div className="text-4xl mb-4">⚖️</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">Send Legal Notice?</h3>
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to send a legal notice to:<br/>
+              <strong>{showInvoiceLegalNoticeConfirm.invoice.counterparty_name} ({showInvoiceLegalNoticeConfirm.invoice.counterparty_email})</strong><br/><br/>
+              This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowInvoiceLegalNoticeConfirm(null)}
+                className="flex-1 px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => sendReminderRequest(showInvoiceLegalNoticeConfirm.payload)}
+                disabled={reminderSending}
+                className="flex-1 px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium shadow-md disabled:opacity-50"
+              >
+                {reminderSending ? 'Sending...' : 'Yes, Send'}
               </button>
             </div>
           </div>

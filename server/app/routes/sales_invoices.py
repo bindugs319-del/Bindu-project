@@ -344,28 +344,70 @@ async def send_sales_invoice_reminder(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid scheduled_at format")
 
-    from app.services.email_service import EmailService
-    email_sent = await EmailService().send_email(to_email, subject, body)
-
-    invoice.updated_at = get_utc_now()
-
+    from app.services.email_service import EmailService, send_email_with_attachment
     from app.utils.audit import log_audit
-    await log_audit(
-        db=db, user=current_user, action="SALES_INVOICE_REMINDER_SENT",
-        entity_obj=invoice, reason=f"Reminder sent to {to_email}" if email_sent else f"Reminder NOT delivered (email not configured) — intended for {to_email}",
-    )
-    await db.commit()
+
+    # Send NOW — optionally with a formal legal-notice PDF attached,
+    # mirroring purchase_orders' send-reminder endpoint exactly.
+    email_sent = False
+    try:
+        if req.include_legal_notice:
+            import os
+            from app.services.legal_notice_service import generate_legal_notice_pdf
+            from app.utils.uploads import get_upload_subdir
+
+            temp_dir_path = get_upload_subdir("temp")
+            pdf_path = str(temp_dir_path / f"legal_notice_invoice_{invoice_id}.pdf")
+            invoice_data = {
+                "vendor": invoice.counterparty_name,
+                "po_number": invoice.invoice_number,
+                "amount": invoice.total,
+                "due_date": str(invoice.payment_due_date) if invoice.payment_due_date else "N/A",
+                "company_name": invoice.company_name or "Company",
+            }
+            generate_legal_notice_pdf(invoice_data, pdf_path, req.legal_notice_content)
+
+            email_sent = await send_email_with_attachment(
+                to_email=to_email,
+                subject=subject,
+                body=body,
+                attachment_path=pdf_path,
+                attachment_name=f"Legal_Notice_{invoice.invoice_number}.pdf",
+            )
+
+            if os.path.exists(pdf_path):
+                os.remove(pdf_path)
+
+            invoice.legal_notice_sent_at = get_utc_now()
+            await log_audit(
+                db=db, user=current_user, action="SALES_INVOICE_LEGAL_NOTICE_SENT",
+                entity_obj=invoice, reason=f"To: {to_email}",
+            )
+        else:
+            email_sent = await EmailService().send_email(to_email, subject, body)
+            await log_audit(
+                db=db, user=current_user, action="SALES_INVOICE_REMINDER_SENT",
+                entity_obj=invoice, reason=f"Reminder sent to {to_email}" if email_sent else f"Reminder NOT delivered (email not configured) — intended for {to_email}",
+            )
+
+        invoice.updated_at = get_utc_now()
+        await db.commit()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to send reminder email: {str(e)}")
 
     if not email_sent:
-        # send_email() returns False (rather than raising) specifically
-        # when no real email provider is configured — see EmailService.
-        # Reporting success here anyway would silently convince the user
-        # a vendor/customer was reminded when nothing was actually sent.
+        # send_email() / send_email_with_attachment() return False (rather
+        # than raising) specifically when no real email provider is
+        # configured — see EmailService. Reporting success here anyway
+        # would silently convince the user a customer was reminded when
+        # nothing was actually sent.
         return success_response(
-            message=f"Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY.",
+            message="Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY.",
         )
 
-    return success_response(message=f"Reminder sent to {to_email}")
+    return success_response(
+        message=f"Reminder with Legal Notice sent to {to_email}" if req.include_legal_notice else f"Reminder sent to {to_email}"
+    )
 
 
 @router.post("/{invoice_id}/send-to-legal-support")

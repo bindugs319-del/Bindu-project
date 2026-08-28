@@ -859,6 +859,10 @@ class SalesInvoice(Base):
     legal_support_evidence_filename = Column(String(255), nullable=True)
     legal_support_requested_by = Column(String(255), nullable=True)
 
+    # Set when a reminder was sent with "Attach Legal Notice as PDF"
+    # checked, mirroring purchase_orders.legal_notice_sent_at.
+    legal_notice_sent_at = Column(DateTime, nullable=True)
+
     # Edit-approval, mirroring purchase_orders' EditPOModal +
     # WorkflowService.start_po_approval exactly: an edit with the
     # "submit for approval" checkbox (or an evidence file) stores the
