@@ -177,7 +177,7 @@ async def send_email_with_attachment(
 
     if svc._looks_like_placeholder():
         print(f"[MOCK ATTACHMENT EMAIL] To: {to_email} | Subject: {subject} | Attachment: {attachment_name}")
-        return True
+        return False
 
     payload = svc._base_payload(to_email, subject)
     payload["textContent"] = body

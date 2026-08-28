@@ -409,7 +409,13 @@ export default function Invoices() {
       }
       const res = await invoicesApi.sendReminder(reminderModalInvoice.id, payload)
       if (res.ok) {
+        // Always surface the backend's actual message — it may say the
+        // reminder was logged but NOT actually emailed (e.g. no email
+        // provider configured on the server), which used to be reported
+        // identically to a real success with zero visible feedback either way.
+        alert(res.message || res.data?.message || 'Reminder processed.')
         closeReminderModal()
+        fetchInvoices()
       } else {
         alert(res.error || 'Failed to send reminder')
       }
@@ -834,7 +840,7 @@ export default function Invoices() {
                       onClick={() => setShowInvoiceImport(true)}
                       className="flex-1 text-xs bg-primary-600 text-white px-3 py-1.5 rounded-lg hover:bg-primary-700 transition-colors font-medium flex items-center justify-center gap-1"
                     >
-                     📥 Import (CSV & XLS)
+                      📥 Import Invoices
                     </button>
                     <button
                       type="button"

@@ -463,9 +463,12 @@ export default function PurchaseOrders() {
         logActivity(ACTIONS.SEND_REMINDER, { entity_type: 'PO', entity_id: reminderPO.po_number, details: `Sent reminder for PO ${reminderPO.po_number}` })
         if (payload.scheduled_at) {
           const dt = new Date(payload.scheduled_at).toLocaleString()
-          setStatusMessage(`Reminder scheduled for ${dt}`)
+          setStatusMessage(res.message || res.data?.message || `Reminder scheduled for ${dt}`)
         } else {
-          setStatusMessage(payload.include_legal_notice ? 'Reminder with Legal Notice sent to vendor' : 'Reminder sent to vendor')
+          // Use the backend's actual message rather than assuming success —
+          // it may report the reminder was only logged, not actually
+          // emailed (e.g. no email provider configured on the server).
+          setStatusMessage(res.message || res.data?.message || (payload.include_legal_notice ? 'Reminder with Legal Notice sent to vendor' : 'Reminder sent to vendor'))
           // Refresh the list to show the badge if legal notice was sent
           if (payload.include_legal_notice) {
             const resList = await purchaseOrders.list(1, 100, true);

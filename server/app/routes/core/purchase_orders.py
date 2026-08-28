@@ -1618,6 +1618,7 @@ async def send_vendor_reminder(po_id: str, req: ReminderRequest, current_user: A
             raise HTTPException(status_code=400, detail=f"Invalid scheduled_at format")
 
     # Send email NOW
+    email_sent = False
     try:
         if include_legal_notice:
             # Ensure temp directory exists
@@ -1636,7 +1637,7 @@ async def send_vendor_reminder(po_id: str, req: ReminderRequest, current_user: A
             generate_legal_notice_pdf(po_data, pdf_path, legal_notice_content)
             
             # Send with attachment
-            await send_email_with_attachment(
+            email_sent = await send_email_with_attachment(
                 to_email=v_email,
                 subject=subject,
                 body=body,
@@ -1659,7 +1660,7 @@ async def send_vendor_reminder(po_id: str, req: ReminderRequest, current_user: A
                 reason=f"To: {v_email}"
             )
         else:
-            await EmailService().send_email(v_email, subject, body)
+            email_sent = await EmailService().send_email(v_email, subject, body)
             await log_audit(
                 db=db,
                 user=current_user,
@@ -1684,7 +1685,10 @@ async def send_vendor_reminder(po_id: str, req: ReminderRequest, current_user: A
         except Exception as e:
             logger.warning(f"[PO] Failed to record 'reminder sent' notification for PO {po.po_number}: {e}")
             
-        return ResponseFormatter.create_success(message="Reminder sent successfully")
+        return ResponseFormatter.create_success(
+            message="Reminder sent successfully" if email_sent else
+            "Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY."
+        )
     except Exception as e:
         logger.error(f"Failed to send reminder: {str(e)}")
         import traceback

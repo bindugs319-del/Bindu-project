@@ -345,16 +345,25 @@ async def send_sales_invoice_reminder(
             raise HTTPException(status_code=400, detail="Invalid scheduled_at format")
 
     from app.services.email_service import EmailService
-    await EmailService().send_email(to_email, subject, body)
+    email_sent = await EmailService().send_email(to_email, subject, body)
 
     invoice.updated_at = get_utc_now()
 
     from app.utils.audit import log_audit
     await log_audit(
         db=db, user=current_user, action="SALES_INVOICE_REMINDER_SENT",
-        entity_obj=invoice, reason=f"Reminder sent to {to_email}",
+        entity_obj=invoice, reason=f"Reminder sent to {to_email}" if email_sent else f"Reminder NOT delivered (email not configured) — intended for {to_email}",
     )
     await db.commit()
+
+    if not email_sent:
+        # send_email() returns False (rather than raising) specifically
+        # when no real email provider is configured — see EmailService.
+        # Reporting success here anyway would silently convince the user
+        # a vendor/customer was reminded when nothing was actually sent.
+        return success_response(
+            message=f"Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY.",
+        )
 
     return success_response(message=f"Reminder sent to {to_email}")
 
