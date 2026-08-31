@@ -74,7 +74,7 @@ export default function ReportOverdue() {
           <div className="card space-y-4">
             <h2 className="text-2xl font-heading font-bold text-primary-700">4. What is the process for verifying a reported defaulter?</h2>
             <p className="text-gray-700 leading-relaxed">
-             Credit Datawatch is committed to protecting the reputations of genuine businesses. We follow strict, standardized procedures to thoroughly verify every claim before adding any entity to our defaulters list. By taking every reasonable precaution, we ensure that the information on our portal remains reliable.
+             Credit Datawatch is committed to protecting the reputations of genuine businesses. We follow strict, standardized procedures to thoroughly verify every claim before adding any entity to our defaulters list. By taking every reasonable precaution, we ensure that the information on our portal remains reliable.</p>
             <p className="text-gray-700 leading-relaxed">
               Credit Datawatch serves as a platform to list defaulters reported by our registered members and to track the payments. If the reporting member and the defaulting party reach a mutual agreement and settle the outstanding amount, the member has the option to remove the defaulter's name from the portal. Please note that the settlement process is facilitated between the members and the defaulting party using Credit DataWatch platform. The decision to remove a name from the defaulters list rests entirely at the discretion of the reporting member.
             </p>
