@@ -52,7 +52,7 @@ export default function ReportOverdue() {
           <div className="card space-y-4">
             <h2 className="text-2xl font-heading font-bold text-primary-700">1. Expose Corporate Defaulters</h2>
             <p className="text-gray-700 leading-relaxed">
-              For registered CreditDataWatch members, reporting a business defaulter is quick and easy. When you report a defaulter, you not only open the door to recovering your dues via the CreditDataWatch settlement portal, but you also shield other MSMEs from dealing with chronic non-payers. Because the Credit Information Report and Defaulters List are accessible to all our members throughout the country, any business you report will immediately face exposure on a national scale.
+              For registered CreditDataWatch members, reporting a business defaulter is quick and easy. When you report a defaulter, you not only open the door to recovering your dues via the CreditDataWatch settlement portal, but you also shield other MSMEs from dealing with chronic non-payers. Because the Credit Information Report and Defaulters List are accessible to our members.
             </p>
           </div>
 
@@ -68,16 +68,13 @@ export default function ReportOverdue() {
           <div className="card space-y-4">
             <h2 className="text-2xl font-heading font-bold text-primary-700">3. Prerequisites and Documentation for Reporting a Defaulting Business</h2>
             <p className="text-gray-700 leading-relaxed">
-              To successfully report a business as a credit defaulter, you must submit key documents, including the defaulting party's ledger and a CA-certified statement of the due amount containing a valid UDIN. Once submitted, the CreditDataWatch expert team rigorously verifies the information. Upon successful review, the business is officially added to the defaulters list on our portal.
-            </p>
-          </div>
+              To successfully report a business as a credit defaulter, you must submit key documents, including the defaulting party's ledger and a CA-certified statement of the due amount containing a valid UDIN. Once submitted, the CreditDataWatch expert team rigorously verifies the information. Upon successful review, the legal support is provided with the defined agreements.
 
           {/* Section 4: Verification Process */}
           <div className="card space-y-4">
             <h2 className="text-2xl font-heading font-bold text-primary-700">4. What is the process for verifying a reported defaulter?</h2>
             <p className="text-gray-700 leading-relaxed">
-              Credit Datawatch is committed to protecting the reputations of genuine businesses. We follow strict, standardized procedures to thoroughly verify every claim before adding any entity to our defaulters list. By taking every reasonable precaution, we ensure that the information on our portal remains accurate, reliable, and consistently up to date.
-            </p>
+             Credit Datawatch is committed to protecting the reputations of genuine businesses. We follow strict, standardized procedures to thoroughly verify every claim before adding any entity to our defaulters list. By taking every reasonable precaution, we ensure that the information on our portal remains reliable.
             <p className="text-gray-700 leading-relaxed">
               Credit Datawatch serves as a platform to list defaulters reported by our registered members and to track the payments. If the reporting member and the defaulting party reach a mutual agreement and settle the outstanding amount, the member has the option to remove the defaulter's name from the portal. Please note that the settlement process is facilitated between the members and the defaulting party using Credit DataWatch platform. The decision to remove a name from the defaulters list rests entirely at the discretion of the reporting member.
             </p>

@@ -87,6 +87,16 @@ function DashboardRedirect() {
 export default function AppRoutes() {
   const location = useLocation()
 
+  // Reset scroll position to the top on every route change. Without
+  // this, React Router preserves the browser's current scroll offset
+  // across navigations (it's an SPA, not a real page load), so
+  // clicking a link like "Book Appointment" from partway down a long
+  // page — e.g. the CTASection at the bottom of Home — would land on
+  // the new page still scrolled down, instead of at its top.
+  useEffect(() => {
+    window.scrollTo(0, 0)
+  }, [location.pathname])
+
   return (
     <AnimatePresence mode="wait">
       <motion.div
