@@ -781,14 +781,95 @@ async def lifespan(app: FastAPI):
             except Exception as e:
                 logger.info(f"business_check_requests migration failed: {e}")
 
-            await conn.commit()
-            logger.info("All startup migrations completed")
-            
             try:
                 await _ensure_dev_admin()
                 logger.info("Developer admin ensured")
             except Exception as e:
                 logger.info(f"Developer admin bootstrap failed: {e}")
+
+            await conn.commit()
+            logger.info("All startup migrations completed")
+
+        # Deliberately a SEPARATE transaction/connection from the big
+        # sequential migration block above: that block runs ~30 ad-hoc
+        # steps on one shared connection with no savepoints, so if any
+        # one of them legitimately fails, Postgres aborts the whole
+        # transaction and every later step in it silently no-ops. The
+        # fixes below are important enough (they unblock deleting a
+        # company/user at all) that they must not depend on everything
+        # above having succeeded.
+        async with engine.begin() as conn2:
+            is_sqlite = str(engine.url).startswith("sqlite")
+
+            try:
+                # sales_invoices: legal_notice_sent_at (for the invoice
+                # reminder's "Attach Legal Notice as PDF" option).
+                if is_sqlite:
+                    try: await conn2.execute(text("ALTER TABLE sales_invoices ADD COLUMN legal_notice_sent_at TIMESTAMP"))
+                    except Exception: pass
+                else:
+                    await conn2.execute(text("ALTER TABLE sales_invoices ADD COLUMN IF NOT EXISTS legal_notice_sent_at TIMESTAMP"))
+                logger.info("sales_invoices.legal_notice_sent_at column migrated/verified")
+            except Exception as e:
+                logger.info(f"sales_invoices legal_notice_sent_at migration skipped or already applied: {e}")
+
+            try:
+                # Fix "who did this" FKs pointing at users.id so deleting a
+                # company (which cascades into deleting its users) doesn't
+                # fail with a ForeignKeyViolationError the moment a
+                # to-be-deleted user has a notification, approved a
+                # subscription/PO, etc. notifications.user_id -> CASCADE
+                # (a notification has no meaning without its owner); the
+                # rest -> SET NULL (the record should survive, just lose
+                # the "who" reference). Idempotent: only touches
+                # constraints that don't already have the right behavior.
+                if not is_sqlite:
+                    fk_targets = [
+                        ("notifications", "user_id", "CASCADE"),
+                        ("users", "created_by", "SET NULL"),
+                        ("subscriptions", "verified_by", "SET NULL"),
+                        ("subscriptions", "processed_by", "SET NULL"),
+                        ("subscriptions", "approved_by", "SET NULL"),
+                        ("purchase_orders", "approved_by", "SET NULL"),
+                        ("business_requests", "analyzed_by", "SET NULL"),
+                        ("support_requests", "resolved_by", "SET NULL"),
+                    ]
+                    confdeltype_map = {"CASCADE": "c", "SET NULL": "n"}
+                    for fk_table, fk_column, fk_action in fk_targets:
+                        try:
+                            fk_row = (await conn2.execute(text("""
+                                SELECT con.conname, con.confdeltype
+                                FROM pg_constraint con
+                                JOIN pg_class cls ON cls.oid = con.conrelid
+                                JOIN pg_attribute att
+                                  ON att.attnum = ANY(con.conkey) AND att.attrelid = con.conrelid
+                                WHERE cls.relname = :fk_table
+                                  AND con.contype = 'f'
+                                  AND att.attname = :fk_column
+                            """), {"fk_table": fk_table, "fk_column": fk_column})).first()
+                            if not fk_row:
+                                continue
+                            fk_name, confdeltype = fk_row
+                            # asyncpg returns Postgres' internal "char" type
+                            # (pg_constraint.confdeltype) as bytes (b'c'),
+                            # not str — decode before comparing or this
+                            # never matches and re-runs the ALTER every
+                            # single startup.
+                            if isinstance(confdeltype, (bytes, bytearray)):
+                                confdeltype = confdeltype.decode()
+                            if confdeltype == confdeltype_map[fk_action]:
+                                continue  # already correct, nothing to do
+                            await conn2.execute(text(f'ALTER TABLE {fk_table} DROP CONSTRAINT "{fk_name}"'))
+                            await conn2.execute(text(
+                                f'ALTER TABLE {fk_table} ADD CONSTRAINT "{fk_name}" '
+                                f'FOREIGN KEY ({fk_column}) REFERENCES users(id) ON DELETE {fk_action}'
+                            ))
+                            logger.info(f"Fixed FK {fk_name} on {fk_table}.{fk_column} -> ON DELETE {fk_action}")
+                        except Exception as e:
+                            logger.info(f"FK ondelete fix skipped for {fk_table}.{fk_column}: {e}")
+                logger.info("User-reference FK ondelete fixes verified")
+            except Exception as e:
+                logger.info(f"FK ondelete fix step skipped: {e}")
 
     except Exception as e:
         logger.warning(f"Database connection failed during startup: {e}")
