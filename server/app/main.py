@@ -814,28 +814,35 @@ async def lifespan(app: FastAPI):
                 logger.info(f"sales_invoices legal_notice_sent_at migration skipped or already applied: {e}")
 
             try:
-                # Fix "who did this" FKs pointing at users.id so deleting a
-                # company (which cascades into deleting its users) doesn't
-                # fail with a ForeignKeyViolationError the moment a
-                # to-be-deleted user has a notification, approved a
-                # subscription/PO, etc. notifications.user_id -> CASCADE
-                # (a notification has no meaning without its owner); the
-                # rest -> SET NULL (the record should survive, just lose
-                # the "who" reference). Idempotent: only touches
-                # constraints that don't already have the right behavior.
+                # Reconcile EVERY foreign key in the models that declares
+                # an explicit ondelete against what's actually live in the
+                # database. This started as a hand-picked list of 8
+                # users.id FKs (the ones known to block deleting a
+                # company/user), but that approach doesn't scale: the
+                # model source already declares ondelete="CASCADE"/"SET
+                # NULL" correctly for ~49 FKs across the schema (including
+                # companies.id ones), yet any of them could still be
+                # running with a stale pre-ondelete constraint in a
+                # database that predates when that clause was added to
+                # the model — exactly what happened with
+                # notifications.user_id. Deriving the target list from
+                # Base.metadata itself (the single source of truth) means
+                # we never have to manually rediscover the "next" one.
                 if not is_sqlite:
-                    fk_targets = [
-                        ("notifications", "user_id", "CASCADE"),
-                        ("users", "created_by", "SET NULL"),
-                        ("subscriptions", "verified_by", "SET NULL"),
-                        ("subscriptions", "processed_by", "SET NULL"),
-                        ("subscriptions", "approved_by", "SET NULL"),
-                        ("purchase_orders", "approved_by", "SET NULL"),
-                        ("business_requests", "analyzed_by", "SET NULL"),
-                        ("support_requests", "resolved_by", "SET NULL"),
-                    ]
-                    confdeltype_map = {"CASCADE": "c", "SET NULL": "n"}
-                    for fk_table, fk_column, fk_action in fk_targets:
+                    ondelete_char = {
+                        "CASCADE": "c", "SET NULL": "n",
+                        "SET DEFAULT": "d", "RESTRICT": "r", "NO ACTION": "a",
+                    }
+                    fk_targets = []
+                    for tbl in Base.metadata.tables.values():
+                        for fk in tbl.foreign_keys:
+                            if fk.ondelete and fk.ondelete.upper() in ondelete_char:
+                                fk_targets.append((
+                                    tbl.name, fk.parent.name,
+                                    fk.column.table.name, fk.column.name,
+                                    fk.ondelete.upper(),
+                                ))
+                    for fk_table, fk_column, ref_table, ref_column, fk_action in fk_targets:
                         try:
                             fk_row = (await conn2.execute(text("""
                                 SELECT con.conname, con.confdeltype
@@ -857,17 +864,18 @@ async def lifespan(app: FastAPI):
                             # single startup.
                             if isinstance(confdeltype, (bytes, bytearray)):
                                 confdeltype = confdeltype.decode()
-                            if confdeltype == confdeltype_map[fk_action]:
+                            if confdeltype == ondelete_char[fk_action]:
                                 continue  # already correct, nothing to do
                             await conn2.execute(text(f'ALTER TABLE {fk_table} DROP CONSTRAINT "{fk_name}"'))
                             await conn2.execute(text(
                                 f'ALTER TABLE {fk_table} ADD CONSTRAINT "{fk_name}" '
-                                f'FOREIGN KEY ({fk_column}) REFERENCES users(id) ON DELETE {fk_action}'
+                                f'FOREIGN KEY ({fk_column}) REFERENCES {ref_table}({ref_column}) '
+                                f'ON DELETE {fk_action}'
                             ))
                             logger.info(f"Fixed FK {fk_name} on {fk_table}.{fk_column} -> ON DELETE {fk_action}")
                         except Exception as e:
                             logger.info(f"FK ondelete fix skipped for {fk_table}.{fk_column}: {e}")
-                logger.info("User-reference FK ondelete fixes verified")
+                logger.info(f"Checked {len(fk_targets) if not is_sqlite else 0} model-declared FK ondelete rules against the live schema")
             except Exception as e:
                 logger.info(f"FK ondelete fix step skipped: {e}")
 
