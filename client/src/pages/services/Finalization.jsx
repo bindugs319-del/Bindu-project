@@ -100,9 +100,9 @@ export default function Finalization() {
           </div>
 
           {/* Important Notes */}
-          <div className="card bg-amber-50 border-amber-200">
+          <div className="card bg-amber-50 border-amber-50">
             <h3 className="text-lg font-heading font-bold text-amber-900 mb-3">Important Notes</h3>
-            <ul className="space-y-2 text-gray-700">
+            <ul className="space-y-2 text-amber-800">
               <li className="flex items-start gap-2">
                 <span>•</span>
                 <span>Processing typically takes 2-3 working days after document submission</span>
