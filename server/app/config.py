@@ -121,7 +121,19 @@ class Settings(BaseSettings):
     HOST: str = "127.0.0.1"
     PORT: int = 8000
     ENABLE_SCHEDULER: bool = True
-    DEBUG_RAW_ERRORS: bool = True
+    # When true, ErrorHandlerMiddleware re-raises unhandled exceptions
+    # instead of returning a clean JSON 500. That's useful for local
+    # debugging (full traceback in the terminal), but dangerous as a
+    # production default: a re-raised exception propagates past
+    # CORSMiddleware without it getting a chance to attach
+    # Access-Control-Allow-Origin headers, so the browser reports a
+    # misleading "blocked by CORS policy" error instead of showing the
+    # real 500 — turning every future unhandled backend bug into a
+    # confusing "CORS is broken" report. Defaulting this to False means
+    # production always gets a clean, properly-CORS'd JSON error (full
+    # detail is still logged server-side via exc_info=True either way).
+    # Set DEBUG_RAW_ERRORS=true in a local .env for verbose local debugging.
+    DEBUG_RAW_ERRORS: bool = False
 
     # Admin Configuration (for seeding initial admin user)
     ADMIN_GSTIN: str = ""

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List, Optional
 from uuid import UUID, uuid4
 
@@ -18,6 +18,26 @@ APPOINTMENT_NOT_FOUND_ERROR = "Appointment not found"
 router = APIRouter(prefix="/appointments", tags=["Appointments"])
 
 
+def _parse_naive_datetime(value: str) -> datetime:
+    """Parse a datetime string from the frontend into a naive datetime
+    matching the DB column type.
+
+    The frontend sends `new Date(...).toISOString()`, which always ends
+    in "Z" (e.g. "2026-09-01T14:09:00.000Z"). On Python 3.11+,
+    datetime.fromisoformat() correctly parses that "Z" and returns a
+    timezone-AWARE datetime — but Appointment.appointment_date is a
+    plain (naive) DateTime column ("timestamp without time zone" in
+    Postgres). asyncpg refuses to bind a tz-aware datetime to a naive
+    column and raises DataError ("can't subtract offset-naive and
+    offset-aware datetimes"), which was crashing this endpoint with an
+    unhandled exception on every submission.
+    """
+    dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    if dt.tzinfo is not None:
+        dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
+
+
 @router.post("", status_code=201)
 async def create_appointment(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -25,13 +45,23 @@ async def create_appointment(
     data: dict
 ):
     """Create a new appointment"""
+    required_fields = ["contact_name", "contact_email", "contact_phone", "appointment_date", "purpose"]
+    missing = [f for f in required_fields if not data.get(f)]
+    if missing:
+        raise HTTPException(status_code=422, detail=f"Missing required field(s): {', '.join(missing)}")
+
+    try:
+        appointment_date = _parse_naive_datetime(data["appointment_date"])
+    except (ValueError, TypeError):
+        raise HTTPException(status_code=422, detail="Invalid appointment_date format")
+
     appointment = Appointment(
         id=str(uuid4()),
         user_id=current_user.id,
         contact_name=data["contact_name"],
         contact_email=data["contact_email"],
         contact_phone=data["contact_phone"],
-        appointment_date=datetime.fromisoformat(data["appointment_date"]),
+        appointment_date=appointment_date,
         purpose=data["purpose"],
         notes=data.get("notes"),
         status="scheduled",
@@ -154,7 +184,10 @@ async def update_appointment(
     if "contact_phone" in data:
         appointment.contact_phone = data["contact_phone"]
     if "appointment_date" in data:
-        appointment.appointment_date = datetime.fromisoformat(data["appointment_date"])
+        try:
+            appointment.appointment_date = _parse_naive_datetime(data["appointment_date"])
+        except (ValueError, TypeError):
+            raise HTTPException(status_code=422, detail="Invalid appointment_date format")
     if "purpose" in data:
         appointment.purpose = data["purpose"]
     if "status" in data:
