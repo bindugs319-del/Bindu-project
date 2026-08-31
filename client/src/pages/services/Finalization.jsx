@@ -139,7 +139,7 @@ export default function Finalization() {
               <li>It helps the defaulter restore their business reputation</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
-              Navigate to Dashboard → Defaulters → Select Case → Update Status to "Settled" to complete the finalization process.
+              Navigate to Dashboard → Search for Invoice no→ Update Status to "Closed" to complete the finalization process.
             </p>
           </div>
 

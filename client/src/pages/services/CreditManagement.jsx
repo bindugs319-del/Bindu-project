@@ -86,7 +86,6 @@ export default function CreditManagement() {
             <div className="space-y-2">
               {[
                 'Zero Manual Effort: Let automated reminders do the heavy lifting for you.',
-                '100% Digital Records: Get instant, digital proof of all your trade agreements.',
                 'Corporate Standards: Upgrade your collection strategy with a highly professional tone.',
                 'All-in-One Dashboard: Keep a close eye on every single credit exchange in one convenient place.',
                 'Frictionless Settlements: Resolve pending payments smoothly and easily.',

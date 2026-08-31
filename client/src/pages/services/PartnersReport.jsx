@@ -7,7 +7,6 @@ export default function PartnersReport() {
     'Verified Network Data: Review authenticated default records from a wide range of partner businesses.',
     'Cross-Sector Analysis: Compare credit backgrounds across multiple different industries.',
     'Risk Detection: Identify potential non-payers early with our proactive warning system.',
-    'Deep Financial Auditing: Perform a thorough evaluation of a company\'s credit reliability.',
     'Trend Monitoring: Spot specific defaulting patterns within your particular trade sector.',
   ]
 
@@ -155,10 +154,9 @@ export default function PartnersReport() {
 
             <div className="bg-amber-100 rounded-xl p-4">
               <p className="font-semibold text-amber-900 text-sm mb-2">How to close a case:</p>
-              <p className="text-amber-700 text-xs">Go to User Dashboard → Manage Defaulters → Locate Case → Mark as "Settled/Closed"</p>
+              <p className="text-amber-700 text-xs">Go to User Dashboard → Search Invoice No → Mark as "Closed"</p>
             </div>
           </div>
-
         </motion.div>
       </div>
       </section>
