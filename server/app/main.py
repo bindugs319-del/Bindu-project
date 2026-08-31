@@ -842,6 +842,8 @@ async def lifespan(app: FastAPI):
                                     fk.column.table.name, fk.column.name,
                                     fk.ondelete.upper(),
                                 ))
+                    checked = 0
+                    fixed = 0
                     for fk_table, fk_column, ref_table, ref_column, fk_action in fk_targets:
                         try:
                             fk_row = (await conn2.execute(text("""
@@ -854,7 +856,15 @@ async def lifespan(app: FastAPI):
                                   AND con.contype = 'f'
                                   AND att.attname = :fk_column
                             """), {"fk_table": fk_table, "fk_column": fk_column})).first()
+                            checked += 1
                             if not fk_row:
+                                # Log every miss for the handful of columns
+                                # we know matter most, so a live check
+                                # doesn't require guessing why nothing
+                                # happened — this should basically never
+                                # print for a real column/table pair.
+                                if fk_table in ("notifications", "users", "subscriptions"):
+                                    logger.info(f"FK check: no constraint found for {fk_table}.{fk_column} (query returned 0 rows)")
                                 continue
                             fk_name, confdeltype = fk_row
                             # asyncpg returns Postgres' internal "char" type
@@ -865,6 +875,8 @@ async def lifespan(app: FastAPI):
                             if isinstance(confdeltype, (bytes, bytearray)):
                                 confdeltype = confdeltype.decode()
                             if confdeltype == ondelete_char[fk_action]:
+                                if fk_table == "notifications":
+                                    logger.info(f"FK check: {fk_name} already confdeltype={confdeltype!r} (wanted {fk_action}) — no change made")
                                 continue  # already correct, nothing to do
                             await conn2.execute(text(f'ALTER TABLE {fk_table} DROP CONSTRAINT "{fk_name}"'))
                             await conn2.execute(text(
@@ -872,10 +884,11 @@ async def lifespan(app: FastAPI):
                                 f'FOREIGN KEY ({fk_column}) REFERENCES {ref_table}({ref_column}) '
                                 f'ON DELETE {fk_action}'
                             ))
+                            fixed += 1
                             logger.info(f"Fixed FK {fk_name} on {fk_table}.{fk_column} -> ON DELETE {fk_action}")
                         except Exception as e:
                             logger.info(f"FK ondelete fix skipped for {fk_table}.{fk_column}: {e}")
-                logger.info(f"Checked {len(fk_targets) if not is_sqlite else 0} model-declared FK ondelete rules against the live schema")
+                logger.info(f"Checked {checked if not is_sqlite else 0}/{len(fk_targets) if not is_sqlite else 0} model-declared FK ondelete rules against the live schema, fixed {fixed if not is_sqlite else 0}")
             except Exception as e:
                 logger.info(f"FK ondelete fix step skipped: {e}")
 
