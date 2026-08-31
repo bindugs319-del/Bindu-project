@@ -5,7 +5,7 @@ from app.database import Base
 class Notification(Base):
     __tablename__ = "notifications"
     id = Column(String(36), primary_key=True, index=True)
-    user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
+    user_id = Column(String(36), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     user_email = Column(String(255), nullable=True, index=True)
     title = Column(String(255), nullable=True)
     type = Column(String(50), nullable=False, index=True)

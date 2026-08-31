@@ -98,7 +98,7 @@ class User(Base):
     gstin = Column(String(15), nullable=False, index=True)
     company_name = Column(String(255), nullable=True)  # Deprecated display; prefer Company.company_name
     is_active = Column(Boolean, default=True, index=True)
-    created_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    created_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     subscription_bypass = Column(Boolean, default=False, nullable=False, index=True)
     full_access = Column(Boolean, default=False, nullable=False, index=True)
     subscription_status = Column(String(20), default="INACTIVE", nullable=False, index=True)
@@ -171,9 +171,9 @@ class Subscription(Base):
     expiry_date = Column(DateTime, nullable=True, index=True)
     payment_id = Column(String(36), ForeignKey("payments.id"), nullable=True, index=True)  # Link to successful payment
     payment_proof_url = Column(String(500), nullable=True)  # QR payment proof
-    verified_by = Column(String(36), ForeignKey("users.id"), nullable=True)  # FINANCIAL user
-    processed_by = Column(String(36), ForeignKey("users.id"), nullable=True)  # OPERATION user
-    approved_by = Column(String(36), ForeignKey("users.id"), nullable=True)  # MASTER_ADMIN user
+    verified_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # FINANCIAL user
+    processed_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # OPERATION user
+    approved_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)  # MASTER_ADMIN user
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -290,7 +290,7 @@ class PurchaseOrder(Base):
     approval_notes = Column(Text, nullable=True)
     payment_receipt_url = Column(String(500), nullable=True)
     payment_receipt_filename = Column(String(255), nullable=True)
-    approved_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    approved_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     approved_at = Column(DateTime, nullable=True)
     pending_changes = Column(JSON, nullable=True)
     rejection_reason = Column(Text, nullable=True)
@@ -525,7 +525,7 @@ class BusinessRequest(Base):
     risk_score = Column(Integer, nullable=True)
     recommendation = Column(Text, nullable=True)
     legal_notes = Column(Text, nullable=True)
-    analyzed_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    analyzed_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -546,7 +546,7 @@ class SupportRequest(Base):
     request_details = Column(Text, nullable=False)
     status = Column(String(20), default="PENDING", index=True)  # PENDING, RESOLVED
     admin_response = Column(Text, nullable=True)
-    resolved_by = Column(String(36), ForeignKey("users.id"), nullable=True)
+    resolved_by = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
     resolved_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
