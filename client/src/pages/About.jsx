@@ -37,9 +37,10 @@ export default function About() {
             all in one platform, powered by GST-verified data.
           </p>
           <p className="text-[#475569] mb-10 max-w-3xl">
-            Our platform serves as a trusted database of commercial credit behaviour, compiled exclusively from reports submitted
-            by our network of GST-registered members. Every entry is thoroughly verified by our specialist team before
-            being published, ensuring accuracy and reliability at every step.
+            Our platform serves as a trusted database of commercial credit behaviour, compiled 
+            exclusively from reports submitted by our network of GST-registered members. Every 
+            entry is verified by our specialist team before published, ensuring reliability at every 
+            step.
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -110,7 +111,7 @@ export default function About() {
                   ['🔐', 'GST-Verified Registration', 'Businesses register using their valid GSTIN. No GSTIN, no registration — this ensures every member is a genuine, verified business entity.'],
                   ['📋', 'Report & Document', 'Members submit defaulter details with supporting documents — ledger, CA-certified statement with UDIN, POs, and delivery proofs.'],
                   ['🔍', 'Expert Verification', 'Our specialist team rigorously reviews every submission within 1–2 business days, ensuring only accurate, verified data is published.'],
-                  ['🌐', 'National Visibility', 'Verified defaulters are listed on the CreditDataWatch Global Rating Dashboard, visible to all members nationwide — impacting credit scores and market credibility.'],
+                  ['🌐', 'National Visibility', 'Verified defaulters are listed on the CreditDataWatch Dashboard, visible to members — impacting credit scores and market credibility.'],
                   ['🤝', 'Settlement & Closure', 'Once dues are cleared, the creditor marks the case as Settled/Closed, halting all alerts and allowing the defaulter to begin credit restoration.'],
                 ].map(([icon, title, desc], idx) => (
                   <div key={idx} className="flex items-start gap-3">
@@ -198,7 +199,6 @@ export default function About() {
             {[
               ['✅', 'GST-First Verification', 'All data is anchored to valid GSTINs, eliminating fraud and ensuring business authenticity.'],
               ['🤖', 'Automated Collections', 'Automated reminders and follow-ups reduce manual effort and keep cash flow healthy.'],
-              ['🌍', 'National Network', 'Credit information and defaulter lists are accessible to all members throughout India.'],
               ['⚖️', 'Legal Support', 'Access qualified legal assistance and formal legal notices through our vetted network.'],
               ['📊', 'Real-Time Dashboard', 'Monitor every credit transaction, default status, and settlement update in one dashboard.'],
             ].map(([icon, title, desc]) => (
