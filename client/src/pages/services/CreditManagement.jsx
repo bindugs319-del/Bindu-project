@@ -58,8 +58,7 @@ export default function CreditManagement() {
           <div className="card space-y-4">
             <h2 className="text-2xl font-heading font-bold text-primary-700">Our Operating Mechanism</h2>
             <p className="text-gray-700 leading-relaxed">
-              Credit details will be entered manually or via automatic bulk PO uploads. Credit Data Watch members are given the option to upload supporting attachments. These uploads are approved by the Credit Data Watch support team to appear in the global star ratings. This visibility immediately impacts the defaulter's credit score, warning other businesses and decreasing their overall market credibility.
-            </p>
+             Credit details will be entered manually or via automatic bulk invoice/PO uploads. Credit Data Watch members are given the option to upload supporting attachments. These uploads are approved by the Credit Data Watch support team to appear in the global star ratings. This visibility immediately impacts the defaulter's credit score, warning other businesses and decreasing their overall market credibility</p>
           </div>
 
           {/* What Our Platform Delivers */}
@@ -70,7 +69,7 @@ export default function CreditManagement() {
                 'Systematized Confirmations: Auto-acceptance capabilities streamline agreements between vendors and clients.',
                 'Scheduled Follow-Ups: Maintain consistent cash flow with automated payment nudges sent before and after due dates.',
                 'Frictionless Reporting: Seamlessly flag defaulting businesses once a deadline lapses, supported by documentation.',
-                'Credit Impact: Deter chronic non-payment by lowering the defaulting party\'s credibility rating across the Indian market.',
+                'Credit Impact: Deter chronic non-payment by lowering the defaulting party\'s credibility rating.',             
                 'Legal Support: Access options for formal legal notices and professional legal assistance through qualified lawyers.',
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
