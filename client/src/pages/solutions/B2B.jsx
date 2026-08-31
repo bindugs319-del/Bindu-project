@@ -74,7 +74,7 @@ export default function B2B() {
                 Revolutionizing Credit Oversight
               </h3>
               <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Our approach to risk management is defined by an exhaustive evaluation framework. We go beyond basic credit scores, integrating sector-specific data and proprietary analytics to provide a 360-degree view of a customer's reliability. This deep-dive analysis allows you to approve credit lines and establish limits with total precision.
+                Our approach to risk management is defined by an exhaustive evaluation framework. We go beyond basic credit scores, integrating sector-specific data and proprietary analytics to provide a 360-degree view of a customer's reliability. 
               </p>
               <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
                 Beyond monitoring and assessment, CreditDataWatch provides expert B2B Debt Resolution support and tracking. Should a client fail to meet their obligations, our team assists in navigating the settlement process. We handle the complexities of recovery on your behalf, allowing you to manage your business credit portfolio with absolute certainty.
@@ -120,7 +120,7 @@ export default function B2B() {
                   ['Reporting', 'The unpaid debt is logged on the platform.'],
                   ['Notification', 'We initiate communication with the buyer to inform them of the report.'],
                   ['Resolution', 'Both parties can use our tools to track and negotiate terms.'],
-                  ['Completion', 'Once the payment is received, the creditor marks the case as "Settled."'],
+                  ['Completion', 'Once the payment is received, the creditor marks the case as "Closed."'],
                   ['Status Update', 'The listing is updated or removed based on the agreement, helping the buyer restore their credit standing.'],
                 ].map(([title, desc], idx) => (
                   <div key={idx} className="relative">
