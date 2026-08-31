@@ -33,8 +33,8 @@ export default function CreditManagement() {
 
       <PageHero
         icon="💳"
-        title="Streamlined Credit Management"
-        subtitle="Centralize payment reminders, validation workflows, and dispute tracking."
+        title=" Credit Management"
+        subtitle="Centralize payment reminders, validation workflows, and financial tracking"
         exploreLabel="Explore Other Services"
         tiles={[
           { title: 'Report Overdue Payer', to: '/services/report-overdue' },
