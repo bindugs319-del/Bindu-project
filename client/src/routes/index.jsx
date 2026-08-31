@@ -1,5 +1,5 @@
 import { Routes, Route, createBrowserRouter, RouterProvider, Navigate, useLocation } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState, useLayoutEffect } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import MainLayout from '../components/layout/MainLayout'
 import Home from '../pages/Home'
@@ -93,7 +93,14 @@ export default function AppRoutes() {
   // clicking a link like "Book Appointment" from partway down a long
   // page — e.g. the CTASection at the bottom of Home — would land on
   // the new page still scrolled down, instead of at its top.
-  useEffect(() => {
+  //
+  // useLayoutEffect (not useEffect) matters here: useEffect runs AFTER
+  // the browser paints, so for one frame the new page would render at
+  // the OLD scroll position (e.g. showing the footer, since that's
+  // what was on-screen when you clicked) before snapping to the top —
+  // a visible flash. useLayoutEffect runs synchronously before paint,
+  // so the scroll is already reset by the time anything is drawn.
+  useLayoutEffect(() => {
     window.scrollTo(0, 0)
   }, [location.pathname])
 
