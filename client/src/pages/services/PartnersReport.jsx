@@ -7,6 +7,7 @@ export default function PartnersReport() {
     'Verified Network Data: Review authenticated default records from a wide range of partner businesses.',
     'Cross-Sector Analysis: Compare credit backgrounds across multiple different industries.',
     'Risk Detection: Identify potential non-payers early with our proactive warning system.',
+    'Deep Financial Auditing: Perform a thorough evaluation of a company\'s credit reliability.',
     'Trend Monitoring: Spot specific defaulting patterns within your particular trade sector.',
   ]
 
@@ -77,16 +78,16 @@ export default function PartnersReport() {
           </div>
 
           {/* Resolution & Finalization Guide */}
-          <div className="card space-y-4 bg-amber-50 border-amber-200">
-            <h2 className="text-2xl font-heading font-bold text-amber-900">Resolution & Finalization Guide</h2>
-            <p className="text-amber-800 leading-relaxed">
+          <div className="card space-y-4">
+            <h2 className="text-2xl font-heading font-bold text-primary-700">Resolution & Finalization Guide</h2>
+            <p className="text-gray-700 leading-relaxed">
               Our Case Closure Framework provides a systematic path for documenting, publishing, and resolving default claims on the CreditDataWatch portal. This structured workflow ensures full transparency for both the creditor and the debtor throughout the recovery lifecycle.
             </p>
-            <p className="text-amber-800 leading-relaxed">
+            <p className="text-gray-700 leading-relaxed">
               By adhering to these protocols, you ensure that your records remain legally sound and that your business stays compliant with industry standards during every phase of the dispute.
             </p>
 
-            <h3 className="text-xl font-heading font-bold text-amber-900">The 5-Step Workflow:</h3>
+            <h3 className="text-xl font-heading font-bold text-primary-700">The 5-Step Workflow:</h3>
             <div className="space-y-2">
               {[
                 '1. Evidence Compilation — Organize all necessary financial records, including purchase orders, invoices, and proof of fulfillment.',
@@ -96,13 +97,13 @@ export default function PartnersReport() {
                 '5. Final De-listing — Once the debt is fully satisfied, close the file to refresh the business\'s status on the platform.',
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-600 flex-shrink-0" />
-                  <p className="text-amber-700">{item}</p>
+                  <span className="mt-1 h-2 w-2 rounded-full bg-primary-600 flex-shrink-0" />
+                  <p className="text-gray-700">{item}</p>
                 </div>
               ))}
             </div>
 
-            <h3 className="text-xl font-heading font-bold text-amber-900">Essential Documentation Checklist:</h3>
+            <h3 className="text-xl font-heading font-bold text-primary-700">Essential Documentation Checklist:</h3>
             <div className="space-y-2">
               {[
                 'Tax Identifiers: Valid GSTIN for both the claimant and the defaulting entity.',
@@ -112,13 +113,13 @@ export default function PartnersReport() {
                 'Supplementary Evidence: Any additional files that support your claim.',
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-600 flex-shrink-0" />
-                  <p className="text-amber-700">{item}</p>
+                  <span className="mt-1 h-2 w-2 rounded-full bg-primary-600 flex-shrink-0" />
+                  <p className="text-gray-700">{item}</p>
                 </div>
               ))}
             </div>
 
-            <h3 className="text-xl font-heading font-bold text-amber-900">Critical Guidelines:</h3>
+            <h3 className="text-xl font-heading font-bold text-primary-700">Critical Guidelines:</h3>
             <div className="space-y-2">
               {[
                 'Timeline: Verification usually takes 1 to 2 business days following a complete submission.',
@@ -128,14 +129,14 @@ export default function PartnersReport() {
                 'Member Accountability: Neglecting to update a settled status may lead to administrative disputes or support tickets.',
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-600 flex-shrink-0" />
-                  <p className="text-amber-700">{item}</p>
+                  <span className="mt-1 h-2 w-2 rounded-full bg-primary-600 flex-shrink-0" />
+                  <p className="text-gray-700">{item}</p>
                 </div>
               ))}
             </div>
 
-            <h3 className="text-xl font-heading font-bold text-amber-900">Post-Settlement Protocol:</h3>
-            <p className="text-amber-800 leading-relaxed">
+            <h3 className="text-xl font-heading font-bold text-primary-700">Post-Settlement Protocol:</h3>
+            <p className="text-gray-700 leading-relaxed">
               When a payment is successfully received, the reporting member must mark the case as Resolved/Closed. Updating the status:
             </p>
             <div className="space-y-2">
@@ -146,17 +147,18 @@ export default function PartnersReport() {
                 'Professionalism: Restores the business relationship between both parties.',
               ].map((item) => (
                 <div key={item} className="flex items-start gap-3">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-amber-600 flex-shrink-0" />
-                  <p className="text-amber-700">{item}</p>
+                  <span className="mt-1 h-2 w-2 rounded-full bg-primary-600 flex-shrink-0" />
+                  <p className="text-gray-700">{item}</p>
                 </div>
               ))}
             </div>
 
-            <div className="bg-amber-100 rounded-xl p-4">
-              <p className="font-semibold text-amber-900 text-sm mb-2">How to close a case:</p>
-              <p className="text-amber-700 text-xs">Go to User Dashboard → Search Invoice No → Mark as "Closed"</p>
+            <div className="bg-gray-100 rounded-xl p-4">
+              <p className="font-semibold text-gray-900 text-sm mb-2">How to close a case:</p>
+              <p className="text-gray-700 text-xs">Go to User Dashboard → Manage Defaulters → Locate Case → Mark as "Settled/Closed"</p>
             </div>
           </div>
+
         </motion.div>
       </div>
       </section>
