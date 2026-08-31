@@ -69,6 +69,8 @@ export default function ReportOverdue() {
             <h2 className="text-2xl font-heading font-bold text-primary-700">3. Prerequisites and Documentation for Reporting a Defaulting Business</h2>
             <p className="text-gray-700 leading-relaxed">
               To successfully report a business as a credit defaulter, you must submit key documents, including the defaulting party's ledger and a CA-certified statement of the due amount containing a valid UDIN. Once submitted, the CreditDataWatch expert team rigorously verifies the information. Upon successful review, the legal support is provided with the defined agreements.
+            </p>
+          </div>
 
           {/* Section 4: Verification Process */}
           <div className="card space-y-4">
