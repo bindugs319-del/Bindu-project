@@ -846,7 +846,19 @@ async def lifespan(app: FastAPI):
                     fixed = 0
                     for fk_table, fk_column, ref_table, ref_column, fk_action in fk_targets:
                         try:
-                            fk_row = (await conn2.execute(text("""
+                            # Fetch ALL constraints on this table+column, not
+                            # just one. Postgres allows creating duplicate FK
+                            # constraints on the same column (e.g. a stray
+                            # "ALTER TABLE ADD CONSTRAINT" that ran without
+                            # checking one already existed), and it enforces
+                            # every one of them independently. Fixing only
+                            # the first one found (.first()) leaves any
+                            # duplicate still blocking deletes — exactly what
+                            # happened with notifications.user_id, which had
+                            # both notifications_user_id_fkey (fixed) AND a
+                            # separate notifications_user_id_fkey1 (never
+                            # touched) still enforcing NO ACTION.
+                            fk_rows = (await conn2.execute(text("""
                                 SELECT con.conname, con.confdeltype
                                 FROM pg_constraint con
                                 JOIN pg_class cls ON cls.oid = con.conrelid
@@ -855,9 +867,9 @@ async def lifespan(app: FastAPI):
                                 WHERE cls.relname = :fk_table
                                   AND con.contype = 'f'
                                   AND att.attname = :fk_column
-                            """), {"fk_table": fk_table, "fk_column": fk_column})).first()
+                            """), {"fk_table": fk_table, "fk_column": fk_column})).all()
                             checked += 1
-                            if not fk_row:
+                            if not fk_rows:
                                 # Log every miss for the handful of columns
                                 # we know matter most, so a live check
                                 # doesn't require guessing why nothing
@@ -866,26 +878,28 @@ async def lifespan(app: FastAPI):
                                 if fk_table in ("notifications", "users", "subscriptions"):
                                     logger.info(f"FK check: no constraint found for {fk_table}.{fk_column} (query returned 0 rows)")
                                 continue
-                            fk_name, confdeltype = fk_row
-                            # asyncpg returns Postgres' internal "char" type
-                            # (pg_constraint.confdeltype) as bytes (b'c'),
-                            # not str — decode before comparing or this
-                            # never matches and re-runs the ALTER every
-                            # single startup.
-                            if isinstance(confdeltype, (bytes, bytearray)):
-                                confdeltype = confdeltype.decode()
-                            if confdeltype == ondelete_char[fk_action]:
-                                if fk_table == "notifications":
-                                    logger.info(f"FK check: {fk_name} already confdeltype={confdeltype!r} (wanted {fk_action}) — no change made")
-                                continue  # already correct, nothing to do
-                            await conn2.execute(text(f'ALTER TABLE {fk_table} DROP CONSTRAINT "{fk_name}"'))
-                            await conn2.execute(text(
-                                f'ALTER TABLE {fk_table} ADD CONSTRAINT "{fk_name}" '
-                                f'FOREIGN KEY ({fk_column}) REFERENCES {ref_table}({ref_column}) '
-                                f'ON DELETE {fk_action}'
-                            ))
-                            fixed += 1
-                            logger.info(f"Fixed FK {fk_name} on {fk_table}.{fk_column} -> ON DELETE {fk_action}")
+                            if len(fk_rows) > 1:
+                                logger.info(f"FK check: {fk_table}.{fk_column} has {len(fk_rows)} duplicate FK constraints: {[r[0] for r in fk_rows]} — fixing all of them")
+                            for fk_name, confdeltype in fk_rows:
+                                # asyncpg returns Postgres' internal "char"
+                                # type (pg_constraint.confdeltype) as bytes
+                                # (b'c'), not str — decode before comparing
+                                # or this never matches and re-runs the
+                                # ALTER every single startup.
+                                if isinstance(confdeltype, (bytes, bytearray)):
+                                    confdeltype = confdeltype.decode()
+                                if confdeltype == ondelete_char[fk_action]:
+                                    if fk_table == "notifications":
+                                        logger.info(f"FK check: {fk_name} already confdeltype={confdeltype!r} (wanted {fk_action}) — no change made")
+                                    continue  # already correct, nothing to do
+                                await conn2.execute(text(f'ALTER TABLE {fk_table} DROP CONSTRAINT "{fk_name}"'))
+                                await conn2.execute(text(
+                                    f'ALTER TABLE {fk_table} ADD CONSTRAINT "{fk_name}" '
+                                    f'FOREIGN KEY ({fk_column}) REFERENCES {ref_table}({ref_column}) '
+                                    f'ON DELETE {fk_action}'
+                                ))
+                                fixed += 1
+                                logger.info(f"Fixed FK {fk_name} on {fk_table}.{fk_column} -> ON DELETE {fk_action}")
                         except Exception as e:
                             logger.info(f"FK ondelete fix skipped for {fk_table}.{fk_column}: {e}")
                 logger.info(f"Checked {checked if not is_sqlite else 0}/{len(fk_targets) if not is_sqlite else 0} model-declared FK ondelete rules against the live schema, fixed {fixed if not is_sqlite else 0}")
