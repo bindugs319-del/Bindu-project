@@ -59,10 +59,15 @@ def _normalize_lines(text: str) -> list:
 def _norm_key(s: str) -> str:
     """Strips a trailing colon/dash, drops any parenthetical, collapses
     whitespace, and removes spaces around '#' so 'Invoice#', 'Invoice #'
-    and 'invoice number' style variants all normalize consistently."""
+    and 'invoice number' style variants all normalize consistently.
+    Internal hyphens are treated as spaces too — 'Sub-Total' and 'sub
+    total' must normalize to the same key, since PDF templates render
+    the same field either way and a mismatch here silently makes the
+    field invisible to every _find_label_value() lookup."""
     s = re.sub(r"\([^)]*\)", "", s)  # drop parentheticals, e.g. "(18% GST)"
     s = s.strip().rstrip(":-").strip().lower()
     s = re.sub(r"\s*#\s*", "#", s)
+    s = s.replace("-", " ")
     s = re.sub(r"\s+", " ", s)
     return s
 

@@ -37,6 +37,37 @@ DUE_DATE_LABELS = ["due date", "payment due date", "payment due"]
 COUNTERPARTY_SECTION_HEADINGS = ["bill to", "customer details", "client details", "counterparty details", "invoice to"]
 SECTION_HEADING_HINTS = ["items", "item details", "payment terms", "terms & conditions", "terms and conditions", "bank details", "authorized signatory"]
 
+# Symbol/code -> ISO 4217 currency code. Checked in this order (longer,
+# more specific tokens first) so "US$" doesn't get missed by a bare "$"
+# check, etc. This intentionally only covers the currencies actually
+# likely to show up on an invoice CreditDataWatch users would upload.
+CURRENCY_MARKERS = [
+    ("US$", "USD"), ("USD", "USD"),
+    ("A$", "AUD"), ("AUD", "AUD"),
+    ("C$", "CAD"), ("CAD", "CAD"),
+    ("€", "EUR"), ("EUR", "EUR"),
+    ("£", "GBP"), ("GBP", "GBP"),
+    ("₹", "INR"), ("INR", "INR"), ("RS.", "INR"), ("RS ", "INR"),
+    ("$", "USD"),  # bare "$" with no country prefix defaults to USD
+]
+
+
+def _detect_currency(text: str, total_line: Optional[str]) -> str:
+    """Figures out which currency the invoice is actually in, rather than
+    always assuming INR. Checks the line the total amount was found on
+    first (most reliable — that's the actual money figure), then falls
+    back to scanning the whole document. Defaults to INR only when no
+    currency marker is found anywhere, preserving old behavior for plain
+    domestic invoices that never mention a currency at all."""
+    for source in (total_line, text):
+        if not source:
+            continue
+        upper = source.upper()
+        for marker, code in CURRENCY_MARKERS:
+            if marker in upper:
+                return code
+    return "INR"
+
 
 def _counterparty_block_range(lines: list):
     start = None
@@ -75,6 +106,18 @@ def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
     fields = {}
 
     fields["invoice_number"] = _find_label_value(lines, INVOICE_NUMBER_LABELS, allow_same_line_no_colon=used_ocr)
+    if not fields["invoice_number"]:
+        # Common invoice-template pattern: the number appears as a bare
+        # "# SOME-CODE" line right under the "Tax Invoice" title, with no
+        # "Invoice Number:" label at all (e.g. "# PS/INV/26/08/886"). Only
+        # match a line that's JUST "#" + one token — this deliberately
+        # excludes lines like "P.O.# : Nil" (doesn't start with #) and
+        # "# Item & Description ..." (a table header, not a single token).
+        for ln in lines:
+            m = re.match(r"^#\s*([A-Za-z0-9][A-Za-z0-9\-/.]{3,40})$", ln.strip())
+            if m:
+                fields["invoice_number"] = m.group(1)
+                break
 
     counterparty = _find_label_value(lines, COUNTERPARTY_LABELS, block, allow_same_line_no_colon=used_ocr) if block else None
     if not counterparty:
@@ -123,16 +166,24 @@ def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
             warnings.append("Multiple phone numbers found on the page and no clear counterparty section; phone left blank — please fill it in.")
     fields["counterparty_phone"] = re.sub(r"[\s\-]", "", phone) if phone else None
 
-    fields["subtotal"] = _parse_amount(_find_label_value(lines, SUBTOTAL_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=used_ocr))
-    fields["tax_amount"] = _parse_amount(_find_label_value(lines, TAX_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=used_ocr))
+    # allow_same_line_no_colon=True (not just for OCR'd docs): plenty of
+    # real, text-layer PDFs render "Total $25.00" or "Sub-Total 25.00" as
+    # one line with no colon at all — this isn't an OCR-specific quirk, so
+    # gating it to used_ocr was silently failing on ordinary digital
+    # invoices. value_check=_looks_like_money still guards against false
+    # positives either way.
+    fields["subtotal"] = _parse_amount(_find_label_value(lines, SUBTOTAL_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True))
+    fields["tax_amount"] = _parse_amount(_find_label_value(lines, TAX_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True))
 
     strong = _find_all_label_values(lines, TOTAL_STRONG_LABELS, value_check=_looks_like_money)
     total_raw = strong[-1] if strong else _find_label_value(
-        lines, TOTAL_WEAK_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=used_ocr
+        lines, TOTAL_WEAK_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True
     )
     fields["total"] = _parse_amount(total_raw)
     if fields["total"] is None:
         warnings.append("Could not confidently find a total amount; please enter it manually.")
+
+    fields["currency"] = _detect_currency(text, total_raw)
 
     fields["invoice_date"] = _parse_date(_find_label_value(lines, INVOICE_DATE_LABELS))
     if not fields["invoice_date"] and not used_ocr:

@@ -565,6 +565,7 @@ export const salesInvoices = {
     formData.append('subtotal', data.subtotal ?? 0)
     formData.append('tax_amount', data.tax_amount ?? 0)
     formData.append('total', data.total ?? 0)
+    formData.append('currency', data.currency || 'INR')
     formData.append('invoice_date', data.invoice_date || '')
     formData.append('payment_due_date', data.payment_due_date || '')
     return apiRequest('/sales-invoices/import-pdf', { method: 'POST', body: formData, headers: {} })

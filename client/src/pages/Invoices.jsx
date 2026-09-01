@@ -774,12 +774,24 @@ export default function Invoices() {
     })
   }
 
-  const money = (value) =>
-    new Intl.NumberFormat('en-IN', {
-      style: 'currency',
-      currency: 'INR',
-      minimumFractionDigits: 2,
-    }).format(Number(value) || 0)
+  const money = (value, currency = 'INR') => {
+    try {
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: currency || 'INR',
+        minimumFractionDigits: 2,
+      }).format(Number(value) || 0)
+    } catch {
+      // Malformed/legacy currency code (shouldn't happen — backend
+      // validates it — but Intl throws rather than ignoring a bad code,
+      // and a crashed amount cell is worse than falling back to INR).
+      return new Intl.NumberFormat('en-IN', {
+        style: 'currency',
+        currency: 'INR',
+        minimumFractionDigits: 2,
+      }).format(Number(value) || 0)
+    }
+  }
 
   const handleDownloadPdf = async (invoice) => {
     const res = await invoicesApi.downloadPdf(
@@ -1711,7 +1723,7 @@ export default function Invoices() {
                     </td>
 
                     <td className="p-4 text-right font-semibold whitespace-nowrap">
-                      {money(invoice.total)}
+                      {money(invoice.total, invoice.currency)}
                     </td>
 
                     <td className="p-4 whitespace-nowrap">
@@ -1965,8 +1977,8 @@ export default function Invoices() {
                       <td className="p-2">{item.desc}</td>
                       <td className="p-2">{item.hsn}</td>
                       <td className="p-2">{item.qty}</td>
-                      <td className="p-2">{money(item.rate)}</td>
-                      <td className="p-2">{money(item.amount)}</td>
+                      <td className="p-2">{money(item.rate, selectedInvoice.currency)}</td>
+                      <td className="p-2">{money(item.amount, selectedInvoice.currency)}</td>
                     </tr>
                   ))}
 
@@ -1978,31 +1990,31 @@ export default function Invoices() {
               <div className="flex justify-end mb-6">
                 <div className="w-72 space-y-1">
                   <p className="flex justify-between">
-                    <span>Sub Total</span> <b>{money(selectedInvoice.subtotal)}</b>
+                    <span>Sub Total</span> <b>{money(selectedInvoice.subtotal, selectedInvoice.currency)}</b>
                   </p>
 
                   {selectedInvoice.tax_breakdown?.cgst > 0 && (
                     <p className="flex justify-between">
-                      <span>CGST</span> <b>{money(selectedInvoice.tax_breakdown.cgst)}</b>
+                      <span>CGST</span> <b>{money(selectedInvoice.tax_breakdown.cgst, selectedInvoice.currency)}</b>
                     </p>
                   )}
                   {selectedInvoice.tax_breakdown?.sgst > 0 && (
                     <p className="flex justify-between">
-                      <span>SGST</span> <b>{money(selectedInvoice.tax_breakdown.sgst)}</b>
+                      <span>SGST</span> <b>{money(selectedInvoice.tax_breakdown.sgst, selectedInvoice.currency)}</b>
                     </p>
                   )}
                   {selectedInvoice.tax_breakdown?.igst > 0 && (
                     <p className="flex justify-between">
-                      <span>IGST</span> <b>{money(selectedInvoice.tax_breakdown.igst)}</b>
+                      <span>IGST</span> <b>{money(selectedInvoice.tax_breakdown.igst, selectedInvoice.currency)}</b>
                     </p>
                   )}
 
                   <p className="flex justify-between text-lg border-t pt-2">
-                    <span>Total</span> <b>{money(selectedInvoice.total)}</b>
+                    <span>Total</span> <b>{money(selectedInvoice.total, selectedInvoice.currency)}</b>
                   </p>
 
                   <p className="flex justify-between">
-                    <span>Balance Due</span> <b>{money(selectedInvoice.balance_due)}</b>
+                    <span>Balance Due</span> <b>{money(selectedInvoice.balance_due, selectedInvoice.currency)}</b>
                   </p>
                 </div>
               </div>
@@ -2037,7 +2049,7 @@ export default function Invoices() {
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
             <h3 className="text-xl font-bold text-gray-900 mb-4">Mark Invoice as Paid</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Invoice <b>{reasonModal.invoice?.invoice_number}</b> — {money(reasonModal.invoice?.total)}
+              Invoice <b>{reasonModal.invoice?.invoice_number}</b> — {money(reasonModal.invoice?.total, reasonModal.invoice?.currency)}
             </p>
             <label className="block text-sm font-medium text-gray-700 mb-2">Reason / Note *</label>
             <textarea
@@ -2236,7 +2248,7 @@ export default function Invoices() {
             <div className="bg-gray-50 rounded-lg p-4 mb-4 text-left text-sm space-y-1">
               <p><strong>Invoice:</strong> {showLegalSupportConfirm.invoice_number}</p>
               <p><strong>Customer:</strong> {showLegalSupportConfirm.counterparty_name}</p>
-              <p><strong>Amount:</strong> {money(showLegalSupportConfirm.total)}</p>
+              <p><strong>Amount:</strong> {money(showLegalSupportConfirm.total, showLegalSupportConfirm.currency)}</p>
               <p><strong>Status:</strong> {showLegalSupportConfirm.status}</p>
             </div>
             <div className="space-y-4 mb-6">

@@ -573,6 +573,7 @@ async def import_sales_invoice_pdf(
     subtotal: float = Form(0),
     tax_amount: float = Form(0),
     total: float = Form(0),
+    currency: str = Form("INR"),
     invoice_date: str = Form(...),
     payment_due_date: str = Form(...),
 ):
@@ -594,6 +595,9 @@ async def import_sales_invoice_pdf(
         raise HTTPException(status_code=400, detail="Due date could not be parsed; please re-check it in the preview.")
 
     gstin_norm = counterparty_gstin.strip().upper() if counterparty_gstin else None
+    currency_norm = (currency or "INR").strip().upper()
+    if not re.match(r"^[A-Z]{3}$", currency_norm):
+        currency_norm = "INR"
 
     stmt = select(SalesInvoice).where(
         SalesInvoice.user_id == current_user.id,
@@ -618,6 +622,7 @@ async def import_sales_invoice_pdf(
             existing.tax_amount = tax_amount
         if total:
             existing.total = total
+        existing.currency = currency_norm
         existing.invoice_date = invoice_date_obj
         existing.payment_due_date = due_date_obj
         existing.updated_at = datetime.utcnow()
@@ -658,7 +663,7 @@ async def import_sales_invoice_pdf(
         counterparty_email=counterparty_email,
         counterparty_phone=counterparty_phone,
         country="IN",
-        currency="INR",
+        currency=currency_norm,
         exchange_rate=1.0,
         items=[],
         subtotal=subtotal or 0.0,
