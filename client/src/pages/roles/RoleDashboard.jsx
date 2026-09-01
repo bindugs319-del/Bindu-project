@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom'
 import { useAuth } from '../../state/authContext'
 import { api, adminApi, salesInvoices as invoicesApi, STATIC_BASE_URL } from '../../services/api/apiClient'
 import RoleToggleSection from '../../components/RoleToggleSection'
+import AlertMessageSection from '../../components/AlertMessageSection'
+import TrustTickerSection from '../../components/TrustTickerSection'
+import BusinessStatsSection from '../../components/BusinessStatsSection'
 import CreateUserForm from '../../components/CreateUserForm'
 
 // Defined at module scope (not inside RoleDashboard) so they keep a
@@ -1392,6 +1395,16 @@ export default function RoleDashboard() {
 
       {/* RIGHT COLUMN: Main Content */}
       <div className="flex-1 min-w-0 space-y-6">
+        {/* Alert Message, Homepage trust ticker, and Business impact
+            stats editors are always visible here — not tied to Quick
+            Navigation — so admins don't need to hunt through a specific
+            tab to find or update them. */}
+        <div className="space-y-2 mb-4">
+          <AlertMessageSection token={token} />
+          <TrustTickerSection token={token} />
+          <BusinessStatsSection token={token} />
+        </div>
+
         {activeNav === 'role-toggle' && <RoleToggleSection token={token} />}
 
         {activeNav === 'rating-requests' && (

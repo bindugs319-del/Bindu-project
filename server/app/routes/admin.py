@@ -16,6 +16,7 @@ from app.dependencies import get_current_user, require_admin, require_master_adm
 from app.exceptions import UnauthorizedFeature
 from datetime import datetime, timezone
 import uuid
+import json
 import logging
 
 logger = logging.getLogger(__name__)
@@ -1065,6 +1066,179 @@ async def defaulter_analytics(
         "by_status": by_status,
         "total_amount": total_amount,
     })
+
+
+@router.get("/settings/alert-message")
+async def get_alert_message(
+    current_user: Annotated[any, Depends(require_master_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Get the current homepage alert message (Master Admin only)."""
+    row = (await db.execute(text("""
+        SELECT value, updated_by, updated_at FROM system_settings WHERE key = 'alert_message'
+    """))).mappings().first()
+    return {"success": True, "data": {
+        "message": row["value"] if row else "",
+        "updated_by": row["updated_by"] if row else None,
+        "updated_at": str(row["updated_at"]) if row and row["updated_at"] else None,
+    }}
+
+
+@router.post("/settings/alert-message")
+async def update_alert_message(
+    request: Request,
+    current_user: Annotated[any, Depends(require_master_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Update the homepage alert message (Master Admin only). An empty
+    message hides the alert entirely on the homepage."""
+    body = await request.json()
+    message = (body.get("message") or "").strip()
+
+    await db.execute(text("""
+        INSERT INTO system_settings (id, key, value, description, updated_by, updated_at)
+        VALUES (gen_random_uuid(), 'alert_message', :value, 'Homepage alert banner text, shown once per visitor session', :email, NOW())
+        ON CONFLICT (key) DO UPDATE SET
+            value = :value,
+            updated_by = :email,
+            updated_at = NOW()
+    """), {"value": message, "email": current_user.email})
+    await db.commit()
+    return {"success": True, "message": "Alert message updated"}
+
+
+@router.get("/settings/alert-message/public")
+async def get_alert_message_public(db: Annotated[AsyncSession, Depends(get_db)]):
+    """Public, no-auth endpoint the homepage itself calls to display the
+    current alert message. Returns an empty string (no alert shown) if
+    nothing has been configured yet, rather than erroring."""
+    try:
+        row = (await db.execute(text(
+            "SELECT value FROM system_settings WHERE key = 'alert_message'"
+        ))).mappings().first()
+        return {"success": True, "data": {"message": row["value"] if row else ""}}
+    except Exception:
+        return {"success": True, "data": {"message": ""}}
+
+
+def _validate_stat_items(items, expected_count, section_name):
+    """Shared validation for both trust-ticker and business-stats payloads:
+    must be a list of exactly `expected_count` {label, value} objects, both
+    non-empty strings. Raises HTTPException(422) with a clear message on
+    the first problem found, rather than saving malformed data."""
+    if not isinstance(items, list) or len(items) != expected_count:
+        raise HTTPException(422, f"{section_name} must have exactly {expected_count} entries")
+    for i, item in enumerate(items):
+        label = (item.get("label") or "").strip() if isinstance(item, dict) else ""
+        value = (item.get("value") or "").strip() if isinstance(item, dict) else ""
+        if not label or not value:
+            raise HTTPException(422, f"{section_name} entry {i + 1} needs both a label and a value")
+    return [{"label": (item.get("label") or "").strip(), "value": (item.get("value") or "").strip()} for item in items]
+
+
+async def _get_stat_setting(db, key, default_items):
+    row = (await db.execute(text(
+        "SELECT value, updated_by, updated_at FROM system_settings WHERE key = :key"
+    ), {"key": key})).mappings().first()
+    try:
+        items = json.loads(row["value"]) if row and row["value"] else default_items
+    except (json.JSONDecodeError, TypeError):
+        items = default_items
+    return {
+        "items": items,
+        "updated_by": row["updated_by"] if row else None,
+        "updated_at": str(row["updated_at"]) if row and row["updated_at"] else None,
+    }
+
+
+async def _save_stat_setting(db, key, description, items, email):
+    await db.execute(text("""
+        INSERT INTO system_settings (id, key, value, description, updated_by, updated_at)
+        VALUES (gen_random_uuid(), :key, :value, :description, :email, NOW())
+        ON CONFLICT (key) DO UPDATE SET
+            value = :value,
+            updated_by = :email,
+            updated_at = NOW()
+    """), {"key": key, "value": json.dumps(items), "description": description, "email": email})
+    await db.commit()
+
+
+DEFAULT_TRUST_TICKER = [
+    {"label": "Average Trust Score", "value": "98%"},
+    {"label": "Verified Companies", "value": "12,450"},
+    {"label": "Secure Transactions", "value": "4,56,780+"},
+]
+
+DEFAULT_BUSINESS_STATS = [
+    {"label": "Highest No. of Defaulters by a Single Customer", "value": "668+"},
+    {"label": "Total Number of MSMEs Connected", "value": "39+ Lakhs"},
+    {"label": "Average Percentage of Settlements", "value": "59%"},
+    {"label": "Total amount reported defaulter", "value": "4578+ Crores"},
+]
+
+
+@router.get("/settings/trust-ticker")
+async def get_trust_ticker(
+    current_user: Annotated[any, Depends(require_master_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Get the homepage trust ticker's 3 stats (Master Admin only)."""
+    return {"success": True, "data": await _get_stat_setting(db, "trust_ticker_stats", DEFAULT_TRUST_TICKER)}
+
+
+@router.post("/settings/trust-ticker")
+async def update_trust_ticker(
+    request: Request,
+    current_user: Annotated[any, Depends(require_master_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Update the homepage trust ticker's 3 stats (Master Admin only)."""
+    body = await request.json()
+    items = _validate_stat_items(body.get("items"), 3, "Trust ticker")
+    await _save_stat_setting(db, "trust_ticker_stats", "Homepage trust ticker stats (3 items)", items, current_user.email)
+    return {"success": True, "message": "Trust ticker updated"}
+
+
+@router.get("/settings/trust-ticker/public")
+async def get_trust_ticker_public(db: Annotated[AsyncSession, Depends(get_db)]):
+    """Public, no-auth endpoint the homepage calls to display the trust ticker."""
+    try:
+        data = await _get_stat_setting(db, "trust_ticker_stats", DEFAULT_TRUST_TICKER)
+        return {"success": True, "data": {"items": data["items"]}}
+    except Exception:
+        return {"success": True, "data": {"items": DEFAULT_TRUST_TICKER}}
+
+
+@router.get("/settings/business-stats")
+async def get_business_stats(
+    current_user: Annotated[any, Depends(require_master_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Get the homepage 'Trusted by Thousands of Businesses' 4 stats (Master Admin only)."""
+    return {"success": True, "data": await _get_stat_setting(db, "business_impact_stats", DEFAULT_BUSINESS_STATS)}
+
+
+@router.post("/settings/business-stats")
+async def update_business_stats(
+    request: Request,
+    current_user: Annotated[any, Depends(require_master_admin)],
+    db: Annotated[AsyncSession, Depends(get_db)]
+):
+    """Update the homepage 'Trusted by Thousands of Businesses' 4 stats (Master Admin only)."""
+    body = await request.json()
+    items = _validate_stat_items(body.get("items"), 4, "Business impact stats")
+    await _save_stat_setting(db, "business_impact_stats", "Homepage business impact stats (4 items)", items, current_user.email)
+    return {"success": True, "message": "Business impact stats updated"}
+
+
+@router.get("/settings/business-stats/public")
+async def get_business_stats_public(db: Annotated[AsyncSession, Depends(get_db)]):
+    """Public, no-auth endpoint the homepage calls to display these stats."""
+    try:
+        data = await _get_stat_setting(db, "business_impact_stats", DEFAULT_BUSINESS_STATS)
+        return {"success": True, "data": {"items": data["items"]}}
+    except Exception:
+        return {"success": True, "data": {"items": DEFAULT_BUSINESS_STATS}}
 
 
 @router.get("/role-settings")

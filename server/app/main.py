@@ -710,12 +710,25 @@ async def lifespan(app: FastAPI):
                     )
                 """))
                 # Insert default role settings if not already present
+                default_alert_msg = "Important Fraud Alert: We have received reports of unauthorized individuals impersonating CreditDataWatch. For your security, please strictly verify the Account Number and Account Holder's Name before processing any payments."
                 if is_sqlite:
                     await conn.execute(text("""
                         INSERT OR IGNORE INTO system_settings (id, key, value, description)
                         VALUES (hex(randomblob(16)), 'financial_role_enabled', 'false', 'When enabled, Financial team members see their own dashboard and handle payment tasks'),
                                (hex(randomblob(16)), 'legal_role_enabled', 'false', 'When enabled, Legal team members see their own dashboard and handle legal tasks')
                     """))
+                    await conn.execute(text("""
+                        INSERT OR IGNORE INTO system_settings (id, key, value, description)
+                        VALUES (hex(randomblob(16)), 'alert_message', :msg, 'Homepage alert banner text, shown once per visitor session')
+                    """), {"msg": default_alert_msg})
+                    await conn.execute(text("""
+                        INSERT OR IGNORE INTO system_settings (id, key, value, description)
+                        VALUES (hex(randomblob(16)), 'trust_ticker_stats', :val, 'Homepage trust ticker stats (3 items, JSON)'),
+                               (hex(randomblob(16)), 'business_impact_stats', :val2, 'Homepage business impact stats (4 items, JSON)')
+                    """), {
+                        "val": '[{"label": "Average Trust Score", "value": "98%"}, {"label": "Verified Companies", "value": "12,450"}, {"label": "Secure Transactions", "value": "4,56,780+"}]',
+                        "val2": '[{"label": "Highest No. of Defaulters by a Single Customer", "value": "668+"}, {"label": "Total Number of MSMEs Connected", "value": "39+ Lakhs"}, {"label": "Average Percentage of Settlements", "value": "59%"}, {"label": "Total amount reported defaulter", "value": "4578+ Crores"}]',
+                    })
                 else:
                     await conn.execute(text("""
                         INSERT INTO system_settings (id, key, value, description)
@@ -723,6 +736,20 @@ async def lifespan(app: FastAPI):
                                (gen_random_uuid(), 'legal_role_enabled', 'false', 'When enabled, Legal team members see their own dashboard and handle legal tasks')
                         ON CONFLICT (key) DO NOTHING
                     """))
+                    await conn.execute(text("""
+                        INSERT INTO system_settings (id, key, value, description)
+                        VALUES (gen_random_uuid(), 'alert_message', :msg, 'Homepage alert banner text, shown once per visitor session')
+                        ON CONFLICT (key) DO NOTHING
+                    """), {"msg": default_alert_msg})
+                    await conn.execute(text("""
+                        INSERT INTO system_settings (id, key, value, description)
+                        VALUES (gen_random_uuid(), 'trust_ticker_stats', :val, 'Homepage trust ticker stats (3 items, JSON)'),
+                               (gen_random_uuid(), 'business_impact_stats', :val2, 'Homepage business impact stats (4 items, JSON)')
+                        ON CONFLICT (key) DO NOTHING
+                    """), {
+                        "val": '[{"label": "Average Trust Score", "value": "98%"}, {"label": "Verified Companies", "value": "12,450"}, {"label": "Secure Transactions", "value": "4,56,780+"}]',
+                        "val2": '[{"label": "Highest No. of Defaulters by a Single Customer", "value": "668+"}, {"label": "Total Number of MSMEs Connected", "value": "39+ Lakhs"}, {"label": "Average Percentage of Settlements", "value": "59%"}, {"label": "Total amount reported defaulter", "value": "4578+ Crores"}]',
+                    })
                 print("[SETTINGS] Role settings initialized")
                 logger.info("system_settings table and role settings initialized")
             except Exception as e:

@@ -467,6 +467,25 @@ export const getPOReminderConfig = () => apiRequest('/admin/po-reminders')
 
 export const updatePOReminderConfig = (data) => apiRequest('/admin/po-reminders', { method: 'PUT', body: JSON.stringify(data) })
 
+export const getAlertMessage = () => apiRequest('/admin/settings/alert-message')
+
+export const updateAlertMessage = (message) => apiRequest('/admin/settings/alert-message', { method: 'POST', body: JSON.stringify({ message }) })
+
+// Public, no-auth fetch used by the homepage alert popup itself.
+export const getPublicAlertMessage = () => apiRequest('/admin/settings/alert-message/public')
+
+export const getTrustTicker = () => apiRequest('/admin/settings/trust-ticker')
+
+export const updateTrustTicker = (items) => apiRequest('/admin/settings/trust-ticker', { method: 'POST', body: JSON.stringify({ items }) })
+
+export const getPublicTrustTicker = () => apiRequest('/admin/settings/trust-ticker/public')
+
+export const getBusinessStats = () => apiRequest('/admin/settings/business-stats')
+
+export const updateBusinessStats = (items) => apiRequest('/admin/settings/business-stats', { method: 'POST', body: JSON.stringify({ items }) })
+
+export const getPublicBusinessStats = () => apiRequest('/admin/settings/business-stats/public')
+
 export const sendChatMessage = (message) => apiRequest('/chat', { method: 'POST', body: JSON.stringify({ message }), timeout: 180000 })
 
 export const subscriptions = {

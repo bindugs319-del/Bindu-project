@@ -1,17 +1,43 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { getPublicAlertMessage } from '../../services/api/apiClient'
 
 // Shown once per browser session (sessionStorage) rather than nagging on
 // every click within the same visit — reappears on a fresh visit/session.
 const SESSION_KEY = 'scamAlertDismissed'
 
+// Fallback shown only if the public settings fetch fails outright (e.g.
+// the backend is briefly unreachable) — keeps the warning visible rather
+// than silently disappearing. Master Admin's saved message is what's
+// actually shown under normal operation.
+const FALLBACK_MESSAGE = "Important Fraud Alert: We have received reports of unauthorized individuals impersonating CreditDataWatch. For your security, please strictly verify the Account Number and Account Holder's Name before processing any payments."
+
 export default function ScamAlert() {
   const [open, setOpen] = useState(false)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
-    if (!sessionStorage.getItem(SESSION_KEY)) {
+    if (sessionStorage.getItem(SESSION_KEY)) return
+
+    let cancelled = false
+    getPublicAlertMessage().then((res) => {
+      if (cancelled) return
+      const fetched = res.ok ? (res.data?.message || '') : FALLBACK_MESSAGE
+      // An explicitly empty message (Master Admin cleared it) means the
+      // alert should stay hidden entirely, not fall back to default text.
+      if (res.ok && fetched === '') {
+        setOpen(false)
+        return
+      }
+      setMessage(fetched || FALLBACK_MESSAGE)
       setOpen(true)
-    }
+    }).catch(() => {
+      if (cancelled) return
+      setMessage(FALLBACK_MESSAGE)
+      setOpen(true)
+    })
+
+    return () => { cancelled = true }
   }, [])
 
   const dismiss = () => {
@@ -37,9 +63,9 @@ export default function ScamAlert() {
                 </svg>
               </div>
               <div>
-                <h3 className="text-lg font-heading font-bold text-red-900 mb-1">Scam Alert</h3>
-                <p className="text-red-800 text-sm md:text-base font-medium">
-                  Important Fraud Alert: We have received reports of unauthorized individuals impersonating CreditDataWatch. For your security, please strictly verify the Account Number and Account Holder&rsquo;s Name before processing any payments.
+                <h3 className="text-lg font-heading font-bold text-red-900 mb-1">Alert</h3>
+                <p className="text-red-800 text-sm md:text-base font-medium whitespace-pre-line">
+                  {message}
                 </p>
               </div>
             </div>
@@ -57,4 +83,3 @@ export default function ScamAlert() {
     </AnimatePresence>
   )
 }
-
