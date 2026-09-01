@@ -71,7 +71,7 @@ export default function Register() {
         setTimer(60) // Start 60 second timer
         setStatus({
           type: 'success',
-          message: response.data?.message || 'OTP sent to your email and phone. Check your inbox/SMS.'
+          message: response.data?.message || 'OTP sent to your email, Check your email inbox.'
         })
         if (response.data?.otp_code) {
           console.log('OTP Code (dev):', response.data.otp_code)
