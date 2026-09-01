@@ -1133,7 +1133,7 @@ export default function Invoices() {
                           </td>
 
                           <td className="p-2 font-semibold">
-                            {money(item.amount)}
+                            {money(item.amount, formData.currency)}
                           </td>
 
                           <td>
@@ -1200,35 +1200,35 @@ export default function Invoices() {
 
                     <div className="flex justify-between">
                       <span>Sub Total</span>
-                      <b>{money(formData.subtotal)}</b>
+                      <b>{money(formData.subtotal, formData.currency)}</b>
                     </div>
 
                     {taxMode === 'cgst_sgst' ? (
                       <>
                         <div className="flex justify-between">
                           <span>CGST</span>
-                          <b>{money(formData.tax_breakdown.cgst)}</b>
+                          <b>{money(formData.tax_breakdown.cgst, formData.currency)}</b>
                         </div>
                         <div className="flex justify-between">
                           <span>SGST</span>
-                          <b>{money(formData.tax_breakdown.sgst)}</b>
+                          <b>{money(formData.tax_breakdown.sgst, formData.currency)}</b>
                         </div>
                       </>
                     ) : (
                       <div className="flex justify-between">
                         <span>IGST</span>
-                        <b>{money(formData.tax_breakdown.igst)}</b>
+                        <b>{money(formData.tax_breakdown.igst, formData.currency)}</b>
                       </div>
                     )}
 
                     <div className="flex justify-between text-lg border-t pt-2">
                       <span>Total</span>
-                      <b>{money(formData.total)}</b>
+                      <b>{money(formData.total, formData.currency)}</b>
                     </div>
 
                     <div className="flex justify-between">
                       <span>Balance Due</span>
-                      <b>{money(formData.balance_due)}</b>
+                      <b>{money(formData.balance_due, formData.currency)}</b>
                     </div>
 
                   </div>
