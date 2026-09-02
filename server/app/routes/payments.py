@@ -22,6 +22,7 @@ from app.utils.audit import log_audit
 from sqlalchemy import select, text
 import logging
 import os
+import shutil
 import uuid
 
 logger = logging.getLogger(__name__)
@@ -397,22 +398,16 @@ async def upload_payment_proof(
 ):
     """Upload payment proof screenshot"""
     try:
-        # store_uploaded_file() tries Google Drive first and only falls
-        # back to local disk if Drive isn't configured — see
-        # app/services/file_storage_service.py. Local disk on Render is
-        # wiped on every deploy/restart, which was silently losing every
-        # payment proof screenshot the day after it was uploaded.
-        from app.services.file_storage_service import store_uploaded_file
-
+        from app.utils.uploads import get_upload_subdir
+        upload_dir = get_upload_subdir("payment_proofs")
+        
         filename = f"{uuid.uuid4()}_{file.filename}"
-        file_bytes = await file.read()
-        result = await store_uploaded_file(
-            file_bytes=file_bytes,
-            filename=filename,
-            mime_type=file.content_type,
-            subfolder="payment_proofs",
-        )
-        proof_url = result["url"]
+        filepath = upload_dir / filename
+        
+        with open(filepath, "wb") as f:
+            shutil.copyfileobj(file.file, f)
+        
+        proof_url = f"/uploads/payment_proofs/{filename}"
         
         await db.execute(text("""
             UPDATE payments SET 
