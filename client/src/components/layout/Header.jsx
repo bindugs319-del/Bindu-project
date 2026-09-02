@@ -75,10 +75,17 @@ export default function Header() {
     { label: 'About', to: '/about' },
     { label: 'Services', to: '/services' },
     { label: 'Solutions', to: '/solutions' },
+  ]
+
+  const contactLink = { label: 'Contact', to: '/contact' }
+
+  // Combined dropdown replacing 3 separate top-level links (Offerings,
+  // Membership, Wallet), matching the Invoice/PO dropdown pattern —
+  // named "Membership Hub" per explicit request.
+  const membershipHubOptions = [
     { label: 'Offerings', to: '/offerings' },
     { label: 'Membership', to: '/membership' },
     { label: 'Wallet', to: '/wallet' },
-    { label: 'Contact', to: '/contact' },
   ]
 
   const invoiceOptions = [
@@ -186,6 +193,23 @@ export default function Header() {
               )}
             </NavLink>
           ))}
+          <NavDropdown label="Membership Hub" options={membershipHubOptions} />
+          <NavLink
+            key={contactLink.to}
+            to={contactLink.to}
+            className={({ isActive }) =>
+              `relative text-sm font-medium transition-all duration-200 ${
+                isActive ? 'text-[#1E3A8A] font-bold' : 'text-[#374151] hover:text-[#1E3A8A]'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <motion.span whileHover={{ y: -1 }}>
+                {contactLink.label}
+                <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6] rounded-full transition-all duration-200 ${isActive ? 'w-full' : 'w-0 hover:w-full'}`}></span>
+              </motion.span>
+            )}
+          </NavLink>
           <NavDropdown label="Invoice" options={invoiceOptions} />
           <NavDropdown label="PO" options={poOptions} />
           {/* Always-visible Login link — separate from the account avatar below,
@@ -335,6 +359,35 @@ export default function Header() {
                   {link.label}
                 </NavLink>
               ))}
+
+              {/* Membership Hub (Offerings/Membership/Wallet) — same
+                  always-expanded sub-group treatment as Invoice/PO below. */}
+              <div>
+                <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">Membership Hub</div>
+                {membershipHubOptions.map((opt) => (
+                  <NavLink
+                    key={opt.to}
+                    to={opt.to}
+                    className={({ isActive }) =>
+                      `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
+                    }
+                    onClick={() => setOpen(false)}
+                  >
+                    {opt.label}
+                  </NavLink>
+                ))}
+              </div>
+
+              <NavLink
+                key={contactLink.to}
+                to={contactLink.to}
+                className={({ isActive }) =>
+                  `block text-base font-semibold py-2 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
+                }
+                onClick={() => setOpen(false)}
+              >
+                {contactLink.label}
+              </NavLink>
 
               {/* Invoice / PO — shown as always-expanded sub-groups here
                   since the mobile menu is already a scrollable list; a
