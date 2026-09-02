@@ -194,6 +194,8 @@ export default function Header() {
             </NavLink>
           ))}
           <NavDropdown label="Membership Hub" options={membershipHubOptions} />
+          <NavDropdown label="Invoice" options={invoiceOptions} />
+          <NavDropdown label="PO" options={poOptions} />
           <NavLink
             key={contactLink.to}
             to={contactLink.to}
@@ -210,8 +212,6 @@ export default function Header() {
               </motion.span>
             )}
           </NavLink>
-          <NavDropdown label="Invoice" options={invoiceOptions} />
-          <NavDropdown label="PO" options={poOptions} />
           {/* Always-visible Login link — separate from the account avatar below,
               so it stays in the nav even after you're logged in. */}
           <NavLink
@@ -378,17 +378,6 @@ export default function Header() {
                 ))}
               </div>
 
-              <NavLink
-                key={contactLink.to}
-                to={contactLink.to}
-                className={({ isActive }) =>
-                  `block text-base font-semibold py-2 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
-                }
-                onClick={() => setOpen(false)}
-              >
-                {contactLink.label}
-              </NavLink>
-
               {/* Invoice / PO — shown as always-expanded sub-groups here
                   since the mobile menu is already a scrollable list; a
                   nested toggle would just add an extra tap. */}
@@ -423,7 +412,18 @@ export default function Header() {
                   </NavLink>
                 ))}
               </div>
-              
+
+              <NavLink
+                key={contactLink.to}
+                to={contactLink.to}
+                className={({ isActive }) =>
+                  `block text-base font-semibold py-2 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
+                }
+                onClick={() => setOpen(false)}
+              >
+                {contactLink.label}
+              </NavLink>
+
               {/* Always-visible Login link, same as desktop/tablet */}
               <Link
                 to="/auth/login"
