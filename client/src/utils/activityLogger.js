@@ -1,4 +1,6 @@
-const API = 'http://localhost:8000/api/v1' 
+import { API_BASE_URL } from './../services/api/apiClient'
+
+const API = API_BASE_URL
  
  const getToken = () => 
    localStorage.getItem('access_token') || 

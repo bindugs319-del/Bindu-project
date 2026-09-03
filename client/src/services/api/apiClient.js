@@ -31,7 +31,7 @@ const STATIC_BASE_URL = (() => {
   return u.replace(/\/+$/, '')
 })()
 
-export { STATIC_BASE_URL }
+export { STATIC_BASE_URL, API_BASE_URL }
 
 /**
  * Turn a FastAPI error body into a plain, renderable string.
