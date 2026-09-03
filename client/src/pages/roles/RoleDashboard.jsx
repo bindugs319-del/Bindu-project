@@ -649,36 +649,36 @@ export default function RoleDashboard() {
               )}
             </div>
 
-            {/* POs */}
+            {/* Invoices */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="text-xl font-semibold mb-4">Purchase Orders ({companyDetails?.purchase_orders?.length || 0})</h3>
-              {companyDetails?.purchase_orders?.length > 0 ? (
+              <h3 className="text-xl font-semibold mb-4">Invoices ({companyDetails?.invoices?.length || 0})</h3>
+              {companyDetails?.invoices?.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
                       <tr className="text-left text-gray-600 border-b">
-                        <th className="py-2 pr-3">PO Number</th>
-                        <th className="py-2 pr-3">Vendor</th>
+                        <th className="py-2 pr-3">Invoice Number</th>
+                        <th className="py-2 pr-3">Customer</th>
                         <th className="py-2 pr-3">Amount</th>
                         <th className="py-2 pr-3">Due Date</th>
                         <th className="py-2 pr-3">Status</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                      {companyDetails.purchase_orders.map(po => (
-                        <tr key={po.id} className="text-gray-800">
-                          <td className="py-2 pr-3">{po.po_number}</td>
-                          <td className="py-2 pr-3">{po.vendor}</td>
-                          <td className="py-2 pr-3">₹{Number(po.amount).toLocaleString()}</td>
-                          <td className="py-2 pr-3">{po.due_date ? new Date(po.due_date).toLocaleDateString() : 'N/A'}</td>
-                          <td className="py-2 pr-3">{po.status}</td>
+                      {companyDetails.invoices.map(inv => (
+                        <tr key={inv.id} className="text-gray-800">
+                          <td className="py-2 pr-3">{inv.invoice_number}</td>
+                          <td className="py-2 pr-3">{inv.counterparty_name}</td>
+                          <td className="py-2 pr-3">₹{Number(inv.total).toLocaleString()}</td>
+                          <td className="py-2 pr-3">{inv.payment_due_date ? new Date(inv.payment_due_date).toLocaleDateString() : 'N/A'}</td>
+                          <td className="py-2 pr-3">{inv.status}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                 </div>
               ) : (
-                <p className="text-gray-500">No purchase orders found</p>
+                <p className="text-gray-500">No invoices found</p>
               )}
             </div>
           </div>

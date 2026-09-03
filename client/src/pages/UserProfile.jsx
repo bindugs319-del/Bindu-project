@@ -8,7 +8,7 @@ export default function UserProfile() {
   const { token: _token } = useAuth()
   const navigate = useNavigate()
   const [profile, setProfile] = useState(null)
-  const [pos, setPOs] = useState([])
+  const [invoices, setInvoices] = useState([])
   const [credibility, setCredibility] = useState(null)
   const [activityLog, setActivityLog] = useState([])
   const [loading, setLoading] = useState(true)
@@ -22,9 +22,9 @@ export default function UserProfile() {
     setLoading(true)
     
     try {
-      const [profileRes, posRes, credRes, logRes] = await Promise.all([
+      const [profileRes, invoicesRes, credRes, logRes] = await Promise.all([
         api.get(`/admin/users/${userId}`),
-        api.get(`/admin/users/${userId}/pos`),
+        api.get(`/admin/users/${userId}/invoices`),
         api.get(`/admin/users/${userId}/credibility`),
         api.get(`/admin/users/${userId}/activity`)
       ])
@@ -33,8 +33,8 @@ export default function UserProfile() {
         setProfile(profileRes.data)
       }
 
-      if (posRes.ok) {
-        setPOs(posRes.data || [])
+      if (invoicesRes.ok) {
+        setInvoices(invoicesRes.data || [])
       }
 
       if (credRes.ok) {
@@ -75,9 +75,11 @@ export default function UserProfile() {
     USER: 'bg-gray-100 text-gray-700',
   }
 
+  const OPEN_INVOICE_STATUSES = ['Draft', 'Sent', 'Overdue']
+
   const tabs = [
     { id: 'profile', label: '👤 Profile' },
-    { id: 'pos', label: `📋 POs (${pos.length})` },
+    { id: 'invoices', label: `🧾 Invoices (${invoices.length})` },
     { id: 'credibility', label: '⭐ Credibility' },
     { id: 'activity', label: `📜 Activity (${activityLog.length})` },
   ]
@@ -124,18 +126,18 @@ export default function UserProfile() {
 
           <div className="flex gap-4">
             <div className="text-center">
-              <p className="text-2xl font-bold text-gray-900">{pos.length}</p>
-              <p className="text-xs text-gray-500">Total POs</p>
+              <p className="text-2xl font-bold text-gray-900">{invoices.length}</p>
+              <p className="text-xs text-gray-500">Total Invoices</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-green-600">
-                {pos.filter(p => p.status === 'Closed').length}
+                {invoices.filter(inv => inv.status === 'Paid').length}
               </p>
               <p className="text-xs text-gray-500">Paid</p>
             </div>
             <div className="text-center">
               <p className="text-2xl font-bold text-red-600">
-                {pos.filter(p => p.status === 'open').length}
+                {invoices.filter(inv => OPEN_INVOICE_STATUSES.includes(inv.status)).length}
               </p>
               <p className="text-xs text-gray-500">Open</p>
             </div>
@@ -184,43 +186,43 @@ export default function UserProfile() {
         </div>
       )}
 
-      {activeTab === 'pos' && (
+      {activeTab === 'invoices' && (
         <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
           <div className="p-4 border-b">
-            <h2 className="font-bold text-lg">Purchase Orders</h2>
+            <h2 className="font-bold text-lg">Invoices</h2>
           </div>
-          {pos.length === 0 ? (
+          {invoices.length === 0 ? (
             <div className="p-8 text-center text-gray-400">
               <div className="text-4xl mb-2">📭</div>
-              <p>No purchase orders found</p>
+              <p>No invoices found</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="text-left p-3 font-semibold text-gray-600">PO #</th>
-                  <th className="text-left p-3 font-semibold text-gray-600">Vendor</th>
+                  <th className="text-left p-3 font-semibold text-gray-600">Invoice #</th>
+                  <th className="text-left p-3 font-semibold text-gray-600">Customer</th>
                   <th className="text-left p-3 font-semibold text-gray-600">Amount</th>
                   <th className="text-left p-3 font-semibold text-gray-600">Due Date</th>
                   <th className="text-left p-3 font-semibold text-gray-600">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y">
-                {pos.map(po => (
-                  <tr key={po.id} className="hover:bg-gray-50">
-                    <td className="p-3 font-mono font-bold text-blue-600">{po.po_number}</td>
-                    <td className="p-3">{po.vendor}</td>
-                    <td className="p-3 font-semibold">₹{Number(po.amount || 0).toLocaleString('en-IN')}</td>
+                {invoices.map(inv => (
+                  <tr key={inv.id} className="hover:bg-gray-50">
+                    <td className="p-3 font-mono font-bold text-blue-600">{inv.invoice_number}</td>
+                    <td className="p-3">{inv.counterparty_name}</td>
+                    <td className="p-3 font-semibold">₹{Number(inv.total || 0).toLocaleString('en-IN')}</td>
                     <td className="p-3 text-gray-500">
-                      {po.due_date ? new Date(po.due_date).toLocaleDateString('en-IN') : '—'}
+                      {inv.payment_due_date ? new Date(inv.payment_due_date).toLocaleDateString('en-IN') : '—'}
                     </td>
                     <td className="p-3">
                       <span className={`text-xs px-2 py-1 rounded-full font-semibold ${
-                        po.status === 'Closed' ? 'bg-green-100 text-green-700' :
-                        po.status === 'open' ? 'bg-blue-100 text-blue-700' :
+                        inv.status === 'Paid' ? 'bg-green-100 text-green-700' :
+                        inv.status === 'Overdue' ? 'bg-red-100 text-red-700' :
                         'bg-orange-100 text-orange-700'
                       }`}>
-                        {po.status === 'Closed' ? 'Paid' : po.status}
+                        {inv.status}
                       </span>
                     </td>
                   </tr>
@@ -259,7 +261,7 @@ export default function UserProfile() {
               
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                 {[
-                  { label: 'Total POs', value: credibility.total_pos || 0 },
+                  { label: 'Total Invoices', value: credibility.total_invoices || 0 },
                   { label: 'Paid on Time', value: credibility.paid_on_time || 0 },
                   { label: 'Unpaid', value: credibility.unpaid || 0 },
                   { label: 'Avg Delay', value: `${credibility.avg_delay_days || 0} days` },

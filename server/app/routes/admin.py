@@ -758,6 +758,18 @@ async def get_company_details(
         po['created_at'] = po['created_at'].isoformat() if po['created_at'] else None
         pos.append(po)
         
+    # Get invoices
+    invoices_result = await db.execute(text("""
+        SELECT id, invoice_number, counterparty_name, total, payment_due_date, status, created_at
+        FROM sales_invoices WHERE company_id = :cid ORDER BY created_at DESC
+    """), {"cid": company_id})
+    invoices = []
+    for r in invoices_result.fetchall():
+        inv = dict(r._mapping)
+        inv['payment_due_date'] = inv['payment_due_date'].isoformat() if inv['payment_due_date'] else None
+        inv['created_at'] = inv['created_at'].isoformat() if inv['created_at'] else None
+        invoices.append(inv)
+
     # Get credibility
     cred_result = await db.execute(text("""
         SELECT * FROM company_credibility_index WHERE company_id = :cid LIMIT 1
@@ -774,6 +786,7 @@ async def get_company_details(
             "company": company_dict, 
             "users": users, 
             "purchase_orders": pos, 
+            "invoices": invoices,
             "credibility": credibility
         }
     }
@@ -849,48 +862,117 @@ async def get_user_pos(
     }
 
 
+@router.get("/users/{user_id}/invoices")
+async def get_user_invoices(
+    user_id: str,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[any, Depends(get_current_user)]
+):
+    """Get user's sales invoices (MASTER_ADMIN, OPERATIONS, OPERATION only)"""
+    user_role_val = getattr(current_user.role, "value", str(current_user.role)).upper()
+    if "." in user_role_val:
+        user_role_val = user_role_val.split(".")[-1]
+    if user_role_val not in ['MASTER_ADMIN', 'OPERATIONS', 'OPERATION']:
+        raise HTTPException(status_code=403)
+
+    from sqlalchemy import text
+    invoices = await db.execute(text("""
+        SELECT id, invoice_number, counterparty_name, total, payment_due_date, status,
+               created_at, payment_completed_at
+        FROM sales_invoices
+        WHERE user_id = :user_id
+        ORDER BY created_at DESC
+        LIMIT 50
+    """), {"user_id": user_id})
+
+    rows = invoices.mappings().all()
+    return {
+        "success": True,
+        "data": [{k: str(v) if v else None for k, v in dict(r).items()} for r in rows]
+    }
+
+
 @router.get("/users/{user_id}/credibility")
 async def get_user_credibility(
     user_id: str,
     db: Annotated[AsyncSession, Depends(get_db)],
     current_user: Annotated[any, Depends(get_current_user)]
 ):
-    """Get user's credibility (MASTER_ADMIN, OPERATIONS, OPERATION only)"""
+    """Get user's credibility, computed from their invoices (MASTER_ADMIN, OPERATIONS, OPERATION only)"""
     user_role_val = getattr(current_user.role, "value", str(current_user.role)).upper()
     if "." in user_role_val:
         user_role_val = user_role_val.split(".")[-1]
     if user_role_val not in ['MASTER_ADMIN', 'OPERATIONS', 'OPERATION']:
         raise HTTPException(status_code=403)
-    
-    from sqlalchemy import text
-    
+
+    from datetime import timedelta
+    from app.services.credibility_service import CredibilityService
+
     user_row = await db.execute(
-        text("SELECT company_id FROM users WHERE id = :id"),
+        text("SELECT company_id, company_name FROM users WHERE id = :id"),
         {"id": user_id}
     )
     user = user_row.fetchone()
-    
+
     if not user or not user[0]:
         return {"success": True, "data": None}
-    
-    cred = await db.execute(text("""
-        SELECT score, grade, risk_level, ai_summary, total_pos,
-               paid_on_time, unpaid, avg_delay_days, last_calculated_at
-        FROM company_credibility_index
-        WHERE company_id = :company_id
-        LIMIT 1
-    """), {"company_id": user[0]})
-    
-    row = cred.fetchone()
-    if not row:
+
+    company_id, company_name = user[0], user[1]
+    if not company_name:
+        comp_row = await db.execute(
+            text("SELECT company_name FROM companies WHERE id = :id"),
+            {"id": company_id}
+        )
+        comp = comp_row.fetchone()
+        company_name = comp[0] if comp else None
+
+    if not company_name:
         return {"success": True, "data": None}
-    
-    data = dict(row._mapping)
-    data['stars'] = round((data.get('score', 0) or 0) / 20)
-    for k, v in data.items():
-        if v is not None and not isinstance(v, (int, float, bool, str)):
-            data[k] = str(v)
-    
+
+    window_days = await CredibilityService.get_config(db)
+    cutoff = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=window_days)
+
+    inv_rows = await db.execute(text("""
+        SELECT status, payment_due_date, payment_completed_at
+        FROM sales_invoices
+        WHERE lower(counterparty_name) = lower(:company_name)
+          AND created_at >= :cutoff
+    """), {"company_name": company_name, "cutoff": cutoff})
+
+    rows = inv_rows.fetchall()
+    total = len(rows)
+    paid = sum(1 for r in rows if (r[0] or '').lower() == 'paid')
+    unpaid = sum(1 for r in rows if (r[0] or '').lower() in ('draft', 'sent', 'overdue'))
+    paid_late = max(0, total - paid - unpaid)
+
+    delays = []
+    for _status, due_date, completed_at in rows:
+        if completed_at and due_date:
+            completed_date = completed_at.date() if hasattr(completed_at, 'date') else completed_at
+            delays.append((completed_date - due_date).days)
+    avg_delay = round(sum(delays) / len(delays), 1) if delays else 0.0
+
+    metrics = {
+        "total_pos": total,
+        "paid_on_time": paid,
+        "paid_late": paid_late,
+        "unpaid": unpaid,
+        "avg_delay_days": avg_delay,
+    }
+    scored = await CredibilityService.score_with_ai(metrics)
+
+    data = {
+        "score": scored["score"],
+        "grade": scored["grade"],
+        "risk_level": scored["risk_level"],
+        "stars": scored["stars"],
+        "total_invoices": total,
+        "paid_on_time": paid,
+        "unpaid": unpaid,
+        "avg_delay_days": avg_delay,
+        "ai_summary": scored["ai_summary"].replace("POs", "invoices"),
+    }
+
     return {"success": True, "data": data}
 
 
