@@ -1103,7 +1103,7 @@ async def sales_invoice_master_approve(
             continue
         if field in date_fields and isinstance(value, str):
             from datetime import date as date_cls
-            value = date_cls.fromisoformat(value)
+            value = date_cls.fromisoformat(value) if value.strip() else None
         setattr(invoice, field, value)
 
     invoice.approval_status = "APPROVED"
