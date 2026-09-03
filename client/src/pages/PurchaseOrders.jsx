@@ -133,7 +133,7 @@ export default function PurchaseOrders() {
     if (daysLeft === 0) {
       return <span className="text-red-600 font-bold">Due Today!</span>;
     }
-    return <span className="text-red-600 font-bold">{Math.abs(daysLeft)} days overdue</span>;
+    return <span className="text-red-600 font-bold">0 days</span>;
   };
 
   const getStatusBadge = (row) => {

@@ -303,7 +303,7 @@ export default function Invoices() {
     if (daysLeft > 7) return <span className="text-emerald-600 font-medium">{daysLeft} days left</span>
     if (daysLeft >= 1 && daysLeft <= 7) return <span className="text-amber-600 font-medium">{daysLeft} days left ⚠️</span>
     if (daysLeft === 0) return <span className="text-red-600 font-bold">Due Today!</span>
-    return <span className="text-red-600 font-bold">{Math.abs(daysLeft)} days overdue</span>
+    return <span className="text-red-600 font-bold">0 days</span>
   }
 
   const getStatusPill = (row) => {
