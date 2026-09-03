@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import PageHero from '../../components/shared/PageHero'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
-import { Link } from 'react-router-dom'
 
 const faqs = [
   {
@@ -161,15 +160,6 @@ export default function BusinessDebt() {
             <div className="space-y-3">
               <FAQAccordion faqs={faqs} />
             </div>
-          </div>
-
-          {/* CTA Section */}
-          <div className="card bg-primary-50 border-primary-200 text-center space-y-4">
-            <h3 className="text-2xl font-heading font-bold text-primary-900">Resolve Business Debt Today</h3>
-            <p className="text-gray-700">Schedule an appointment with us!</p>
-            <Link to="/appointment" className="btn-primary inline-block">
-              Book Appointment
-            </Link>
           </div>
 
         </motion.div>

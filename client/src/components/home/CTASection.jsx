@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../state/authContext'
 
@@ -13,13 +12,13 @@ export default function CTASection() {
   
   return (
     <section 
-      className="py-16 px-4 text-white text-center"
+      className="py-10 px-4 text-white text-center"
       style={{ 
         background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)'
       }}
     >
       <div className="container-custom text-center max-w-3xl">
-        <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }}>
+        <div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Ready to begin?</h2>
           <p className="text-[#93C5FD] text-lg mb-6">
             Formalize your trade acknowledgments, reduce risk, and accelerate collections.
@@ -32,7 +31,7 @@ export default function CTASection() {
               Login / Register
             </Link>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   )

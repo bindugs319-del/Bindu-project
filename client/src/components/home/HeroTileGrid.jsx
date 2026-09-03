@@ -13,20 +13,20 @@ import { Link } from 'react-router-dom'
 export default function HeroTileGrid({ tiles, columns = 'grid-cols-2 md:grid-cols-3' }) {
   return (
     <div
-      className={`grid ${columns} gap-4 items-stretch`}
+      className={`grid ${columns} gap-2 items-stretch`}
       style={{ filter: 'drop-shadow(0 0 40px rgba(59,130,246,0.3))' }}
     >
       {tiles.map((tile) => (
         <div key={tile.title} className="group h-full">
           <Link to={tile.to} className="block h-full">
-            <div className="card h-full flex flex-col justify-between bg-white/10 border border-white/20 text-white backdrop-blur-md hover:bg-white/15">
-              <div className="flex items-start justify-between gap-3">
-                <p className="font-semibold leading-snug text-base">{tile.title}</p>
-                <span className="text-sm text-white/80 flex-shrink-0 group-hover:rotate-45 group-hover:translate-x-1 transition-all duration-300">
+            <div className="card h-full min-h-[78px] !p-3 flex flex-col justify-between bg-white/10 border border-white/20 text-white backdrop-blur-md hover:bg-white/15">
+              <div className="flex items-start justify-between gap-2">
+                <p className="font-semibold leading-snug text-xs">{tile.title}</p>
+                <span className="text-xs text-white/80 flex-shrink-0 group-hover:rotate-45 group-hover:translate-x-1 transition-all duration-300">
                   →
                 </span>
               </div>
-              <div className="mt-3 h-1.5 w-12 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] group-hover:w-full transition-all duration-300" />
+              <div className="mt-1.5 h-1 w-8 rounded-full bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] group-hover:w-full transition-all duration-300" />
             </div>
           </Link>
         </div>

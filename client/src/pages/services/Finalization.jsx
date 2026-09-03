@@ -139,7 +139,7 @@ export default function Finalization() {
               <li>It helps the defaulter restore their business reputation</li>
             </ul>
             <p className="text-gray-700 leading-relaxed mt-4">
-              Navigate to Dashboard → Defaulters → Select Case → Update Status to "Settled" to complete the finalization process.
+              Navigate to Dashboard → Search for Invoice no→ Update Status to "Closed" to complete the finalization process. 
             </p>
           </div>
 
@@ -148,9 +148,6 @@ export default function Finalization() {
             <h3 className="text-2xl font-heading font-bold text-primary-900">Need Help with Finalization?</h3>
             <p className="text-gray-700">Our specialists are here to guide you through the process</p>
             <div className="flex justify-center gap-4">
-              <Link to="/appointment" className="btn-primary">
-                Book Consultation
-              </Link>
               <Link to="/contact" className="btn-secondary">
                 Contact Support
               </Link>

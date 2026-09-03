@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import ParticleBackground from '../ui/ParticleBackground'
-import TypewriterText from '../ui/TypewriterText'
 import HeroTileGrid from './HeroTileGrid'
 
 const tiles = [
@@ -30,7 +29,6 @@ const itemVariants = {
 
 export default function HeroSection() {
   const headingText = "India’s Credit Intelligence Hub – Streamline Your Business Credit Transactions"
-  const words = headingText.split(" ")
   
   return (
     <section 
@@ -48,7 +46,7 @@ export default function HeroSection() {
         }}
       />
       
-      <div className="container-custom grid gap-12 lg:grid-cols-[1.1fr_1fr] items-center relative z-10">
+      <div className="container-custom grid gap-8 lg:grid-cols-[1.1fr_1fr] items-center relative z-10">
         <div 
           className="fade-up"
           style={{ animationDelay: '0.1s' }}
@@ -60,21 +58,17 @@ export default function HeroSection() {
             GST-Registered Businesses Only
           </p>
           
-          <h1 
-            className="font-heading font-extrabold mb-6"
-            style={{ 
-              fontSize: 'clamp(2.5rem, 5vw, 4rem)', 
-              lineHeight: 1.1 
-            }}
+          <h1
+            className="font-heading font-extrabold mb-6 text-xl sm:text-2xl"
           >
-            <TypewriterText text={headingText} />
+            {headingText}
           </h1>
           
           <p 
             className="mb-9 max-w-2xl"
             style={{ 
               color: '#93C5FD', 
-              fontSize: '1.1rem', 
+              fontSize: '0.95rem', 
               fontWeight: 400 
             }}
           >
@@ -99,7 +93,7 @@ export default function HeroSection() {
           </div>
           
           <div 
-            className="mt-10 flex flex-wrap gap-6 text-sm text-white/80"
+            className="mt-10 mb-4 flex flex-wrap gap-6 text-sm text-white/80"
           >
             <span className="inline-flex items-center gap-2">
               <span className="h-2.5 w-2.5 rounded-full bg-[#16A34A] shadow-sm" /> Formal trade validation

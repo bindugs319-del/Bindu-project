@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import PageHero from '../../components/shared/PageHero'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
-import { Link } from 'react-router-dom'
 
 const faqs = [
   { q: "Q1. What exactly is the CreditDataWatch Business Credit Bureau?", a: "CreditDataWatch is a platform specifically designed to offer end-to-end credit intelligence and oversight for the B2B sector. Our system allows vendors and purchasers to digitize their deals, secure formal acknowledgments, and flag non-paying entities. By centralizing this data, we foster a culture of honesty and reliability in commercial trade." },
@@ -37,7 +36,7 @@ export default function BusinessCredit() {
               In the fast-paced world of modern commerce, maintaining financial stability requires a combination of accurate data and proactive collection strategies. CreditDataWatch provides a suite of smart reporting, risk evaluation, and automated follow-up systems designed to secure your revenue and eliminate the risk of bad debt.
             </p>
 
-            <div className="card bg-purple-50 border-purple-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
                 Evaluate Risks with Precision Business Credit Profiles
               </h3>
@@ -46,7 +45,7 @@ export default function BusinessCredit() {
               </p>
             </div>
 
-            <div className="card bg-blue-50 border-blue-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
                 Optimize Your Receivables with Automated Collection Workflows
               </h3>
@@ -75,7 +74,7 @@ export default function BusinessCredit() {
               ))}
             </div>
 
-            <div className="card bg-gradient-to-r from-purple-50 to-blue-50 border-purple-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
                 Struggling with Late Payments? We Have the Solution.
               </h3>
@@ -124,15 +123,6 @@ export default function BusinessCredit() {
             <div className="space-y-3">
               <FAQAccordion faqs={faqs} />
             </div>
-          </div>
-
-          {/* CTA Section */}
-          <div className="card bg-primary-50 border-primary-200 text-center space-y-4">
-            <h3 className="text-2xl font-heading font-bold text-primary-900">Start Managing Credit Smartly</h3>
-            <p className="text-gray-700">Schedule an appointment with us today!</p>
-            <Link to="/appointment" className="btn-primary inline-block">
-              Book Appointment
-            </Link>
           </div>
 
         </motion.div>

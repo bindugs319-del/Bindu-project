@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import PageHero from '../../components/shared/PageHero'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
-import { Link } from 'react-router-dom'
 
 const faqs = [
   { q: "Q1. What information is found in a CreditDataWatch MSME Credit Report?", a: "Our reports provide a deep dive into a business's financial reliability. They include detailed repayment patterns, current debt levels, and overall credit health scores. By analyzing these risk metrics and industry trends, your business can gain the clarity needed to make safe and smart financial choices." },
@@ -40,7 +39,7 @@ export default function MSME() {
               To foster this vital sector, the Indian government has launched several supportive frameworks. These include digitized registration systems, easier access to capital, and technological grants. Small businesses today benefit from lower-interest loans, tax breaks, and priority status in government tenders. Together, these initiatives create a supportive environment where small enterprises can scale and contribute to the country's wealth.
             </p>
 
-            <div className="card bg-green-50 border-green-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
                 Interpreting the MSME Credit Report
               </h3>
@@ -56,7 +55,7 @@ export default function MSME() {
               While obtaining an official MSME status is the gateway to government support, the paperwork can often be overwhelming. CreditDataWatch bridges this gap by offering a simplified, expert-led registration journey. We eliminate the frustration of navigating complex government portals and dense legal forms. Our intuitive platform guides entrepreneurs through every requirement, ensuring compliance. By automating the registration workflow, we significantly cut down processing times, giving business owners more time to focus on their daily operations.
             </p>
 
-            <div className="card bg-amber-50 border-amber-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
                 Why Your MSME Credit Rating Matters
               </h3>
@@ -109,15 +108,6 @@ export default function MSME() {
             <div className="space-y-3">
               <FAQAccordion faqs={faqs} />
             </div>
-          </div>
-
-          {/* CTA Section */}
-          <div className="card bg-primary-50 border-primary-200 text-center space-y-4">
-            <h3 className="text-2xl font-heading font-bold text-primary-900">Explore MSME Solutions</h3>
-            <p className="text-gray-700">Ready to boost your business credibility? Schedule an appointment today!</p>
-            <Link to="/appointment" className="btn-primary inline-block">
-              Book Appointment
-            </Link>
           </div>
 
         </motion.div>

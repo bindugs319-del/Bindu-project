@@ -6,22 +6,22 @@ export default function About() {
 
       {/* Hero */}
       <section 
-        className="py-20 px-4 text-white text-center"
+        className="py-10 px-4 text-white text-center"
         style={{ 
           background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)',
         }}
       >
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">About CreditDataWatch</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-3">About CreditDataWatch</h1>
           <div 
-            className="mx-auto mb-6"
+            className="mx-auto mb-4"
             style={{ 
               width: '80px', 
               height: '2px', 
               backgroundColor: '#F59E0B' 
             }}
           ></div>
-          <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
+          <p className="text-[#93C5FD] text-base max-w-3xl mx-auto">
             India's premier credit intelligence hub — empowering businesses and MSMEs with verified data, risk management tools, and debt recovery solutions.
           </p>
         </div>
@@ -40,7 +40,7 @@ export default function About() {
             Our platform serves as a trusted database of commercial credit behaviour, compiled 
             exclusively from reports submitted by our network of GST-registered members. Every 
             entry is verified by our specialist team before published, ensuring reliability at every 
-            step.
+            step.  
           </p>
 
           <div className="grid md:grid-cols-3 gap-6">
@@ -111,7 +111,7 @@ export default function About() {
                   ['🔐', 'GST-Verified Registration', 'Businesses register using their valid GSTIN. No GSTIN, no registration — this ensures every member is a genuine, verified business entity.'],
                   ['📋', 'Report & Document', 'Members submit defaulter details with supporting documents — ledger, CA-certified statement with UDIN, POs, and delivery proofs.'],
                   ['🔍', 'Expert Verification', 'Our specialist team rigorously reviews every submission within 1–2 business days, ensuring only accurate, verified data is published.'],
-                  ['🌐', 'National Visibility', 'Verified defaulters are listed on the CreditDataWatch Dashboard, visible to members — impacting credit scores and market credibility.'],
+                  ['🌐', 'National Visibility', 'Verified defaulters are listed on the CreditDataWatch Dashboard, visible to members  — impacting credit scores and market credibility.'],
                   ['🤝', 'Settlement & Closure', 'Once dues are cleared, the creditor marks the case as Settled/Closed, halting all alerts and allowing the defaulter to begin credit restoration.'],
                 ].map(([icon, title, desc], idx) => (
                   <div key={idx} className="flex items-start gap-3">
@@ -172,13 +172,13 @@ export default function About() {
           <div 
             className="card relative overflow-hidden"
             style={{ 
-              backgroundColor: '#FFFBEB', 
-              borderLeft: '4px solid #F59E0B' 
+              backgroundColor: '#EFF6FF', 
+              borderLeft: '4px solid #1E3A8A' 
             }}
           >
             <span 
               className="absolute top-2 right-4 text-6xl font-serif opacity-10"
-              style={{ color: '#F59E0B' }}
+              style={{ color: '#1E3A8A' }}
             >"</span>
             <h3 className="text-2xl font-bold text-[#1E3A8A] mb-4">Our Vision</h3>
             <p className="text-[#475569] leading-relaxed">

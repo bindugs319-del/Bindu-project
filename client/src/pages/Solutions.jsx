@@ -80,13 +80,13 @@ export default function Solutions() {
 
       {/* Hero */}
       <section 
-        className="py-20 px-4 text-white text-center"
+        className="py-10 px-4 text-white text-center"
         style={{ 
           background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)',
         }}
       >
         <div className="max-w-5xl mx-auto">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-4">Our Solutions</h1>
+          <h1 className="text-xl sm:text-2xl font-bold mb-3">Our Solutions</h1>
           <div 
             className="mx-auto mb-4"
             style={{ 
@@ -95,7 +95,7 @@ export default function Solutions() {
               backgroundColor: '#F59E0B' 
             }}
           ></div>
-          <p className="text-[#93C5FD] text-lg max-w-3xl mx-auto">
+          <p className="text-[#93C5FD] text-base max-w-3xl mx-auto">
             Empowering Indian businesses with advanced credit intelligence, risk management, and debt recovery tools built for the modern economy.
           </p>
           <div className="mt-10 text-left">
@@ -113,7 +113,7 @@ export default function Solutions() {
       </section>
 
       {/* SECTION 1 — B2B Solutions */}
-      <section id="b2b-solutions" className="py-16 px-4 bg-white" style={{ marginBottom: '60px' }}>
+      <section id="b2b-solutions" className="py-8 px-4 bg-white" style={{ marginBottom: '24px' }}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-3xl">🏢</span>
@@ -123,7 +123,7 @@ export default function Solutions() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-3">
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
               Empowering Enterprises through Strategic B2B Innovation
             </h3>
@@ -147,7 +147,7 @@ export default function Solutions() {
             </Link>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-6">
             <h3 style={{ fontSize: '14px', fontWeight: 500 }} className="text-xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
             <FAQSection faqs={b2bFaqs} />
           </div>
@@ -155,7 +155,7 @@ export default function Solutions() {
       </section>
 
       {/* SECTION 2 — MSME Solutions */}
-      <section id="msme-solutions" className="py-16 px-4 bg-gray-50" style={{ marginBottom: '60px' }}>
+      <section id="msme-solutions" className="py-8 px-4 bg-gray-50" style={{ marginBottom: '24px' }}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-3xl">🏭</span>
@@ -165,7 +165,7 @@ export default function Solutions() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-3">
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
               Driving National Growth: The Power of Indian MSMEs
             </h3>
@@ -189,7 +189,7 @@ export default function Solutions() {
             </Link>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-6">
             <h3 style={{ fontSize: '14px', fontWeight: 500 }} className="text-xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
             <FAQSection faqs={msmeFaqs} />
           </div>
@@ -197,7 +197,7 @@ export default function Solutions() {
       </section>
 
       {/* SECTION 3 — Business Credit */}
-      <section id="business-credit" className="py-16 px-4 bg-white" style={{ marginBottom: '60px' }}>
+      <section id="business-credit" className="py-8 px-4 bg-white" style={{ marginBottom: '24px' }}>
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-3xl">📊</span>
@@ -207,7 +207,7 @@ export default function Solutions() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-3">
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
               Advanced Credit Intelligence with Automated Recovery Tools
             </h3>
@@ -224,7 +224,7 @@ export default function Solutions() {
             </Link>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-6">
             <h3 style={{ fontSize: '14px', fontWeight: 500 }} className="text-xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
             <FAQSection faqs={businessCreditFaqs} />
           </div>
@@ -232,7 +232,7 @@ export default function Solutions() {
       </section>
 
       {/* SECTION 4 — Business Debt */}
-      <section id="business-debt" className="py-16 px-4 bg-gray-50">
+      <section id="business-debt" className="py-8 px-4 bg-gray-50">
         <div className="max-w-5xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
             <span className="text-3xl">⚖️</span>
@@ -242,7 +242,7 @@ export default function Solutions() {
             </div>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-3">
             <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }}>
               Managing Business Debts with CreditDataWatch
             </h3>
@@ -259,7 +259,7 @@ export default function Solutions() {
             </Link>
           </div>
 
-          <div className="mt-12">
+          <div className="mt-6">
             <h3 style={{ fontSize: '14px', fontWeight: 500 }} className="text-xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
             <FAQSection faqs={businessDebtFaqs} />
           </div>

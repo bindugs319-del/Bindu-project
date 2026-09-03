@@ -27,7 +27,7 @@ export default function FAQSection() {
   return (
     <section className="section-padding" style={{ background: 'linear-gradient(180deg, #FFFFFF 0%, #EFF6FF 100%)' }}>
       <div className="container-custom max-w-4xl">
-        <div className="text-center mb-10">
+        <div className="text-center mb-8">
           <div className="inline-block w-20 h-1 bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] rounded-full mb-4" />
           <h2 className="text-3xl md:text-4xl font-heading font-bold mb-3 text-[#0F172A]">Help & Education</h2>
           <p className="text-lg text-[#475569]">Common questions about CreditDataWatch</p>

@@ -120,7 +120,7 @@
 
   /* Sections */
   .section-padding {
-    @apply py-6 md:py-10;
+    @apply py-10 md:py-16;
   }
 
   /* Utility Classes for Animations */
@@ -163,7 +163,7 @@
     position: relative;
     display: block;
     width: calc(100% + 1.3px);
-    height: 40px;
+    height: 80px;
   }
 
   .wave-divider .shape-fill {

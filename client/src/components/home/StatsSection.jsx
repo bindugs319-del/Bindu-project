@@ -1,5 +1,4 @@
-import { useInView } from 'framer-motion'
-import { useRef, useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { getPublicBusinessStats } from '../../services/api/apiClient'
 
 const DEFAULT_STATS = [
@@ -9,25 +8,14 @@ const DEFAULT_STATS = [
   { label: 'Total amount reported defaulter', value: '4578+ Crores' },
 ]
 
-const AnimatedStatValue = ({ value }) => {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: "-100px 0px" })
-
-  return (
-    <span
-      ref={ref}
-      className="text-4xl md:text-5xl lg:text-6xl font-heading font-extrabold"
-      style={{
-        color: 'white',
-        opacity: isInView ? 1 : 0,
-        transform: isInView ? 'translateY(0)' : 'translateY(10px)',
-        transition: 'opacity 0.6s ease, transform 0.6s ease',
-      }}
-    >
-      {value}
-    </span>
-  )
-}
+const AnimatedStatValue = ({ value }) => (
+  <span
+    className="text-lg md:text-xl lg:text-2xl font-heading font-extrabold"
+    style={{ color: 'white' }}
+  >
+    {value}
+  </span>
+)
 
 export default function StatsSection() {
   const [stats, setStats] = useState(DEFAULT_STATS)
@@ -47,10 +35,10 @@ export default function StatsSection() {
     <section className="section-padding" style={{ background: 'linear-gradient(180deg, #EFF6FF 0%, #DBEAFE 100%)' }}>
       <div className="container-custom">
         <div
-          className="text-center mb-12"
+          className="text-center mb-8"
         >
           <div className="inline-block w-24 h-1 bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] rounded-full mb-4" />
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-[#0F172A] mb-3">
+          <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#0F172A] mb-3">
             Trusted by Thousands of Businesses
           </h2>
           <p className="text-[#475569] text-lg">
@@ -58,11 +46,11 @@ export default function StatsSection() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:gap-8 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-4 md:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {stats.map((stat) => (
             <div
               key={stat.label}
-              className="card relative overflow-hidden rounded-[20px]"
+              className="card relative overflow-hidden rounded-[14px] max-w-[220px] mx-auto w-full"
               style={{
                 background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
                 boxShadow: '0 10px 40px -10px rgba(30, 58, 138, 0.35)',
@@ -77,10 +65,10 @@ export default function StatsSection() {
                 e.currentTarget.style.boxShadow = '0 10px 40px -10px rgba(30, 58, 138, 0.35)'
               }}
             >
-              <div className="absolute top-0 right-0 w-40 h-40 bg-gradient-to-bl from-blue-400/30 to-transparent -mt-20 -mr-20 rounded-full" />
-              <div className="relative p-6">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-gradient-to-bl from-blue-400/30 to-transparent -mt-8 -mr-8 rounded-full" />
+              <div className="relative p-2">
                 <AnimatedStatValue value={stat.value} />
-                <p className="mt-4 text-base md:text-lg text-white/90 font-medium leading-relaxed">{stat.label}</p>
+                <p className="mt-1 text-xs md:text-sm text-white/90 font-medium leading-snug">{stat.label}</p>
               </div>
             </div>
           ))}

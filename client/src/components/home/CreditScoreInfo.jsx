@@ -1,15 +1,11 @@
-import { motion } from 'framer-motion'
 
 export default function CreditScoreInfo() {
     return (
         <section className="section-padding bg-white">
             <div className="container-custom">
-                <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div className="grid lg:grid-cols-2 gap-8 items-center">
 
-                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
+                    <div
                         className="space-y-6"
                     >
                         <h2 className="text-3xl md:text-4xl font-heading font-bold text-gray-900">
@@ -30,13 +26,10 @@ export default function CreditScoreInfo() {
                                 Master the three areas of Punctuality, Resolution, and Trust to unlock a higher credit score.
                             </p>
                         </div>
-                    </motion.div>
+                    </div>
 
                     {/* Best Practices List */}
-                    <motion.div
-                        initial={{ opacity: 0, x: 20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
+                    <div
                         className="bg-gray-50 rounded-2xl p-8 border border-gray-100 shadow-sm"
                     >
                         <h3 className="text-2xl font-heading font-semibold mb-6">Best Practices for Enhancement</h3>
@@ -63,7 +56,7 @@ export default function CreditScoreInfo() {
                                 </div>
                             </li>
                         </ul>
-                    </motion.div>
+                    </div>
 
                 </div>
             </div>

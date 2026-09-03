@@ -18,7 +18,7 @@ export default function FeatureCardGrid({ items, columns = 'grid-cols-2', classN
   );
 
   return (
-    <div className={`grid ${columns} gap-4 mb-8 ${className}`}>
+    <div className={`grid ${columns} gap-3 mb-4 ${className}`}>
       {normalized.map((item) => (
         <FeatureCard key={item.title} {...item} />
       ))}
@@ -32,37 +32,37 @@ function FeatureCard({ icon, title, desc }) {
       className="relative overflow-hidden transition-all duration-250 ease-out hover:-translate-y-1"
       style={{
         backgroundColor: '#fff',
-        borderRadius: '16px',
+        borderRadius: '12px',
         boxShadow: '0 4px 24px rgba(30, 58, 138, 0.08)',
-        padding: '24px',
+        padding: '14px',
       }}
     >
       <div
-        className="flex items-center justify-center mb-3"
+        className="flex items-center justify-center mb-2"
         style={{
-          width: '48px',
-          height: '48px',
+          width: '32px',
+          height: '32px',
           backgroundColor: '#EFF6FF',
-          borderRadius: '8px',
+          borderRadius: '6px',
         }}
       >
-        <span style={{ color: '#3B82F6', fontSize: '24px' }}>{icon}</span>
+        <span style={{ color: '#3B82F6', fontSize: '16px' }}>{icon}</span>
       </div>
       <h4
         style={{
-          fontSize: '1.1rem',
+          fontSize: '0.9rem',
           fontWeight: 700,
           color: '#1E3A8A',
-          marginBottom: '4px',
+          marginBottom: '2px',
         }}
       >
         {title}
       </h4>
       <p
         style={{
-          fontSize: '0.9rem',
+          fontSize: '0.78rem',
           color: '#475569',
-          lineHeight: 1.6,
+          lineHeight: 1.5,
         }}
       >
         {desc}

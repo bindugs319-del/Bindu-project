@@ -2,7 +2,6 @@ import { motion } from 'framer-motion'
 import { useState } from 'react'
 import PageHero from '../../components/shared/PageHero'
 import FAQAccordion from '../../components/marketing/FAQAccordion'
-import { Link } from 'react-router-dom'
 
 const faqs = [
   { q: "Q1. What solutions does CreditDataWatch provide for B2B companies?", a: "Our B2B suite includes a variety of tools designed to safeguard your trade credit. These include comprehensive business credit profiles, automated payment alerts, financial tracking, defaulter registries, and debt resolution services. We also provide risk benchmarking to help you compare your credit health against industry standards. Together, these services make managing business relationships much more efficient." },
@@ -47,7 +46,7 @@ export default function B2B() {
               Our platform is engineered to modernize and digitize your entire credit workflow. By utilizing cutting-edge analytics and high-speed technology, CreditDataWatch automates the heavy lifting of background checks and ongoing account surveillance. This digital transformation does more than just reclaim your time — it creates a proactive defense against revenue loss, protecting your business from the impact of late payments and bad debt.
             </p>
 
-            <div className="card bg-blue-50 border-blue-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="font-bold mb-3">
                 Setting the Gold Standard in B2B Support
               </h3>
@@ -74,14 +73,14 @@ export default function B2B() {
                 Revolutionizing Credit Oversight
               </h3>
               <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
-                Our approach to risk management is defined by an exhaustive evaluation framework. We go beyond basic credit scores, integrating sector-specific data and proprietary analytics to provide a 360-degree view of a customer's reliability. 
+                Our approach to risk management is defined by an exhaustive evaluation framework. We go beyond basic credit scores, integrating sector-specific data and proprietary analytics to provide a 360-degree view of a customer's reliability.
               </p>
               <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="leading-relaxed">
                 Beyond monitoring and assessment, CreditDataWatch provides expert B2B Debt Resolution support and tracking. Should a client fail to meet their obligations, our team assists in navigating the settlement process. We handle the complexities of recovery on your behalf, allowing you to manage your business credit portfolio with absolute certainty.
               </p>
             </div>
 
-            <div className="card bg-amber-50 border-amber-100 space-y-4">
+            <div className="card bg-white border-gray-200 space-y-4">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold mb-3">
                 Preserving a Default-Free Environment
               </h3>
@@ -141,15 +140,6 @@ export default function B2B() {
             <div className="space-y-3">
               <FAQAccordion faqs={faqs} />
             </div>
-          </div>
-
-          {/* CTA Section */}
-          <div className="card bg-primary-50 border-primary-200 text-center space-y-4">
-            <h3 className="text-2xl font-heading font-bold text-primary-900">Get Started with CreditDataWatch</h3>
-            <p className="text-gray-700">Ready to elevate your business with tailored B2B solutions? Schedule an appointment today!</p>
-            <Link to="/appointment" className="btn-primary inline-block">
-              Book Appointment
-            </Link>
           </div>
 
         </motion.div>
