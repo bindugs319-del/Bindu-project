@@ -1,10 +1,12 @@
 """
-Scans an uploaded Sales Invoice PDF and extracts the fields InvoiceCSVImportModal
-uses. Same design as po_pdf_scan_service.py: text-based PDFs only, a
-"counterparty block" (Bill To / Customer / Client) is located and used to
-disambiguate email/phone/GSTIN from the issuing company's own letterhead
-info, and money labels are ranked so "Total"/"Grand Total" beats a bare
-"Amount". Line items are NOT extracted — only the invoice-level fields.
+Scans an uploaded Sales Invoice PDF and extracts the fields the Add
+Invoice form uses. Same design as po_pdf_scan_service.py: text-based
+PDFs only, a "counterparty block" (Bill To / Customer / Client) is
+located and used to disambiguate email/phone/GSTIN/PAN/address from the
+issuing company's own letterhead info, and money labels are ranked so
+"Total"/"Grand Total" beats a bare "Amount". Line items are also
+extracted, best-effort, via pdfplumber's table-grid detection (see
+pdf_table_utils.extract_line_items) for text-layer PDFs.
 """
 import io
 import re
@@ -33,9 +35,72 @@ TOTAL_STRONG_LABELS = ["grand total", "total amount", "invoice amount", "amount 
 TOTAL_WEAK_LABELS = ["total", "amount"]
 INVOICE_DATE_LABELS = ["invoice date", "bill date"]
 DUE_DATE_LABELS = ["due date", "payment due date", "payment due"]
+PO_NUMBER_LABELS = ["po number", "po no", "p.o. number", "p.o. no", "purchase order number", "purchase order no", "p.o.#", "po#"]
+PO_DATE_LABELS = ["po date", "purchase order date"]
+DELIVERY_DATE_LABELS = ["expected delivery date", "delivery date"]
+PAYMENT_TERMS_LABELS = ["payment terms", "terms of payment"]
+PLACE_OF_SUPPLY_LABELS = ["place of supply"]
 
 COUNTERPARTY_SECTION_HEADINGS = ["bill to", "customer details", "client details", "counterparty details", "invoice to"]
-SECTION_HEADING_HINTS = ["items", "item details", "payment terms", "terms & conditions", "terms and conditions", "bank details", "authorized signatory"]
+SECTION_HEADING_HINTS = [
+    "items", "item &", "item and", "item description", "item details",
+    "ship to", "place of supply", "payment terms", "terms & conditions",
+    "terms and conditions", "bank details", "authorized signatory",
+]
+PAN_LABELS = ["counterparty pan", "customer pan", "client pan", "pan", "pan no"]
+PAN_RE = re.compile(r"\b[A-Za-z]{5}[0-9]{4}[A-Za-z]\b")
+_NON_VALUES = {"nil", "n/a", "na", "none", "-", "--"}
+
+
+def _clean_or_none(value):
+    """Some templates print a literal 'Nil'/'N/A' instead of leaving a
+    field blank (e.g. 'P.O.# : Nil' on an invoice with no PO). Treat those
+    the same as not having found anything, rather than filling the form
+    with the word "Nil"."""
+    if not value:
+        return None
+    return None if value.strip().lower() in _NON_VALUES else value
+
+
+_ADDRESS_STOP_RE = re.compile(r"^[A-Za-z][A-Za-z .#/&]{1,30}:")
+_BARE_LABEL_LINES = {"pan", "gstin", "cin", "overseas", "msme no"}
+
+
+def _extract_name_and_address(lines, heading_words):
+    """Finds a heading line (e.g. 'Bill To' / 'Ship To') and reads the
+    block that follows it as (name, address): the first non-empty line is
+    the name, subsequent lines are joined into the address until hitting
+    another known section heading, a bare GSTIN/PAN/CIN/'Overseas'-style
+    marker line, or a 'Label: value' line (real street-address lines don't
+    normally contain a colon, invoice metadata fields do)."""
+    start = None
+    for i, ln in enumerate(lines):
+        if ln.strip().lower() in heading_words:
+            start = i + 1
+            break
+    if start is None:
+        return None, None
+
+    name = None
+    address_lines = []
+    for i in range(start, len(lines)):
+        raw = lines[i].strip()
+        if not raw:
+            if name is not None:
+                break
+            continue
+        low = raw.lower()
+        if any(h in low for h in SECTION_HEADING_HINTS) or low in COUNTERPARTY_SECTION_HEADINGS:
+            break
+        if low in _BARE_LABEL_LINES or _ADDRESS_STOP_RE.match(raw):
+            break
+        if name is None:
+            name = raw
+            continue
+        address_lines.append(raw.rstrip(","))
+
+    address = ", ".join(address_lines) if address_lines else None
+    return name, address
 
 # Symbol/code -> ISO 4217 currency code. Checked in this order (longer,
 # more specific tokens first) so "US$" doesn't get missed by a bare "$"
@@ -126,12 +191,29 @@ def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
 
     gstin = _find_label_value(lines, GSTIN_LABELS, block, allow_same_line_no_colon=used_ocr) if block else None
     if not gstin:
-        all_gstins = list(dict.fromkeys(GSTIN_RE.findall(text)))
+        # Restrict the "only one GSTIN on the page" fallback to text from
+        # the Bill To heading onward — otherwise, on an invoice where the
+        # counterparty has no GSTIN of their own (e.g. an overseas
+        # customer), the one GSTIN on the page is the ISSUER's own
+        # letterhead GSTIN and would get wrongly assigned as the
+        # counterparty's.
+        bill_to_idx = next((i for i, ln in enumerate(lines) if ln.strip().lower() in COUNTERPARTY_SECTION_HEADINGS), None)
+        search_text = "\n".join(lines[bill_to_idx:]) if bill_to_idx is not None else text
+        all_gstins = list(dict.fromkeys(GSTIN_RE.findall(search_text)))
         if len(all_gstins) == 1:
             gstin = all_gstins[0]
         elif len(all_gstins) > 1:
             warnings.append(f"Found {len(all_gstins)} possible GSTINs on the page; couldn't tell which is the counterparty's, so it was left blank.")
     fields["counterparty_gstin"] = gstin.upper() if gstin else None
+
+    pan_raw = _find_label_value(lines, PAN_LABELS, block) if block else _find_label_value(lines, PAN_LABELS)
+    pan_match = PAN_RE.search(pan_raw) if pan_raw else None
+    # The label-match above sometimes grabs the next line's text when a
+    # 'PAN :' cell renders with no value at all (e.g. an overseas
+    # customer's "Overseas" note sitting right under a blank PAN field) —
+    # validating against the actual PAN format filters that kind of
+    # false match out instead of filling the form with junk.
+    fields["counterparty_pan"] = pan_match.group(0).upper() if pan_match else None
 
     email = _find_label_value(lines, EMAIL_LABELS, block) if block else None
     if not email:
@@ -211,4 +293,37 @@ def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
     if not fields.get("counterparty_name"):
         warnings.append("Could not find a Counterparty Name; please enter it manually.")
 
-    return {"fields": fields, "warnings": warnings, "raw_text_available": True, "used_ocr": used_ocr}
+    # Extra invoice-form fields (PO reference, delivery, terms, GST
+    # place-of-supply) beyond the original field set — best-effort,
+    # same label-matching approach as everything above.
+    fields["po_number"] = _clean_or_none(_find_label_value(lines, PO_NUMBER_LABELS, allow_same_line_no_colon=used_ocr))
+    fields["po_date"] = _parse_date(_find_label_value(lines, PO_DATE_LABELS))
+    fields["expected_delivery_date"] = _parse_date(_find_label_value(lines, DELIVERY_DATE_LABELS))
+    fields["payment_terms"] = _find_label_value(lines, PAYMENT_TERMS_LABELS, allow_same_line_no_colon=True)
+    fields["place_of_supply"] = _find_label_value(lines, PLACE_OF_SUPPLY_LABELS, allow_same_line_no_colon=used_ocr)
+
+    # Bill To / Ship To name + address blocks — read directly from the
+    # lines following each heading rather than a single label lookup,
+    # since an address is several lines, not one "Label: value" pair.
+    bill_name, bill_address = _extract_name_and_address(lines, set(COUNTERPARTY_SECTION_HEADINGS))
+    if bill_name and not fields.get("counterparty_name"):
+        fields["counterparty_name"] = bill_name
+    fields["bill_to_address"] = bill_address
+
+    ship_name, ship_address = _extract_name_and_address(lines, {"ship to"})
+    fields["ship_to_name"] = ship_name
+    fields["ship_to_address"] = ship_address
+
+    # Line items: only attempted for real text-layer PDFs (needs the
+    # PDF's own drawn table-cell borders, same constraint as the
+    # pdf_table_utils fallback used above for due/invoice date). A
+    # scanned/photographed page has no cell borders to detect, so this
+    # is skipped for OCR'd documents rather than guessing from raw text.
+    items = []
+    if not used_ocr:
+        from app.services.pdf_table_utils import extract_line_items
+        items = extract_line_items(pdf_bytes)
+    if not items:
+        warnings.append("Could not read a line-items table from this file; please add items manually.")
+
+    return {"fields": fields, "items": items, "warnings": warnings, "raw_text_available": True, "used_ocr": used_ocr}

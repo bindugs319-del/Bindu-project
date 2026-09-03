@@ -3,6 +3,21 @@ import { Link } from 'react-router-dom'
 import { salesInvoices as invoicesApi, purchaseOrders as poApi, api, STATIC_BASE_URL } from '../services/api/apiClient'
 import InvoiceCSVImportModal from '../components/invoices/InvoiceCSVImportModal'
 import InvoicePDFImportModal from '../components/invoices/InvoicePDFImportModal'
+import InfoTooltip from '../components/common/InfoTooltip'
+
+/**
+ * Label + optional "*" required marker + info tooltip, used above every
+ * field in the Add Invoice form so the field's purpose stays visible even
+ * once the placeholder text has been typed over.
+ */
+function FieldLabel({ text, tip, required }) {
+  return (
+    <label className="relative flex items-start min-h-[2rem] text-xs font-medium text-gray-600 mb-1">
+      <span>{text}{required && <span className="text-red-500"> *</span>}</span>
+      {tip && <InfoTooltip text={tip} />}
+    </label>
+  )
+}
 
 /**
  * Turn whatever shape an API error comes back as into a readable string.
@@ -541,6 +556,95 @@ export default function Invoices() {
     calculateTotals(items, taxMode, taxRate)
   }
 
+  // Banner shown above the form after a PDF scan, so the person knows
+  // which fields came from the file (and any OCR/ambiguity warnings)
+  // before they hit "Create Invoice" themselves.
+  const [pdfScanBanner, setPdfScanBanner] = useState(null)
+
+  // Fills the main Add Invoice form directly from a scanned PDF's
+  // fields/items — no separate "confirm & save" step. Only overwrites a
+  // field when the scan actually found something for it, so anything
+  // the person already typed manually before scanning is preserved.
+  const handlePdfScanned = ({ fields, items, warnings, fileName }) => {
+    const mappedItems = (items && items.length > 0)
+      ? items.map(it => {
+          const qty = Number(it.qty) || 1
+          const rate = Number(it.rate) || 0
+          return {
+            desc: it.desc || '',
+            hsn: it.hsn || '',
+            qty,
+            rate,
+            amount: it.amount !== undefined && it.amount !== null ? Number(it.amount) : qty * rate,
+          }
+        })
+      : null
+
+    setFormData(prev => {
+      const next = { ...prev }
+      const setIfFound = (key, value) => {
+        if (value !== undefined && value !== null && value !== '') next[key] = value
+      }
+
+      setIfFound('invoice_number', fields.invoice_number)
+      setIfFound('invoice_date', fields.invoice_date)
+      setIfFound('payment_due_date', fields.payment_due_date)
+      setIfFound('payment_terms', fields.payment_terms)
+      setIfFound('po_number', fields.po_number)
+      setIfFound('po_date', fields.po_date)
+      setIfFound('expected_delivery_date', fields.expected_delivery_date)
+      setIfFound('counterparty_name', fields.counterparty_name)
+      setIfFound('counterparty_gstin', fields.counterparty_gstin)
+      setIfFound('counterparty_pan', fields.counterparty_pan)
+      setIfFound('counterparty_email', fields.counterparty_email)
+      setIfFound('counterparty_phone', fields.counterparty_phone)
+      setIfFound('place_of_supply', fields.place_of_supply)
+      setIfFound('currency', fields.currency)
+
+      if (fields.counterparty_name || fields.bill_to_address) {
+        next.bill_to = {
+          name: fields.counterparty_name || prev.bill_to.name,
+          address: fields.bill_to_address || prev.bill_to.address,
+        }
+      }
+
+      if (fields.ship_to_name || fields.ship_to_address) {
+        next.ship_to = {
+          name: fields.ship_to_name || prev.ship_to.name,
+          address: fields.ship_to_address || prev.ship_to.address,
+        }
+      }
+
+      if (mappedItems) {
+        // calculateTotals (below) recomputes subtotal/tax/total off these
+        // items and writes them back into state — kept in sync here only
+        // so the effect isn't briefly overwritten by this same update.
+        next.items = mappedItems
+      } else if (fields.subtotal !== undefined || fields.total !== undefined) {
+        // No item table could be read from the PDF, so fall back to the
+        // invoice-level totals the scan did find.
+        next.subtotal = fields.subtotal ?? prev.subtotal
+        next.tax_amount = fields.tax_amount ?? prev.tax_amount
+        next.total = fields.total ?? prev.total
+        next.balance_due = fields.total ?? prev.balance_due
+      }
+
+      return next
+    })
+
+    if (mappedItems) {
+      calculateTotals(mappedItems, taxMode, taxRate)
+    }
+
+    setPdfScanBanner({
+      fileName,
+      itemsFound: (items || []).length,
+      warnings: warnings || [],
+    })
+    formPanelRef.current?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+  }
+
+
   const calculateTotals = (items, mode = taxMode, rate = taxRate) => {
     const subtotal = items.reduce(
       (sum, item) => sum + (Number(item.amount) || 0),
@@ -857,6 +961,7 @@ export default function Invoices() {
     setEditReason('')
     setEditEvidenceFile(null)
     setSubmitForApproval(false)
+    setPdfScanBanner(null)
   }
 
   const renderInvoiceFormBody = () => (
@@ -904,6 +1009,33 @@ export default function Invoices() {
                   </div>
                 )}
 
+                {pdfScanBanner && (
+                  <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">
+                          Filled from {pdfScanBanner.fileName} — review the fields below, fill in anything missed, then click Create Invoice.
+                        </p>
+                        {pdfScanBanner.itemsFound === 0 && (
+                          <p className="mt-1 text-green-700">No item table could be read from this file — please add items manually.</p>
+                        )}
+                        {pdfScanBanner.warnings.length > 0 && (
+                          <ul className="mt-2 list-disc list-inside text-amber-800">
+                            {pdfScanBanner.warnings.map((w, i) => <li key={i}>{w}</li>)}
+                          </ul>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPdfScanBanner(null)}
+                        className="text-green-700 hover:text-green-900 font-bold leading-none"
+                        aria-label="Dismiss"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* INVOICE INFORMATION */}
 
@@ -913,58 +1045,70 @@ export default function Invoices() {
 
                 <div className="grid md:grid-cols-3 gap-4 mb-6">
 
-                  <input
-                    required
-                    placeholder="Invoice Number *"
-                    value={formData.invoice_number}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        invoice_number: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  />
+                  <div className="group">
+                    <FieldLabel text="Invoice Number" required />
+                    <input
+                      required
+                      placeholder="Invoice Number *"
+                      value={formData.invoice_number}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          invoice_number: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <input
-                    required
-                    type="date"
-                    value={formData.invoice_date}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        invoice_date: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  />
+                  <div className="group">
+                    <FieldLabel text="Invoice Date" required />
+                    <input
+                      required
+                      type="date"
+                      value={formData.invoice_date}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          invoice_date: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <input
-                    required
-                    type="date"
-                    value={formData.payment_due_date}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        payment_due_date: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  />
+                  <div className="group">
+                    <FieldLabel text="Payment Due Date" required />
+                    <input
+                      required
+                      type="date"
+                      value={formData.payment_due_date}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          payment_due_date: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <input
-                    placeholder="Payment Terms (e.g. Net 30)"
-                    value={formData.payment_terms}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        payment_terms: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  />
+                  <div className="group">
+                    <FieldLabel text="Extra days" />
+                    <input
+                      value={formData.payment_terms}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          payment_terms: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <div className="relative">
+                  <div className="relative group">
+                    <FieldLabel text="PO Number" />
                     <input
                       placeholder="PO Number"
                       value={formData.po_number}
@@ -1003,31 +1147,37 @@ export default function Invoices() {
                     )}
                   </div>
 
-                  <input
-                    type="date"
-                    value={formData.po_date}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        po_date: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                    placeholder="PO Date"
-                  />
+                  <div className="group">
+                    <FieldLabel text="PO Date" />
+                    <input
+                      type="date"
+                      value={formData.po_date}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          po_date: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                      placeholder="PO Date"
+                    />
+                  </div>
 
-                  <input
-                    type="date"
-                    value={formData.expected_delivery_date}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        expected_delivery_date: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                    placeholder="Expected Delivery Date"
-                  />
+                  <div className="group">
+                    <FieldLabel text="Expected Delivery Date" />
+                    <input
+                      type="date"
+                      value={formData.expected_delivery_date}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          expected_delivery_date: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                      placeholder="Expected Delivery Date"
+                    />
+                  </div>
 
                 </div>
 
@@ -1246,82 +1396,94 @@ export default function Invoices() {
                       Bill To
                     </h3>
 
-                    <input
-                      required
-                      placeholder="Customer Name *"
-                      value={formData.counterparty_name}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          counterparty_name: e.target.value,
-                          bill_to: { ...formData.bill_to, name: e.target.value },
-                        })
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                    />
+                    <div className="group mb-3">
+                      <FieldLabel text="Customer Name" required />
+                      <input
+                        required
+                        value={formData.counterparty_name}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            counterparty_name: e.target.value,
+                            bill_to: { ...formData.bill_to, name: e.target.value },
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+                    </div>
 
-                    <textarea
-                      placeholder="Customer Address"
-                      value={formData.bill_to.address}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          bill_to: { ...formData.bill_to, address: e.target.value },
-                        })
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                      rows="3"
-                    />
+                    <div className="group mb-3">
+                      <FieldLabel text="Customer Address" />
+                      <textarea
+                        value={formData.bill_to.address}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            bill_to: { ...formData.bill_to, address: e.target.value },
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                        rows="3"
+                      />
+                    </div>
 
-                    <input
-                      placeholder="GSTIN"
-                      value={formData.counterparty_gstin}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          counterparty_gstin: e.target.value
-                        })
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                    />
+                    <div className="group mb-3">
+                      <FieldLabel text="GSTIN" />
+                      <input
+                        value={formData.counterparty_gstin}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            counterparty_gstin: e.target.value
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+                    </div>
 
-                    <input
-                      placeholder="PAN"
-                      value={formData.counterparty_pan}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          counterparty_pan: e.target.value
-                        })
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                    />
+                    <div className="group mb-3">
+                      <FieldLabel text="PAN" />
+                      <input
+                        value={formData.counterparty_pan}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            counterparty_pan: e.target.value
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+                    </div>
 
-                    <input
-                      type="email"
-                      placeholder="Customer Email"
-                      value={formData.counterparty_email}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          counterparty_email: e.target.value
-                        })
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                    />
+                    <div className="group mb-3">
+                      <FieldLabel text="Customer Email" />
+                      <input
+                        type="email"
+                        value={formData.counterparty_email}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            counterparty_email: e.target.value
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+                    </div>
 
-                    <input
-                      type="tel"
-                      placeholder="Customer Mobile"
-                      value={formData.counterparty_phone}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          counterparty_phone: e.target.value
-                        })
-                      }
-                      className="w-full border p-2 rounded"
-                    />
+                    <div className="group">
+                      <FieldLabel text="Customer Mobile" />
+                      <input
+                        type="tel"
+                        value={formData.counterparty_phone}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            counterparty_phone: e.target.value
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+                    </div>
 
                   </div>
 
@@ -1332,30 +1494,34 @@ export default function Invoices() {
                       Ship To
                     </h3>
 
-                    <input
-                      placeholder="Ship To Name"
-                      value={formData.ship_to.name}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          ship_to: { ...formData.ship_to, name: e.target.value },
-                        })
-                      }
-                      className="w-full border p-2 rounded mb-3"
-                    />
+                    <div className="group mb-3">
+                      <FieldLabel text="Ship To Name" />
+                      <input
+                        value={formData.ship_to.name}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            ship_to: { ...formData.ship_to, name: e.target.value },
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                      />
+                    </div>
 
-                    <textarea
-                      placeholder="Ship To Address"
-                      value={formData.ship_to.address}
-                      onChange={e =>
-                        setFormData({
-                          ...formData,
-                          ship_to: { ...formData.ship_to, address: e.target.value },
-                        })
-                      }
-                      className="w-full border p-2 rounded"
-                      rows="5"
-                    />
+                    <div className="group">
+                      <FieldLabel text="Ship To Address" />
+                      <textarea
+                        value={formData.ship_to.address}
+                        onChange={e =>
+                          setFormData({
+                            ...formData,
+                            ship_to: { ...formData.ship_to, address: e.target.value },
+                          })
+                        }
+                        className="w-full border p-2 rounded"
+                        rows="5"
+                      />
+                    </div>
 
                   </div>
 
@@ -1368,9 +1534,10 @@ export default function Invoices() {
                   Supporting Document
                 </h3>
 
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="mb-6 group">
+                  <label className="relative block text-sm font-medium text-gray-700 mb-2">
                     Upload Document (optional)
+                    <InfoTooltip text="Attach a supporting file." />
                   </label>
                   <input
                     type="file"
@@ -1406,58 +1573,67 @@ export default function Invoices() {
 
                 <div className="grid md:grid-cols-3 gap-4 mb-6">
 
-                  <input
-                    placeholder="LUT ARN"
-                    value={formData.lut_arn}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        lut_arn: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  />
+                  <div className="group">
+                    <FieldLabel text="LUT ARN" />
+                    <input
+                      value={formData.lut_arn}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          lut_arn: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <input
-                    type="date"
-                    value={formData.lut_filing_date}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        lut_filing_date: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                    placeholder="LUT Filing Date"
-                  />
+                  <div className="group">
+                    <FieldLabel text="LUT Filing Date" />
+                    <input
+                      type="date"
+                      value={formData.lut_filing_date}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          lut_filing_date: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <input
-                    placeholder="Place of Supply"
-                    value={formData.place_of_supply}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        place_of_supply: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  />
+                  <div className="group">
+                    <FieldLabel text="Place of Supply" />
+                    <input
+                      value={formData.place_of_supply}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          place_of_supply: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    />
+                  </div>
 
-                  <select
-                    value={formData.currency}
-                    onChange={e =>
-                      setFormData({
-                        ...formData,
-                        currency: e.target.value
-                      })
-                    }
-                    className="border p-2 rounded"
-                  >
-                    <option value="INR">INR</option>
-                    <option value="USD">USD</option>
-                    <option value="EUR">EUR</option>
-                    <option value="GBP">GBP</option>
-                  </select>
+                  <div className="group">
+                    <FieldLabel text="Currency" />
+                    <select
+                      value={formData.currency}
+                      onChange={e =>
+                        setFormData({
+                          ...formData,
+                          currency: e.target.value
+                        })
+                      }
+                      className="border p-2 rounded w-full"
+                    >
+                      <option value="INR">INR</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="GBP">GBP</option>
+                    </select>
+                  </div>
 
                   <label className="flex items-center gap-2">
                     <input
@@ -1591,7 +1767,7 @@ export default function Invoices() {
         {showInvoicePdfImport && (
           <InvoicePDFImportModal
             onClose={() => setShowInvoicePdfImport(false)}
-            onImportComplete={() => { fetchInvoices() }}
+            onScanned={handlePdfScanned}
           />
         )}
 
