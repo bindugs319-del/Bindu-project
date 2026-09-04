@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from 'react'
+import { useMemo, useEffect, useState, useCallback } from 'react'
 import QuickActions from '../components/dashboard/QuickActions'
 import DashboardSummaryCards from '../components/dashboard/DashboardSummaryCards'
 import StatLinkCard from '../components/dashboard/StatLinkCard'
@@ -131,7 +131,7 @@ export default function InvoiceDashboard() {
     setLoadingData(false)
   }
 
-  const loadInvoiceHistory = async () => {
+  const loadInvoiceHistory = useCallback(async () => {
     setInvoiceLoading(true)
     const res = await salesInvoices.list({ limit: 100, include_archived: true })
     if (res.ok && Array.isArray(res.data?.invoices)) {
@@ -140,7 +140,7 @@ export default function InvoiceDashboard() {
       setInvoiceRows([])
     }
     setInvoiceLoading(false)
-  }
+  }, [])
 
   const invoiceMonthlySeries = useMemo(() => buildMonthlySeries(invoiceRows, {
     getDate: (inv) => inv.created_at,
@@ -401,7 +401,7 @@ export default function InvoiceDashboard() {
         />
 
         <div>
-          <Invoices />
+          <Invoices onDataChange={loadInvoiceHistory} />
         </div>
 
         {showBizRequest && (

@@ -57,7 +57,7 @@ function formatError(error) {
   return String(error)
 }
 
-export default function Invoices() {
+export default function Invoices({ onDataChange } = {}) {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [showInvoiceImport, setShowInvoiceImport] = useState(false)
@@ -163,6 +163,14 @@ export default function Invoices() {
   const [submitForApproval, setSubmitForApproval] = useState(false)
   const formPanelRef = useRef(null)
 
+  // Read via a ref rather than putting onDataChange directly in
+  // fetchInvoices' dependency array — the parent (Invoice Dashboard)
+  // doesn't memoize the callback it passes in, and depending on it
+  // directly would recreate fetchInvoices every render, retrigger the
+  // effect below that calls it, and refetch in a loop.
+  const onDataChangeRef = useRef(onDataChange)
+  useEffect(() => { onDataChangeRef.current = onDataChange }, [onDataChange])
+
   const fetchInvoices = useCallback(async () => {
     setLoading(true)
 
@@ -175,6 +183,13 @@ export default function Invoices() {
           response.data ||
           []
         )
+        // Lets an embedding page (e.g. the Invoice Dashboard's own
+        // separately-fetched "Recent Invoices" summary/chart) know the
+        // list changed, so it can refresh itself too — otherwise every
+        // action taken in here (mark paid, delete, create, etc.) only
+        // updates this component's own state, and anything else on the
+        // page showing the same data stays stale until a full reload.
+        onDataChangeRef.current?.()
       } else {
         setError(response.error)
       }
