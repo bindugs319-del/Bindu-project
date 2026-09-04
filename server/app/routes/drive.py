@@ -49,6 +49,43 @@ async def drive_oauth_callback(current_user: Annotated[User, Depends(get_current
         raise
 
 
+@router.get("/status")
+async def get_drive_status(current_user: Annotated[User, Depends(get_current_user)], http_request: Request = None):
+    """Live diagnostic for whether uploads are actually persisting to
+    Drive right now, or silently falling back to Render's non-persistent
+    local disk. Deliberately does a real API call rather than just
+    checking whether an env var is set — a malformed key, a Drive API
+    that hasn't been enabled on the Google Cloud project, or expired
+    creds all still "have a value set" but fail at upload time, and
+    that's exactly the failure mode this exists to catch without digging
+    through server logs."""
+    from googleapiclient.discovery import build
+
+    request_id = http_request.state.request_id if http_request else ""
+    working = False
+    detail = None
+    try:
+        credentials = DriveService.get_service_account_credentials()
+        service = build("drive", "v3", credentials=credentials)
+        about = service.about().get(fields="user").execute()
+        working = True
+        detail = f"Connected as {about.get('user', {}).get('emailAddress', 'the configured service account')}"
+    except Exception as e:
+        detail = str(e)
+
+    return ResponseFormatter.create_success(
+        data={
+            "working": working,
+            "detail": detail,
+            # Surfaced here too since a stale BASE_URL is the other half
+            # of "uploads look fine right after but the link 404s later"
+            # — this makes both checkable from one request.
+            "base_url": settings.BASE_URL,
+        },
+        request_id=request_id,
+    )
+
+
 @router.get("/files")
 async def list_drive_files(current_user: Annotated[User, Depends(get_current_user)], http_request: Request = None):
     """List files from Google Drive"""
