@@ -24,7 +24,7 @@ export default function CTASection() {
             Formalize your trade acknowledgments, reduce risk, and accelerate collections.
           </p>
           <div className="flex justify-center">
-            <Link to="/auth/register" className="bg-white text-[#0F172A] font-semibold px-8 py-3 rounded-xl hover:bg-blue-50 transition-colors">
+            <Link to="/auth/register" className="border border-white text-white font-semibold px-8 py-3 rounded-xl hover:bg-white/10 transition-colors">
               Login / Register
             </Link>
           </div>
