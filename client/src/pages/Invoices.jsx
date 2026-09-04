@@ -362,6 +362,7 @@ export default function Invoices() {
   const [reasonText, setReasonText] = useState('')
   const [paymentReceipt, setPaymentReceipt] = useState(null)
   const [reminderLoadingId, setReminderLoadingId] = useState(null)
+  const [paidDetailsInvoice, setPaidDetailsInvoice] = useState(null)
   const [showLegalSupportConfirm, setShowLegalSupportConfirm] = useState(null)
   const [legalSupportReason, setLegalSupportReason] = useState('')
   const [legalSupportFile, setLegalSupportFile] = useState(null)
@@ -600,6 +601,8 @@ export default function Invoices() {
       setIfFound('counterparty_phone', fields.counterparty_phone)
       setIfFound('place_of_supply', fields.place_of_supply)
       setIfFound('currency', fields.currency)
+      setIfFound('lut_arn', fields.lut_arn)
+      setIfFound('lut_filing_date', fields.lut_filing_date)
 
       if (fields.counterparty_name || fields.bill_to_address) {
         next.bill_to = {
@@ -1937,9 +1940,13 @@ export default function Invoices() {
                     <td className="p-4">
                       <div className="flex justify-end gap-1.5">
                         {invoice.payment_completed_at || invoice.status === 'Paid' ? (
-                          <span className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 shadow-sm" title="Paid">
+                          <button
+                            onClick={() => setPaidDetailsInvoice(invoice)}
+                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors shadow-sm"
+                            title="View payment details"
+                          >
                             🧾
-                          </span>
+                          </button>
                         ) : (
                           <button
                             onClick={() => handleMarkPaid(invoice)}
@@ -2412,6 +2419,42 @@ export default function Invoices() {
                 {reminderSending ? 'Sending...' : 'Yes, Send'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {paidDetailsInvoice && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="text-4xl mb-3 text-center">🧾</div>
+            <h3 className="text-xl font-bold text-gray-900 mb-1 text-center">Payment Receipt</h3>
+            <p className="text-center text-sm text-gray-500 mb-4">Invoice {paidDetailsInvoice.invoice_number}</p>
+            <div className="bg-gray-50 rounded-lg p-4 mb-4 text-sm space-y-1">
+              <p><strong>Customer:</strong> {paidDetailsInvoice.counterparty_name}</p>
+              <p><strong>Amount:</strong> {money(paidDetailsInvoice.total, paidDetailsInvoice.currency)}</p>
+              <p><strong>Status:</strong> {paidDetailsInvoice.status}</p>
+              <p><strong>Paid on:</strong> {paidDetailsInvoice.payment_completed_at ? new Date(paidDetailsInvoice.payment_completed_at).toLocaleString('en-IN') : '—'}</p>
+            </div>
+            {paidDetailsInvoice.payment_receipt_url ? (
+              <a
+                href={paidDetailsInvoice.payment_receipt_url.startsWith('http')
+                  ? paidDetailsInvoice.payment_receipt_url
+                  : `${STATIC_BASE_URL}${paidDetailsInvoice.payment_receipt_url}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block text-center bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-lg transition-colors mb-3"
+              >
+                📄 View / Download Receipt {paidDetailsInvoice.payment_receipt_filename ? `(${paidDetailsInvoice.payment_receipt_filename})` : ''}
+              </a>
+            ) : (
+              <p className="text-center text-sm text-gray-400 mb-3">No receipt file was uploaded for this payment.</p>
+            )}
+            <button
+              onClick={() => setPaidDetailsInvoice(null)}
+              className="w-full px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
+            >
+              Close
+            </button>
           </div>
         </div>
       )}
