@@ -50,7 +50,7 @@ async def drive_oauth_callback(current_user: Annotated[User, Depends(get_current
 
 
 @router.get("/status")
-async def get_drive_status(current_user: Annotated[User, Depends(get_current_user)], http_request: Request = None):
+async def get_drive_status(http_request: Request = None):
     """Live diagnostic for whether uploads are actually persisting to
     Drive right now, or silently falling back to Render's non-persistent
     local disk. Deliberately does a real API call rather than just
@@ -58,7 +58,10 @@ async def get_drive_status(current_user: Annotated[User, Depends(get_current_use
     that hasn't been enabled on the Google Cloud project, or expired
     creds all still "have a value set" but fail at upload time, and
     that's exactly the failure mode this exists to catch without digging
-    through server logs."""
+    through server logs. Left unauthenticated on purpose so it's a plain
+    link to visit — it returns no user data, only a connectivity result,
+    an error message, and the configured BASE_URL.
+    """
     from googleapiclient.discovery import build
 
     request_id = http_request.state.request_id if http_request else ""
