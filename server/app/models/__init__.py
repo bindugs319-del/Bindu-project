@@ -78,6 +78,7 @@ class Company(Base):
     users = relationship("User", back_populates="company", cascade=CASCADE_DELETE_ORPHAN)
     purchase_orders = relationship("PurchaseOrder", back_populates="company", cascade=CASCADE_DELETE_ORPHAN)
     sales_invoices = relationship("SalesInvoice", back_populates="company", cascade=CASCADE_DELETE_ORPHAN)
+    vendor_invoices = relationship("VendorInvoice", back_populates="company", cascade=CASCADE_DELETE_ORPHAN)
     received_ratings = relationship("CompanyRating", foreign_keys="CompanyRating.to_company_id", back_populates="to_company", cascade=CASCADE_DELETE_ORPHAN)
     given_ratings = relationship("CompanyRating", foreign_keys="CompanyRating.from_company_id", back_populates="from_company", cascade=CASCADE_DELETE_ORPHAN)
 
@@ -113,6 +114,7 @@ class User(Base):
     business_profiles = relationship("BusinessProfile", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
     purchase_orders = relationship("PurchaseOrder", foreign_keys="PurchaseOrder.user_id", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
     sales_invoices = relationship("SalesInvoice", back_populates="user", cascade="all, delete-orphan")
+    vendor_invoices = relationship("VendorInvoice", back_populates="user", cascade="all, delete-orphan")
     invoices = relationship("Invoice", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
     defaulter_cases = relationship("DefaulterCase", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
     credit_reports = relationship("CreditReport", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
@@ -903,6 +905,78 @@ class SalesInvoiceAuditLog(Base):
     action = Column(String(50), nullable=False, index=True)
     performed_by_user_id = Column(String(36), ForeignKey(USER_ID_FK, ondelete=ONDELETE_CASCADE), nullable=False, index=True)
     timestamp = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+
+class VendorInvoice(Base):
+    """A bill/invoice RECEIVED from a vendor (Accounts Payable) — the
+    mirror of SalesInvoice (Accounts Received/Receivable). Deliberately
+    has no relationship to PurchaseOrder: not every vendor bill has a PO
+    behind it (recurring bills, subscriptions, one-off purchases), so
+    forcing that link would make ordinary bills un-recordable. Primarily
+    populated by scanning the vendor's own PDF (their format, not ours),
+    with manual entry as a fallback — see vendor_invoice_scan_service.py.
+    """
+
+    __tablename__ = "vendor_invoices"
+
+    id = Column(String(36), primary_key=True, index=True)
+    company_id = Column(String(36), ForeignKey("companies.id", ondelete=ONDELETE_CASCADE), nullable=True, index=True)
+    user_id = Column(String(36), ForeignKey(USER_ID_FK, ondelete=ONDELETE_CASCADE), nullable=False, index=True)
+
+    vendor_name = Column(String(255), nullable=False, index=True)
+    vendor_gstin = Column(String(15), nullable=True, index=True)
+    vendor_pan = Column(String(10), nullable=True)
+    vendor_email = Column(String(255), nullable=True)
+    vendor_phone = Column(String(20), nullable=True)
+    vendor_address = Column(Text, nullable=True)
+
+    # The vendor's OWN invoice number — not one we generate, since this
+    # document originates with them.
+    invoice_number = Column(String(100), nullable=False, index=True)
+    invoice_date = Column(Date, nullable=False, index=True)
+    payment_due_date = Column(Date, nullable=False, index=True)
+    payment_terms = Column(String(100), nullable=True)
+
+    place_of_supply = Column(String(100), nullable=True)
+    currency = Column(String(3), nullable=False, default="INR")
+
+    # Line items as a single JSON array, matching SalesInvoice.items'
+    # shape: [{"desc": "...", "hsn": "...", "qty": 1, "rate": 0.0, "amount": 0.0}]
+    items = Column(JSON, nullable=True)
+
+    subtotal = Column(Float, nullable=False, default=0.0)
+    tax_breakdown = Column(JSON, nullable=True)
+    tax_amount = Column(Float, nullable=False, default=0.0)
+    total = Column(Float, nullable=False, default=0.0)
+    balance_due = Column(Float, nullable=False, default=0.0)
+
+    # Unpaid, Paid, Overdue — simpler than SalesInvoice's Draft/Sent/...
+    # lifecycle, since a received bill doesn't pass through a drafting
+    # stage on our side; it either hasn't been paid yet or has been.
+    status = Column(String(50), default="Unpaid", index=True)
+    archived = Column(Boolean, default=False, index=True)
+
+    payment_completed_at = Column(DateTime, nullable=True, index=True)
+    payment_receipt_url = Column(String(500), nullable=True)
+    payment_receipt_filename = Column(String(255), nullable=True)
+
+    # The vendor's own scanned invoice/PDF — the source document itself,
+    # distinct from payment_receipt_url (proof of OUR payment).
+    document_url = Column(String(500), nullable=True)
+    document_filename = Column(String(255), nullable=True)
+    notes = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    user = relationship("User", back_populates="vendor_invoices")
+    company = relationship("Company", back_populates="vendor_invoices")
+
+    __table_args__ = (
+        Index("idx_vendor_invoice_company_status", "company_id", "status"),
+        Index("idx_vendor_invoice_number", "invoice_number"),
+        Index("idx_vendor_invoice_due_date", "payment_due_date"),
+    )
 
 
 class CompanyRatingRequest(Base):

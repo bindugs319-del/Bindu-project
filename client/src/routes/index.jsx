@@ -31,6 +31,7 @@ import Membership from '../pages/Membership'
 import Wallet from '../pages/Wallet'
 import PurchaseOrders from '../pages/PurchaseOrders'
 import Invoices from '../pages/Invoices'
+import VendorInvoices from '../pages/VendorInvoices'
 import CompanyProfile from '../pages/CompanyProfile'
 import Defaulters from '../pages/Defaulters'
 import ReportDefaulter from '../pages/ReportDefaulter'
@@ -193,6 +194,14 @@ export default function AppRoutes() {
               element={(
                 <RoleRoute requiredFeature="CREDIT_MANAGEMENT">
                   <InvoiceDashboard />
+                </RoleRoute>
+              )}
+            />
+            <Route
+              path="vendor-invoices"
+              element={(
+                <RoleRoute requiredFeature="CREDIT_MANAGEMENT">
+                  <VendorInvoices />
                 </RoleRoute>
               )}
             />

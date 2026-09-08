@@ -47,12 +47,33 @@ EMAIL_RE = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 PHONE_RE = re.compile(r"(?:\+?91[\s\-]?)?[6-9]\d{9}\b")
 GSTIN_RE = re.compile(r"\b\d{2}[A-Z]{5}\d{4}[A-Z]{1}\d[Z]{1}[A-Z\d]{1}\b")
 MONEY_RE = re.compile(r"₹?\s*[\d,]+(?:\.\d{1,2})?")
-DATE_RE = re.compile(r"\b(\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|\d{4}-\d{2}-\d{2})\b")
+DATE_RE = re.compile(
+    r"\b("
+    r"\d{4}-\d{2}-\d{2}"                          # 2026-09-01
+    r"|\d{1,2}[-/]\d{1,2}[-/]\d{2,4}"              # 01-09-2026, 01/09/2026
+    r"|\d{1,2}\.\d{1,2}\.\d{2,4}"                  # 3.9.2026, 18.10.2026
+    r"|\d{1,2}[-\s][A-Za-z]{3,9}[-\s]\d{4}"        # 06 Sep 2026, 01-Sep-2026
+    r"|[A-Za-z]{3,9}\s+\d{1,2},?\s+\d{4}"          # September 1, 2026 / Sep 1 2026
+    r")\b"
+)
 
-DATE_FORMATS = ["%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"]
+DATE_FORMATS = [
+    "%Y-%m-%d", "%d-%m-%Y", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d",
+    "%d.%m.%Y",
+    "%d %b %Y", "%d %B %Y", "%d-%b-%Y", "%d-%B-%Y",
+    "%B %d, %Y", "%b %d, %Y", "%B %d %Y", "%b %d %Y",
+]
 
 
 def _normalize_lines(text: str) -> list:
+    # Some PDFs' fonts map a hyphen glyph to a null byte instead of a
+    # real ToUnicode mapping (seen on real vendor invoices, e.g. an
+    # invoice number extracting as "CE7D0CF1\x000006" instead of
+    # "CE7D0CF1-0006") — a stray NUL is never legitimate text, so
+    # replacing it with a hyphen fixes this specific, real, and
+    # otherwise-unfixable-downstream quirk rather than leaving control
+    # characters embedded in extracted field values.
+    text = text.replace("\x00", "-")
     return [ln.strip() for ln in text.split("\n") if ln.strip()]
 
 
@@ -166,7 +187,7 @@ def _find_label_value(lines: list, labels: list, search_range=None, value_check=
     return None
 
 
-def _find_all_label_values(lines: list, labels: list, search_range=None, value_check=None) -> list:
+def _find_all_label_values(lines: list, labels: list, search_range=None, value_check=None, allow_same_line_no_colon=False) -> list:
     """Same as _find_label_value but returns every match found (for ambiguity checks)."""
     norm_labels = [_norm_key(l) for l in labels]
     rng = search_range if search_range is not None else range(len(lines))
@@ -184,6 +205,15 @@ def _find_all_label_values(lines: list, labels: list, search_range=None, value_c
             if value_check and not value_check(candidate):
                 continue
             found.append(candidate)
+    if not found and allow_same_line_no_colon:
+        for i in rng:
+            line_norm = _norm_key(lines[i])
+            for label in labels:
+                nl = _norm_key(label)
+                if line_norm.startswith(nl):
+                    rest = lines[i][len(label):].strip() if lines[i].lower().startswith(label) else lines[i][len(nl):].strip()
+                    if rest and (not value_check or value_check(rest)):
+                        found.append(rest)
     return found
 
 

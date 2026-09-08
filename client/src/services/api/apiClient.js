@@ -545,6 +545,50 @@ export const accountProfile = {
   update: (data) => apiRequest('/account/profile', { method: 'PUT', body: JSON.stringify(data) }),
 }
 
+export const vendorInvoices = {
+  create: (data) => apiRequest('/vendor-invoices', { method: 'POST', body: JSON.stringify(data) }),
+  scanPdf: (file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiRequest('/vendor-invoices/scan-pdf', { method: 'POST', body: formData, headers: {} })
+  },
+  list: (params = {}, opt = {}) => {
+    const queryParams = new URLSearchParams()
+    if (params.skip !== undefined) queryParams.append('skip', params.skip)
+    if (params.limit !== undefined) queryParams.append('limit', params.limit)
+    if (params.status) queryParams.append('status', params.status)
+    if (params.search) queryParams.append('search', params.search)
+    if (params.include_archived) queryParams.append('include_archived', 'true')
+    const query = queryParams.toString()
+    return apiRequest(`/vendor-invoices${query ? '?' + query : ''}`, opt)
+  },
+  get: (id) => apiRequest(`/vendor-invoices/${id}`),
+  update: (id, data) => apiRequest(`/vendor-invoices/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  delete: (id) => apiRequest(`/vendor-invoices/${id}`, { method: 'DELETE' }),
+  archive: (id) => apiRequest(`/vendor-invoices/${id}/archive`, { method: 'POST' }),
+  markPaid: (id, reason, file) => {
+    const formData = new FormData()
+    formData.append('reason', reason)
+    if (file) {
+      formData.append('file', file)
+    }
+    return apiRequest(`/vendor-invoices/${id}/mark-paid`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+  uploadDocument: (id, file) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiRequest(`/vendor-invoices/${id}/upload-document`, {
+      method: 'POST',
+      body: formData,
+      headers: {}
+    })
+  },
+}
+
 export const salesInvoices = {
   create: (data) => apiRequest('/sales-invoices', { method: 'POST', body: JSON.stringify(data) }),
   // PDF scan-import: step 1 reads the PDF and returns extracted fields for preview (nothing saved yet)

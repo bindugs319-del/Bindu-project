@@ -28,6 +28,7 @@ from app.routes import (
     business_profile,
     invoices,
     sales_invoices,
+    vendor_invoices,
     appointments,
     contact,
     wallet,
@@ -1032,6 +1033,7 @@ app.include_router(core.purchase_history_router, prefix=API_PREFIX, tags=["Purch
 app.include_router(core.notifications_router, prefix=API_PREFIX, tags=["Notifications"])
 app.include_router(invoices.router, prefix=API_PREFIX, tags=["Invoices"])
 app.include_router(sales_invoices.router, prefix=API_PREFIX, tags=["Sales Invoices"])
+app.include_router(vendor_invoices.router, prefix=API_PREFIX, tags=["Vendor Invoices"])
 app.include_router(core.defaulter_router, prefix=f"{API_PREFIX}/defaulters", tags=["Defaulters"])
 app.include_router(core.gstin_router, prefix=f"{API_PREFIX}/gstin", tags=["GSTIN"])
 app.include_router(core.credit_router, prefix=f"{API_PREFIX}/credit-reports", tags=["Credit Reports"])

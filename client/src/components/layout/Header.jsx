@@ -89,8 +89,9 @@ export default function Header() {
   ]
 
   const invoiceOptions = [
-    { label: 'Invoice Dashboard', to: '/invoice-dashboard' },
-    { label: 'Invoice Credibility Index', to: '/inv-credibility-index' },
+    { label: 'Customer Invoice', to: '/invoice-dashboard' },
+    { label: 'OEM / Vendor Bills', to: '/vendor-invoices' },
+    { label: 'Customer Credibility index', to: '/inv-credibility-index' },
   ]
 
   const poOptions = [

@@ -24,7 +24,7 @@ from app.services.po_pdf_scan_service import (
     EMAIL_RE, PHONE_RE, GSTIN_RE,
 )
 
-INVOICE_NUMBER_LABELS = ["invoice number", "invoice #", "invoice no", "bill no", "reference"]
+INVOICE_NUMBER_LABELS = ["invoice number", "invoice #", "invoice no", "bill no", "reference number"]
 COUNTERPARTY_LABELS = ["counterparty name", "counterparty", "customer name", "customer", "client", "bill to"]
 GSTIN_LABELS = ["counterparty gstin", "customer gstin", "client gstin", "gstin", "gstin/uin", "gst no"]
 EMAIL_LABELS = ["counterparty email", "customer email", "client email", "email"]
@@ -33,13 +33,22 @@ SUBTOTAL_LABELS = ["subtotal", "sub total", "taxable amount"]
 TAX_LABELS = ["tax amount", "gst amount", "tax"]
 TOTAL_STRONG_LABELS = ["grand total", "total amount", "invoice amount", "amount payable", "amount due"]
 TOTAL_WEAK_LABELS = ["total", "amount"]
-INVOICE_DATE_LABELS = ["invoice date", "bill date"]
-DUE_DATE_LABELS = ["due date", "payment due date", "payment due"]
+# Lowest-priority fallback only — "Balance Due" is what's still OWED,
+# not the invoice's actual total, and the two can legitimately differ
+# (a partially/fully paid invoice shows Balance Due $0 while Total
+# stays the real invoice amount). Only used when no Total-ish label at
+# all could be found, e.g. Twilio's SendGrid invoices which print
+# nothing labeled "Total", only "SubTotal" and "Balance Due".
+BALANCE_DUE_LABELS = ["balance due"]
+INVOICE_DATE_LABELS = ["invoice date", "bill date", "date of issue", "issue date", "date"]
+DUE_DATE_LABELS = ["due date", "payment due date", "payment due", "date due"]
 PO_NUMBER_LABELS = ["po number", "po no", "p.o. number", "p.o. no", "purchase order number", "purchase order no", "p.o.#", "po#"]
 PO_DATE_LABELS = ["po date", "purchase order date"]
 DELIVERY_DATE_LABELS = ["expected delivery date", "delivery date"]
 PAYMENT_TERMS_LABELS = ["payment terms", "terms of payment"]
 PLACE_OF_SUPPLY_LABELS = ["place of supply"]
+LUT_ARN_LABELS = ["lut arn", "arn"]
+LUT_FILING_DATE_LABELS = ["lut filing date", "lut date"]
 
 COUNTERPARTY_SECTION_HEADINGS = ["bill to", "customer details", "client details", "counterparty details", "invoice to"]
 SECTION_HEADING_HINTS = [
@@ -257,10 +266,12 @@ def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
     fields["subtotal"] = _parse_amount(_find_label_value(lines, SUBTOTAL_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True))
     fields["tax_amount"] = _parse_amount(_find_label_value(lines, TAX_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True))
 
-    strong = _find_all_label_values(lines, TOTAL_STRONG_LABELS, value_check=_looks_like_money)
+    strong = _find_all_label_values(lines, TOTAL_STRONG_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True)
     total_raw = strong[-1] if strong else _find_label_value(
         lines, TOTAL_WEAK_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True
     )
+    if not total_raw:
+        total_raw = _find_label_value(lines, BALANCE_DUE_LABELS, value_check=_looks_like_money, allow_same_line_no_colon=True)
     fields["total"] = _parse_amount(total_raw)
     if fields["total"] is None:
         warnings.append("Could not confidently find a total amount; please enter it manually.")
@@ -301,6 +312,8 @@ def extract_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
     fields["expected_delivery_date"] = _parse_date(_find_label_value(lines, DELIVERY_DATE_LABELS))
     fields["payment_terms"] = _find_label_value(lines, PAYMENT_TERMS_LABELS, allow_same_line_no_colon=True)
     fields["place_of_supply"] = _find_label_value(lines, PLACE_OF_SUPPLY_LABELS, allow_same_line_no_colon=used_ocr)
+    fields["lut_arn"] = _clean_or_none(_find_label_value(lines, LUT_ARN_LABELS, allow_same_line_no_colon=used_ocr))
+    fields["lut_filing_date"] = _parse_date(_find_label_value(lines, LUT_FILING_DATE_LABELS))
 
     # Bill To / Ship To name + address blocks — read directly from the
     # lines following each heading rather than a single label lookup,
