@@ -37,6 +37,87 @@ VENDOR_INVOICE_FEATURE = "CREDIT_MANAGEMENT"  # same subscription gate as sales 
 router = APIRouter(prefix="/vendor-invoices", tags=["Vendor Invoices"])
 
 
+@router.post("/_ensure-table")
+async def ensure_vendor_invoices_table(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """One-time fix for environments where `alembic upgrade head` didn't
+    actually create this table (e.g. a production database whose
+    alembic_version bookkeeping is out of sync with its real schema, with
+    no Shell access available to fix it via `alembic stamp`/direct SQL).
+    Creates the table directly via idempotent DDL if it's missing —
+    every statement uses IF NOT EXISTS, so calling this when the table
+    already exists is a safe no-op. Requires being logged in, but not any
+    particular role, since it's non-destructive either way.
+    """
+    from sqlalchemy import text
+
+    ddl = """
+    CREATE TABLE IF NOT EXISTS vendor_invoices (
+        id VARCHAR(36) NOT NULL,
+        company_id VARCHAR(36),
+        user_id VARCHAR(36) NOT NULL,
+        vendor_name VARCHAR(255) NOT NULL,
+        vendor_gstin VARCHAR(15),
+        vendor_pan VARCHAR(10),
+        vendor_email VARCHAR(255),
+        vendor_phone VARCHAR(20),
+        vendor_address TEXT,
+        invoice_number VARCHAR(100) NOT NULL,
+        invoice_date DATE NOT NULL,
+        payment_due_date DATE NOT NULL,
+        payment_terms VARCHAR(100),
+        place_of_supply VARCHAR(100),
+        currency VARCHAR(3) NOT NULL DEFAULT 'INR',
+        items JSON,
+        subtotal FLOAT NOT NULL DEFAULT 0,
+        tax_breakdown JSON,
+        tax_amount FLOAT NOT NULL DEFAULT 0,
+        total FLOAT NOT NULL DEFAULT 0,
+        balance_due FLOAT NOT NULL DEFAULT 0,
+        status VARCHAR(50) DEFAULT 'Unpaid',
+        archived BOOLEAN DEFAULT false,
+        payment_completed_at TIMESTAMP,
+        payment_receipt_url VARCHAR(500),
+        payment_receipt_filename VARCHAR(255),
+        document_url VARCHAR(500),
+        document_filename VARCHAR(255),
+        notes TEXT,
+        created_at TIMESTAMP NOT NULL,
+        updated_at TIMESTAMP,
+        PRIMARY KEY (id),
+        FOREIGN KEY(company_id) REFERENCES companies (id) ON DELETE CASCADE,
+        FOREIGN KEY(user_id) REFERENCES users (id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_vendor_invoice_company_status ON vendor_invoices (company_id, status);
+    CREATE INDEX IF NOT EXISTS idx_vendor_invoice_number ON vendor_invoices (invoice_number);
+    CREATE INDEX IF NOT EXISTS idx_vendor_invoice_due_date ON vendor_invoices (payment_due_date);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_id ON vendor_invoices (id);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_company_id ON vendor_invoices (company_id);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_user_id ON vendor_invoices (user_id);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_vendor_name ON vendor_invoices (vendor_name);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_vendor_gstin ON vendor_invoices (vendor_gstin);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_invoice_number ON vendor_invoices (invoice_number);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_invoice_date ON vendor_invoices (invoice_date);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_payment_due_date ON vendor_invoices (payment_due_date);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_status ON vendor_invoices (status);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_archived ON vendor_invoices (archived);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_payment_completed_at ON vendor_invoices (payment_completed_at);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_created_at ON vendor_invoices (created_at);
+    """
+    for statement in ddl.strip().split(";"):
+        statement = statement.strip()
+        if statement:
+            await db.execute(text(statement))
+    await db.commit()
+
+    return ResponseFormatter.create_success(
+        data={"table_ready": True},
+        message="vendor_invoices table verified/created.",
+    )
+
+
 def get_utc_now():
     return datetime.utcnow()
 
