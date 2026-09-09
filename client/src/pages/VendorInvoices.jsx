@@ -129,6 +129,8 @@ export default function VendorInvoices() {
   const openCreateModal = () => {
     setFormData(emptyForm)
     setEditingInvoiceId(null)
+    setFormError('')
+    setPdfScanBanner(null)
     setShowCreateModal(true)
   }
 
@@ -157,6 +159,8 @@ export default function VendorInvoices() {
       document_filename: invoice.document_filename || '',
     })
     setEditingInvoiceId(invoice.id)
+    setFormError('')
+    setPdfScanBanner(null)
     setShowCreateModal(true)
   }
 
