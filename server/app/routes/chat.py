@@ -34,7 +34,7 @@ async def _call_groq(message: str, context: str) -> str:
                 "content-type": "application/json",
             },
             json={
-                "model": "llama-3.1-8b-instant",
+                "model": "openai/gpt-oss-20b",
                 "messages": [
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": message},
