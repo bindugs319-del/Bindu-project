@@ -63,6 +63,15 @@ export default function VendorInvoices() {
   const [paidDetailsInvoice, setPaidDetailsInvoice] = useState(null)
   const [deleteConfirm, setDeleteConfirm] = useState(null)
 
+  // Default recipient for automatic (5-days-before-due, then daily until
+  // paid — see _daily_tasks_runner in main.py) and manual "Send Reminder"
+  // vendor-invoice reminders. App-wide, set once here rather than
+  // per-invoice — see /vendor-invoices/settings.
+  const [reminderEmail, setReminderEmail] = useState('')
+  const [reminderEmailSaved, setReminderEmailSaved] = useState('')
+  const [savingReminderEmail, setSavingReminderEmail] = useState(false)
+  const [sendingReminderId, setSendingReminderId] = useState(null)
+
   const formPanelRef = useRef(null)
 
   const fetchInvoices = useCallback(async () => {
@@ -83,6 +92,35 @@ export default function VendorInvoices() {
   useEffect(() => {
     fetchInvoices()
   }, [fetchInvoices])
+
+  useEffect(() => {
+    vendorInvoicesApi.getSettings().then(res => {
+      if (res.ok) {
+        const email = res.data?.vendor_reminder_email || ''
+        setReminderEmail(email)
+        setReminderEmailSaved(email)
+      }
+    })
+  }, [])
+
+  const saveReminderEmail = async () => {
+    if (reminderEmail === reminderEmailSaved) return
+    setSavingReminderEmail(true)
+    const res = await vendorInvoicesApi.updateSettings(reminderEmail)
+    if (res.ok) {
+      setReminderEmailSaved(reminderEmail)
+    }
+    setSavingReminderEmail(false)
+  }
+
+  const handleSendReminder = async (inv) => {
+    setSendingReminderId(inv.id)
+    const res = await vendorInvoicesApi.sendReminder(inv.id)
+    setSendingReminderId(null)
+    if (!res.ok) {
+      alert(res.error || 'Failed to send reminder.')
+    }
+  }
 
   const calculateTotals = (items) => {
     const subtotal = items.reduce((sum, item) => sum + (Number(item.amount) || 0), 0)
@@ -445,6 +483,14 @@ export default function VendorInvoices() {
                             ✏️
                           </button>
                           <button
+                            onClick={() => handleSendReminder(inv)}
+                            disabled={inv.status === 'Paid' || sendingReminderId === inv.id}
+                            className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={inv.status === 'Paid' ? 'Reminder not available for paid bills' : 'Send Reminder'}
+                          >
+                            {sendingReminderId === inv.id ? '…' : '📧'}
+                          </button>
+                          <button
                             onClick={() => handleArchive(inv)}
                             className="p-1.5 rounded-lg bg-purple-50 text-purple-600 hover:bg-purple-100 transition-colors"
                             title={inv.archived ? 'Unarchive' : 'Archive'}
@@ -486,6 +532,28 @@ export default function VendorInvoices() {
           >
             📥 Import Vendor Bill (PDF)
           </button>
+
+          <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
+            <label className="block text-sm font-semibold text-gray-700 mb-1">Reminder Email</label>
+            <p className="text-xs text-gray-500 mb-2">
+              Set once — every vendor bill's payment reminders (automatic, starting 5 days before the due date and
+              repeating daily until paid, plus manual "Send Reminder") go to this address until you change it.
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={reminderEmail}
+                onChange={e => setReminderEmail(e.target.value)}
+                onBlur={saveReminderEmail}
+                placeholder="e.g. accounts@yourcompany.com"
+                className="flex-1 border p-2 rounded-lg text-sm"
+              />
+              {savingReminderEmail && <span className="text-xs text-gray-400 self-center">Saving…</span>}
+              {!savingReminderEmail && reminderEmail && reminderEmail === reminderEmailSaved && (
+                <span className="text-xs text-green-600 self-center">Saved</span>
+              )}
+            </div>
+          </div>
 
           {pdfScanBanner && (
             <div className="mb-6 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">

@@ -587,6 +587,13 @@ export const vendorInvoices = {
       headers: {}
     })
   },
+  getSettings: () => apiRequest('/vendor-invoices/settings'),
+  updateSettings: (vendorReminderEmail) => {
+    const formData = new FormData()
+    formData.append('vendor_reminder_email', vendorReminderEmail || '')
+    return apiRequest('/vendor-invoices/settings', { method: 'PUT', body: formData, headers: {} })
+  },
+  sendReminder: (id) => apiRequest(`/vendor-invoices/${id}/send-reminder`, { method: 'POST' }),
 }
 
 export const salesInvoices = {

@@ -1188,6 +1188,44 @@ async def _daily_tasks_runner():
                     pass
                 except Exception as e:
                     logger.error(f"Error in background reminder tasks: {e}")
+
+                # Vendor invoice (Accounts Payable) reminders — starts 5
+                # days before the due date and repeats every day this
+                # task runs (once daily) until the bill is marked Paid,
+                # per the single default reminder email set on the
+                # Vendor Bills page (AppSettings.vendor_reminder_email).
+                # Deliberately separate from the PO reminder block above:
+                # vendor invoices have their own status field (no
+                # payment_completed_at) and their own settings row field.
+                try:
+                    from app.models import VendorInvoice, AppSettings
+                    vi_cfg_res = await session.execute(select(AppSettings).where(AppSettings.id == "default"))
+                    vi_cfg = vi_cfg_res.scalars().first()
+                    reminder_email = (vi_cfg.vendor_reminder_email if vi_cfg else None) or None
+
+                    if reminder_email:
+                        cutoff = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=5)
+                        vi_q = select(VendorInvoice).where(
+                            (VendorInvoice.status != "Paid") &
+                            (VendorInvoice.archived.is_(False) | VendorInvoice.archived.is_(None)) &
+                            (VendorInvoice.payment_due_date < cutoff.date())
+                        )
+                        vi_res = await session.execute(vi_q)
+                        for vi in vi_res.scalars().all():
+                            due_date_str = vi.payment_due_date.isoformat() if vi.payment_due_date else "N/A"
+                            amount_str = f"₹{vi.total:,.2f}"
+                            subject = f"Payment Reminder: Vendor Bill {vi.invoice_number} due on {due_date_str}"
+                            body = (
+                                f"This is an automatic reminder that the bill from {vi.vendor_name} "
+                                f"(Invoice {vi.invoice_number}) for {amount_str} is due on {due_date_str}. "
+                                f"Please arrange payment. This reminder will repeat daily until the bill is marked Paid."
+                            )
+                            try:
+                                await EmailService().send_email(reminder_email, subject, body)
+                            except Exception as e:
+                                logger.warning(f"[REMINDER] Failed to send vendor invoice reminder for {vi.invoice_number}: {e}")
+                except Exception as e:
+                    logger.error(f"Error in vendor invoice reminder task: {e}")
                 await session.commit()
         except Exception as e:
             logger.error(f"Daily tasks failed: {e}")

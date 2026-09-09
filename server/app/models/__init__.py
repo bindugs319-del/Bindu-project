@@ -696,6 +696,11 @@ class AppSettings(Base):
     __tablename__ = "app_settings"
     id = Column(String(36), primary_key=True, index=True)
     payment_window_days = Column(Integer, nullable=False, default=50)
+    # Default recipient for automatic vendor-invoice payment reminders
+    # (see /vendor-invoices/settings and the vendor-invoice block in
+    # _daily_tasks_runner). Nullable — automatic reminders simply don't
+    # send until someone sets this.
+    vendor_reminder_email = Column(String(255), nullable=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class CompanyRating(Base):

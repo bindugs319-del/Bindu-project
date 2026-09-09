@@ -497,3 +497,103 @@ async def delete_vendor_invoice(
 
     await db.delete(invoice)
     await db.commit()
+
+
+@router.get("/settings")
+async def get_vendor_invoice_settings(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Returns the default recipient email for automatic vendor-invoice
+    payment reminders (see _daily_tasks_runner in main.py). A single
+    app-wide value, same "one settings row" pattern as payment_window_days
+    — set once here, it's then used for every vendor invoice's automatic
+    reminders rather than needing to be re-entered per invoice."""
+    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
+        raise UnauthorizedFeature("Invoice Management")
+
+    from app.models import AppSettings
+    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    app_settings = result.scalars().first()
+    return ResponseFormatter.create_success(
+        data={"vendor_reminder_email": app_settings.vendor_reminder_email if app_settings else None}
+    )
+
+
+@router.put("/settings")
+async def update_vendor_invoice_settings(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    vendor_reminder_email: Optional[str] = Form(None),
+):
+    """Sets the default recipient for automatic vendor-invoice payment
+    reminders. Deliberately gated by normal vendor-invoice feature access
+    (not admin-only) — this is edited from the Vendor Bills page itself
+    by whoever manages vendor bills day-to-day."""
+    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
+        raise UnauthorizedFeature("Invoice Management")
+
+    from app.models import AppSettings
+    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    app_settings = result.scalars().first()
+    if not app_settings:
+        app_settings = AppSettings(id="default", vendor_reminder_email=vendor_reminder_email)
+        db.add(app_settings)
+    else:
+        app_settings.vendor_reminder_email = vendor_reminder_email
+        app_settings.updated_at = datetime.utcnow()
+
+    await db.commit()
+    return ResponseFormatter.create_success(message="Settings updated successfully")
+
+
+@router.post("/{invoice_id}/send-reminder")
+async def send_vendor_invoice_reminder(
+    invoice_id: str,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Manually sends a payment reminder for this vendor invoice right
+    now, to the default reminder email configured via /settings above.
+    Mirrors sales_invoices' send-reminder endpoint, minus the
+    scheduled-for-later and legal-notice options that don't apply here.
+    The automatic version of this (5 days before due, then daily until
+    paid) lives in _daily_tasks_runner in main.py."""
+    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
+        raise UnauthorizedFeature("Invoice Management")
+    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail=VENDOR_INVOICE_NOT_FOUND_ERROR)
+
+    from app.models import AppSettings
+    settings_result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    app_settings = settings_result.scalars().first()
+    to_email = (app_settings.vendor_reminder_email if app_settings else None) or ""
+    if not to_email:
+        raise HTTPException(status_code=400, detail="No default reminder email configured. Set one on the Vendor Bills page first.")
+
+    due_date_str = invoice.payment_due_date.isoformat() if invoice.payment_due_date else "N/A"
+    amount_str = f"₹{invoice.total:,.2f}"
+    subject = f"Payment Reminder: Vendor Bill {invoice.invoice_number} due on {due_date_str}"
+    body = (
+        f"This is a reminder that the bill from {invoice.vendor_name} "
+        f"(Invoice {invoice.invoice_number}) for {amount_str} is due on {due_date_str}. "
+        f"Please arrange payment at the earliest."
+    )
+
+    from app.services.email_service import EmailService
+    from app.utils.audit import log_audit
+
+    email_sent = await EmailService().send_email(to_email, subject, body)
+    await log_audit(
+        db=db, user=current_user, action="VENDOR_INVOICE_REMINDER_SENT",
+        entity_obj=invoice, reason=f"Reminder sent to {to_email}" if email_sent else f"Reminder NOT delivered (email not configured) — intended for {to_email}",
+    )
+    invoice.updated_at = datetime.utcnow()
+    await db.commit()
+
+    if not email_sent:
+        return ResponseFormatter.create_success(
+            message="Reminder logged, but no email provider is configured — nothing was actually delivered."
+        )
+    return ResponseFormatter.create_success(message=f"Reminder sent to {to_email}")
