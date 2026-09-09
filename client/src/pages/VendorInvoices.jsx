@@ -408,6 +408,19 @@ export default function VendorInvoices() {
     [dashboardPending]
   )
   const dashboardPaidCount = activeInvoices.length - dashboardPending.length
+  const dashboardOverdueBills = useMemo(() => activeInvoices.filter(isOverdue), [activeInvoices])
+  const dashboardOverdueCount = dashboardOverdueBills.length
+  const dashboardOverdueTotal = useMemo(
+    () => dashboardOverdueBills.reduce((sum, inv) => {
+      const balance = Number(inv.balance_due ?? inv.total) || 0
+      return sum + balance * (Number(inv.exchange_rate) || 1)
+    }, 0),
+    [dashboardOverdueBills]
+  )
+  const dashboardPaidTotal = useMemo(
+    () => activeInvoices.filter(inv => inv.status === 'Paid').reduce((sum, inv) => sum + inrValue(inv), 0),
+    [activeInvoices]
+  )
   const vendorBillMonthlySeries = useMemo(() => buildMonthlySeries(activeInvoices, {
     getDate: (inv) => inv.created_at,
     getAmount: (inv) => inrValue(inv),
@@ -428,21 +441,37 @@ export default function VendorInvoices() {
       </div>
 
       {/* DASHBOARD SUMMARY */}
-      <div className="grid sm:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border-l-4 border-emerald-500 shadow-sm p-5 flex items-center justify-between">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white rounded-xl border-l-4 border-emerald-500 shadow-sm px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-gray-600 font-medium">Bills</p>
-            <p className="text-3xl font-black text-[#0F172A] mt-1">{activeInvoices.length}</p>
+            <p className="text-gray-500 text-xs font-medium">Bills</p>
+            <p className="text-2xl font-black text-[#0F172A]">{activeInvoices.length}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-2xl">💰</div>
+          <div className="w-9 h-9 rounded-full bg-emerald-50 flex items-center justify-center text-lg shrink-0">💰</div>
         </div>
-        <div className="bg-white rounded-2xl border-l-4 border-amber-500 shadow-sm p-5 flex items-center justify-between">
+        <div className="bg-white rounded-xl border-l-4 border-amber-500 shadow-sm px-4 py-3 flex items-center justify-between">
           <div>
-            <p className="text-gray-600 font-medium">Pending Bills</p>
-            <p className="text-amber-600 text-xs font-semibold">{formatINR(dashboardPendingTotal)} outstanding</p>
-            <p className="text-3xl font-black text-[#0F172A] mt-1">{dashboardPending.length}</p>
+            <p className="text-gray-500 text-xs font-medium">Pending</p>
+            <p className="text-2xl font-black text-[#0F172A]">{dashboardPending.length}</p>
+            <p className="text-amber-600 text-[11px] font-semibold truncate">{formatINR(dashboardPendingTotal)}</p>
           </div>
-          <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-2xl">⏳</div>
+          <div className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-lg shrink-0">⏳</div>
+        </div>
+        <div className="bg-white rounded-xl border-l-4 border-red-500 shadow-sm px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-gray-500 text-xs font-medium">Overdue</p>
+            <p className="text-2xl font-black text-[#0F172A]">{dashboardOverdueCount}</p>
+            <p className="text-red-600 text-[11px] font-semibold truncate">{formatINR(dashboardOverdueTotal)}</p>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-red-50 flex items-center justify-center text-lg shrink-0">🚨</div>
+        </div>
+        <div className="bg-white rounded-xl border-l-4 border-blue-500 shadow-sm px-4 py-3 flex items-center justify-between">
+          <div>
+            <p className="text-gray-500 text-xs font-medium">Paid</p>
+            <p className="text-2xl font-black text-[#0F172A]">{dashboardPaidCount}</p>
+            <p className="text-blue-600 text-[11px] font-semibold truncate">{formatINR(dashboardPaidTotal)}</p>
+          </div>
+          <div className="w-9 h-9 rounded-full bg-blue-50 flex items-center justify-center text-lg shrink-0">✅</div>
         </div>
       </div>
 
