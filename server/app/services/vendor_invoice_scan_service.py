@@ -57,6 +57,27 @@ _NON_NAME_KEYWORDS = (
     "po date", "p.o.", "igst", "cgst", "sgst", "discount", "amount in words",
     "terms of payment", "authorized signatory", "e. & o.e", "total",
 )
+# Label sets for the generic vendor_tax_id/vendor_tax_id_type detection
+# (see _detect_tax_id below) — covers the non-Indian tax ID schemes seen
+# on real vendor invoices (German/Dutch VAT, US FEIN, Indian CIN/TAN,
+# Chamber of Commerce numbers) that vendor_gstin/vendor_pan don't cover.
+# Order matters: checked in this sequence, first match wins, since a
+# single invoice can carry more than one of these (e.g. CIN *and* TAN).
+VAT_LABELS = ["vat number", "vat reg", "vat reg no", "vat registration", "ust-idnr", "ust idnr", "btw", "vat no", "vat id"]
+FEIN_LABELS = ["fein", "us fein number", "ein", "federal tax id", "federal ein"]
+CIN_LABELS = ["cin", "cin no"]
+TAN_LABELS = ["tan no", "tan number"]
+COC_LABELS = ["chamber of commerce", "kvk", "kvk number"]
+# Loose fallback for lines literally labeled GSTIN/GST that don't match
+# GSTIN_RE's strict 15-char domestic format — e.g. foreign OIDAR-registered
+# GSTINs like "9918IRL29001OSI" (JetBrains) or "9922USA29036OSD" (Twilio),
+# which are still genuinely called "GSTIN"/"GST Number" on the document.
+GSTIN_LABEL_FALLBACK = ["gstin", "gstin no", "gst number", "gst no", "gst id"]
+# "DE VAT DE336358160" / "NL VAT NL..." — a two-letter country code
+# directly before the word VAT, with no colon at all. Common on EU
+# vendor invoices; _find_label_value's label-must-start-the-line check
+# doesn't catch this since the country code comes first.
+_COUNTRY_VAT_RE = re.compile(r"\b[A-Z]{2}\s*VAT\s+([A-Z]{0,2}[A-Z0-9.\-]{6,20})\b")
 _MONEY_LIKE_RE = re.compile(r"[$₹£€]\s?\d|\d\s?[$₹£€]")
 _LABEL_VALUE_RE = re.compile(r"^[A-Za-z0-9./\-]{2,20}$")
 _CODE_LIKE_TAIL_RE = re.compile(r"[A-Za-z0-9]*\d[A-Za-z0-9]*[./\-][A-Za-z0-9]*\d?[A-Za-z0-9]*$")
@@ -234,6 +255,50 @@ def _extract_vendor_identity(lines: list) -> dict:
     }
 
 
+def _detect_tax_id(letterhead_lines: list, gstin: Optional[str], pan: Optional[str]) -> tuple:
+    """Detects the vendor's tax identifier and its type, for the generic
+    vendor_tax_id/vendor_tax_id_type fields (see migration
+    n5c6d7e8f9g0_add_vendor_tax_id_fields.py). Reuses an already-found
+    GSTIN/PAN as-is; otherwise checks known foreign label sets in a fixed
+    priority order, since a single invoice can carry more than one kind
+    of ID (e.g. a CIN and a TAN) and only one can be "the" tax ID.
+    Returns (value, type) — both None if nothing recognizable was found.
+    """
+    if gstin:
+        return gstin, "GSTIN"
+    if pan:
+        return pan, "PAN"
+
+    # A line literally labeled GSTIN/GST whose value didn't match the
+    # strict domestic format (checked before country-VAT/other labels,
+    # since an explicit "GSTIN:" label is the strongest possible signal
+    # of what the document itself calls this number).
+    value = _find_label_value(letterhead_lines, GSTIN_LABEL_FALLBACK, allow_same_line_no_colon=True)
+    value = _clean_or_none(value)
+    if value:
+        return value.strip(), "GSTIN"
+
+    for labels, id_type in (
+        (VAT_LABELS, "VAT"),
+        (FEIN_LABELS, "FEIN"),
+        (CIN_LABELS, "CIN"),
+        (TAN_LABELS, "TAN"),
+        (COC_LABELS, "COC"),
+    ):
+        value = _find_label_value(letterhead_lines, labels, allow_same_line_no_colon=True)
+        value = _clean_or_none(value)
+        if value:
+            return value.strip(), id_type
+
+    # Country-code-prefixed VAT lines with no colon ("DE VAT DE336358160") —
+    # checked last since it's a looser, regex-based match.
+    country_vat_match = _COUNTRY_VAT_RE.search("\n".join(letterhead_lines))
+    if country_vat_match:
+        return country_vat_match.group(1).strip(), "VAT"
+
+    return None, None
+
+
 def extract_vendor_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf") -> dict:
     doc_result = _read_document_text(pdf_bytes, filename)
     if doc_result["early_result"] is not None:
@@ -269,6 +334,16 @@ def extract_vendor_invoice_fields(pdf_bytes: bytes, filename: str = "upload.pdf"
 
     pan_candidates = [m for m in PAN_RE.findall(letterhead_text)]
     fields["vendor_pan"] = pan_candidates[0].upper() if len(set(pan_candidates)) == 1 else None
+
+    # Generic tax_id/tax_id_type — the india-agnostic replacement for the
+    # two fields above (see migration n5c6d7e8f9g0). GSTIN and PAN, when
+    # present, are reused directly rather than re-detected, so this never
+    # disagrees with the legacy fields just populated. Foreign vendors
+    # (the common case this exists for) fall through to label-based
+    # detection of VAT/FEIN/CIN/TAN/Chamber of Commerce numbers.
+    tax_id, tax_id_type = _detect_tax_id(letterhead_lines, fields["vendor_gstin"], fields["vendor_pan"])
+    fields["vendor_tax_id"] = tax_id
+    fields["vendor_tax_id_type"] = tax_id_type
 
     # Excludes lines labeled in a way that clearly means "this is our own
     # email as their customer" (e.g. Zoho's "UserMail : ..." field, which

@@ -926,6 +926,13 @@ class VendorInvoice(Base):
     vendor_name = Column(String(255), nullable=False, index=True)
     vendor_gstin = Column(String(15), nullable=True, index=True)
     vendor_pan = Column(String(10), nullable=True)
+    # Generic replacement for vendor_gstin/vendor_pan — roughly half of
+    # real vendor invoices are foreign (VAT/FEIN/Chamber of Commerce
+    # numbers, not GSTIN/PAN). During rollout the app dual-writes to both
+    # the old and new fields; vendor_gstin/vendor_pan will be dropped in
+    # a follow-up migration once this is confirmed working in production.
+    vendor_tax_id = Column(String(30), nullable=True, index=True)
+    vendor_tax_id_type = Column(String(20), nullable=True)  # GSTIN, PAN, VAT, FEIN, CIN, TAN, COC, OTHER
     vendor_email = Column(String(255), nullable=True)
     vendor_phone = Column(String(20), nullable=True)
     vendor_address = Column(Text, nullable=True)

@@ -37,6 +37,43 @@ VENDOR_INVOICE_FEATURE = "CREDIT_MANAGEMENT"  # same subscription gate as sales 
 router = APIRouter(prefix="/vendor-invoices", tags=["Vendor Invoices"])
 
 
+def _sync_tax_id_fields(data: dict) -> dict:
+    """Dual-write helper for the vendor tax ID rollout (see migration
+    n5c6d7e8f9g0_add_vendor_tax_id_fields.py). Keeps the old India-only
+    vendor_gstin/vendor_pan columns and the new generic vendor_tax_id/
+    vendor_tax_id_type columns in sync regardless of which pair the
+    caller populated (old frontend still sending gstin/pan, or new
+    frontend sending tax_id/tax_id_type), so both read paths agree until
+    vendor_gstin/vendor_pan are dropped in a follow-up migration. Only
+    touches keys already present in `data` — safe to call on a partial
+    update dict.
+    """
+    gstin = data.get("vendor_gstin")
+    pan = data.get("vendor_pan")
+    tax_id = data.get("vendor_tax_id")
+    tax_id_type = data.get("vendor_tax_id_type")
+
+    if gstin:
+        data["vendor_gstin"] = gstin.upper()
+        if "vendor_tax_id" in data or "vendor_tax_id_type" in data or not tax_id:
+            data["vendor_tax_id"] = gstin.upper()
+            data["vendor_tax_id_type"] = "GSTIN"
+    elif pan:
+        data["vendor_pan"] = pan.upper()
+        if "vendor_tax_id" in data or "vendor_tax_id_type" in data or not tax_id:
+            data["vendor_tax_id"] = pan.upper()
+            data["vendor_tax_id_type"] = "PAN"
+    elif tax_id and tax_id_type:
+        data["vendor_tax_id"] = tax_id.upper()
+        data["vendor_tax_id_type"] = tax_id_type
+        if tax_id_type == "GSTIN" and "vendor_gstin" in data:
+            data["vendor_gstin"] = tax_id.upper()
+        elif tax_id_type == "PAN" and "vendor_pan" in data:
+            data["vendor_pan"] = tax_id.upper()
+
+    return data
+
+
 @router.post("/_ensure-table")
 async def ensure_vendor_invoices_table(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -61,6 +98,8 @@ async def ensure_vendor_invoices_table(
         vendor_name VARCHAR(255) NOT NULL,
         vendor_gstin VARCHAR(15),
         vendor_pan VARCHAR(10),
+        vendor_tax_id VARCHAR(30),
+        vendor_tax_id_type VARCHAR(20),
         vendor_email VARCHAR(255),
         vendor_phone VARCHAR(20),
         vendor_address TEXT,
@@ -98,6 +137,7 @@ async def ensure_vendor_invoices_table(
     CREATE INDEX IF NOT EXISTS ix_vendor_invoices_user_id ON vendor_invoices (user_id);
     CREATE INDEX IF NOT EXISTS ix_vendor_invoices_vendor_name ON vendor_invoices (vendor_name);
     CREATE INDEX IF NOT EXISTS ix_vendor_invoices_vendor_gstin ON vendor_invoices (vendor_gstin);
+    CREATE INDEX IF NOT EXISTS ix_vendor_invoices_vendor_tax_id ON vendor_invoices (vendor_tax_id);
     CREATE INDEX IF NOT EXISTS ix_vendor_invoices_invoice_number ON vendor_invoices (invoice_number);
     CREATE INDEX IF NOT EXISTS ix_vendor_invoices_invoice_date ON vendor_invoices (invoice_date);
     CREATE INDEX IF NOT EXISTS ix_vendor_invoices_payment_due_date ON vendor_invoices (payment_due_date);
@@ -226,14 +266,23 @@ async def create_vendor_invoice(
         raise UnauthorizedFeature("Invoice Management")
     now = datetime.utcnow()
 
+    tax_fields = _sync_tax_id_fields({
+        "vendor_gstin": payload.vendor_gstin,
+        "vendor_pan": payload.vendor_pan,
+        "vendor_tax_id": payload.vendor_tax_id,
+        "vendor_tax_id_type": payload.vendor_tax_id_type,
+    })
+
     invoice = VendorInvoice(
         id=str(uuid4()),
         user_id=current_user.id,
         company_id=getattr(current_user, "company_id", None),
 
         vendor_name=payload.vendor_name,
-        vendor_gstin=payload.vendor_gstin.upper() if payload.vendor_gstin else None,
-        vendor_pan=payload.vendor_pan.upper() if payload.vendor_pan else None,
+        vendor_gstin=tax_fields.get("vendor_gstin"),
+        vendor_pan=tax_fields.get("vendor_pan"),
+        vendor_tax_id=tax_fields.get("vendor_tax_id"),
+        vendor_tax_id_type=tax_fields.get("vendor_tax_id_type"),
         vendor_email=payload.vendor_email,
         vendor_phone=payload.vendor_phone,
         vendor_address=payload.vendor_address,
@@ -307,8 +356,9 @@ async def update_vendor_invoice(
         raise HTTPException(status_code=400, detail="This vendor invoice is already marked paid and can't be edited.")
 
     update_data = payload.model_dump(exclude_unset=True, exclude={"items"}, mode="json")
+    update_data = _sync_tax_id_fields(update_data)
     for field, value in update_data.items():
-        if field in ("vendor_gstin", "vendor_pan") and value:
+        if field in ("vendor_gstin", "vendor_pan", "vendor_tax_id") and value:
             value = value.upper()
         setattr(invoice, field, value)
 

@@ -14,8 +14,11 @@ import VendorInvoicePDFImportModal from '../components/vendor-invoices/VendorInv
 export default function VendorInvoices() {
   const emptyForm = {
     vendor_name: '',
-    vendor_gstin: '',
-    vendor_pan: '',
+    // Generic tax ID (VAT/GSTIN/FEIN/CIN/TAN/Chamber of Commerce/Other) —
+    // replaces the old India-only GSTIN/PAN pair. See vendor_invoice_scan_service.py
+    // for how the Import PDF flow auto-detects both the value and the type.
+    vendor_tax_id: '',
+    vendor_tax_id_type: '',
     vendor_email: '',
     vendor_phone: '',
     vendor_address: '',
@@ -132,8 +135,8 @@ export default function VendorInvoices() {
   const openEditModal = (invoice) => {
     setFormData({
       vendor_name: invoice.vendor_name || '',
-      vendor_gstin: invoice.vendor_gstin || '',
-      vendor_pan: invoice.vendor_pan || '',
+      vendor_tax_id: invoice.vendor_tax_id || '',
+      vendor_tax_id_type: invoice.vendor_tax_id_type || '',
       vendor_email: invoice.vendor_email || '',
       vendor_phone: invoice.vendor_phone || '',
       vendor_address: invoice.vendor_address || '',
@@ -180,8 +183,8 @@ export default function VendorInvoices() {
         if (value !== undefined && value !== null && value !== '') next[key] = value
       }
       setIfFound('vendor_name', fields.vendor_name)
-      setIfFound('vendor_gstin', fields.vendor_gstin)
-      setIfFound('vendor_pan', fields.vendor_pan)
+      setIfFound('vendor_tax_id', fields.vendor_tax_id)
+      setIfFound('vendor_tax_id_type', fields.vendor_tax_id_type)
       setIfFound('vendor_email', fields.vendor_email)
       setIfFound('vendor_phone', fields.vendor_phone)
       setIfFound('vendor_address', fields.vendor_address)
@@ -231,8 +234,8 @@ export default function VendorInvoices() {
     setSaving(true)
     const payload = {
       ...formData,
-      vendor_gstin: formData.vendor_gstin || null,
-      vendor_pan: formData.vendor_pan || null,
+      vendor_tax_id: formData.vendor_tax_id || null,
+      vendor_tax_id_type: formData.vendor_tax_id ? (formData.vendor_tax_id_type || 'OTHER') : null,
       items: formData.items.filter(it => it.desc && it.desc.trim()),
     }
 
@@ -519,12 +522,22 @@ export default function VendorInvoices() {
                 <textarea value={formData.vendor_address} onChange={e => setFormData({ ...formData, vendor_address: e.target.value })} className="border p-2 rounded w-full" rows="2" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">GSTIN</label>
-                <input value={formData.vendor_gstin} onChange={e => setFormData({ ...formData, vendor_gstin: e.target.value })} className="border p-2 rounded w-full" />
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tax ID</label>
+                <input value={formData.vendor_tax_id} onChange={e => setFormData({ ...formData, vendor_tax_id: e.target.value })} placeholder="e.g. GSTIN, VAT, FEIN number" className="border p-2 rounded w-full" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">PAN</label>
-                <input value={formData.vendor_pan} onChange={e => setFormData({ ...formData, vendor_pan: e.target.value })} className="border p-2 rounded w-full" />
+                <label className="block text-xs font-medium text-gray-600 mb-1">Tax ID Type</label>
+                <select value={formData.vendor_tax_id_type} onChange={e => setFormData({ ...formData, vendor_tax_id_type: e.target.value })} className="border p-2 rounded w-full bg-white">
+                  <option value="">Select type…</option>
+                  <option value="GSTIN">GSTIN</option>
+                  <option value="PAN">PAN</option>
+                  <option value="VAT">VAT</option>
+                  <option value="FEIN">FEIN</option>
+                  <option value="CIN">CIN</option>
+                  <option value="TAN">TAN</option>
+                  <option value="COC">Chamber of Commerce</option>
+                  <option value="OTHER">Other</option>
+                </select>
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600 mb-1">Vendor Email</label>

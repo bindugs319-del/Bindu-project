@@ -12,6 +12,10 @@ from typing import Optional, List, Dict, Any
 from datetime import date, datetime
 
 VALID_STATUSES = ["Unpaid", "Paid", "Overdue", "Cancelled"]
+# Generic replacement for the old India-only vendor_gstin/vendor_pan pair —
+# see vendor_tax_id/vendor_tax_id_type below. "OTHER" covers any tax
+# identifier scheme not explicitly listed.
+VALID_TAX_ID_TYPES = ["GSTIN", "PAN", "VAT", "FEIN", "CIN", "TAN", "COC", "OTHER"]
 
 
 def _blank_to_none(v):
@@ -37,6 +41,11 @@ class VendorInvoiceCreate(BaseModel):
     vendor_name: str = Field(..., min_length=1, max_length=255)
     vendor_gstin: Optional[str] = Field(None, min_length=15, max_length=15)
     vendor_pan: Optional[str] = Field(None, min_length=10, max_length=10)
+    # Generic tax ID — preferred going forward over vendor_gstin/vendor_pan,
+    # which only cover Indian vendors. The route dual-writes these onto the
+    # old columns too (see VendorInvoice model) during rollout.
+    vendor_tax_id: Optional[str] = Field(None, max_length=30)
+    vendor_tax_id_type: Optional[str] = Field(None, max_length=20)
     vendor_email: Optional[str] = Field(None, max_length=255)
     vendor_phone: Optional[str] = Field(None, max_length=20)
     vendor_address: Optional[str] = None
@@ -65,6 +74,8 @@ class VendorInvoiceCreate(BaseModel):
     _blank_payment_terms = field_validator("payment_terms", mode="before")(_blank_to_none)
     _blank_vendor_gstin = field_validator("vendor_gstin", mode="before")(_blank_to_none)
     _blank_vendor_pan = field_validator("vendor_pan", mode="before")(_blank_to_none)
+    _blank_vendor_tax_id = field_validator("vendor_tax_id", mode="before")(_blank_to_none)
+    _blank_vendor_tax_id_type = field_validator("vendor_tax_id_type", mode="before")(_blank_to_none)
     _blank_place_of_supply = field_validator("place_of_supply", mode="before")(_blank_to_none)
     _blank_notes = field_validator("notes", mode="before")(_blank_to_none)
     _blank_document_url = field_validator("document_url", mode="before")(_blank_to_none)
@@ -76,6 +87,13 @@ class VendorInvoiceCreate(BaseModel):
             raise ValueError(f"status must be one of {VALID_STATUSES}")
         return v
 
+    @field_validator("vendor_tax_id_type")
+    @classmethod
+    def _validate_tax_id_type(cls, v):
+        if v and v not in VALID_TAX_ID_TYPES:
+            raise ValueError(f"vendor_tax_id_type must be one of {VALID_TAX_ID_TYPES}")
+        return v
+
 
 class VendorInvoiceUpdate(BaseModel):
     """Partial update — every field optional. `items`, if provided,
@@ -83,6 +101,8 @@ class VendorInvoiceUpdate(BaseModel):
     vendor_name: Optional[str] = None
     vendor_gstin: Optional[str] = Field(None, min_length=15, max_length=15)
     vendor_pan: Optional[str] = Field(None, min_length=10, max_length=10)
+    vendor_tax_id: Optional[str] = Field(None, max_length=30)
+    vendor_tax_id_type: Optional[str] = Field(None, max_length=20)
     vendor_email: Optional[str] = Field(None, max_length=255)
     vendor_phone: Optional[str] = Field(None, max_length=20)
     vendor_address: Optional[str] = None
@@ -113,6 +133,8 @@ class VendorInvoiceUpdate(BaseModel):
     _blank_payment_terms = field_validator("payment_terms", mode="before")(_blank_to_none)
     _blank_vendor_gstin = field_validator("vendor_gstin", mode="before")(_blank_to_none)
     _blank_vendor_pan = field_validator("vendor_pan", mode="before")(_blank_to_none)
+    _blank_vendor_tax_id = field_validator("vendor_tax_id", mode="before")(_blank_to_none)
+    _blank_vendor_tax_id_type = field_validator("vendor_tax_id_type", mode="before")(_blank_to_none)
     _blank_place_of_supply = field_validator("place_of_supply", mode="before")(_blank_to_none)
     _blank_notes = field_validator("notes", mode="before")(_blank_to_none)
     _blank_document_url = field_validator("document_url", mode="before")(_blank_to_none)
@@ -124,6 +146,13 @@ class VendorInvoiceUpdate(BaseModel):
             raise ValueError(f"status must be one of {VALID_STATUSES}")
         return v
 
+    @field_validator("vendor_tax_id_type")
+    @classmethod
+    def _validate_tax_id_type(cls, v):
+        if v and v not in VALID_TAX_ID_TYPES:
+            raise ValueError(f"vendor_tax_id_type must be one of {VALID_TAX_ID_TYPES}")
+        return v
+
 
 class VendorInvoiceResponse(BaseModel):
     id: str
@@ -133,6 +162,8 @@ class VendorInvoiceResponse(BaseModel):
     vendor_name: str
     vendor_gstin: Optional[str] = None
     vendor_pan: Optional[str] = None
+    vendor_tax_id: Optional[str] = None
+    vendor_tax_id_type: Optional[str] = None
     vendor_email: Optional[str] = None
     vendor_phone: Optional[str] = None
     vendor_address: Optional[str] = None
