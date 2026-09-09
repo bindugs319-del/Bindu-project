@@ -325,6 +325,60 @@ async def create_vendor_invoice(
     return success_response(data=serialize_vendor_invoice(invoice), message="Vendor invoice recorded")
 
 
+# IMPORTANT: these two literal "/settings" routes MUST stay registered
+# before any "/{invoice_id}" route below. FastAPI matches routes in
+# registration order, and "/{invoice_id}" would otherwise greedily match
+# a request to "/settings" first (treating "settings" as an invoice ID),
+# sending it to the wrong handler entirely — which is exactly what
+# happened before this comment was added.
+@router.get("/settings")
+async def get_vendor_invoice_settings(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Returns the default recipient email for automatic vendor-invoice
+    payment reminders (see _daily_tasks_runner in main.py). A single
+    app-wide value, same "one settings row" pattern as payment_window_days
+    — set once here, it's then used for every vendor invoice's automatic
+    reminders rather than needing to be re-entered per invoice."""
+    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
+        raise UnauthorizedFeature("Invoice Management")
+
+    from app.models import AppSettings
+    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    app_settings = result.scalars().first()
+    return ResponseFormatter.create_success(
+        data={"vendor_reminder_email": app_settings.vendor_reminder_email if app_settings else None}
+    )
+
+
+@router.put("/settings")
+async def update_vendor_invoice_settings(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+    vendor_reminder_email: Optional[str] = Form(None),
+):
+    """Sets the default recipient for automatic vendor-invoice payment
+    reminders. Deliberately gated by normal vendor-invoice feature access
+    (not admin-only) — this is edited from the Vendor Bills page itself
+    by whoever manages vendor bills day-to-day."""
+    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
+        raise UnauthorizedFeature("Invoice Management")
+
+    from app.models import AppSettings
+    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    app_settings = result.scalars().first()
+    if not app_settings:
+        app_settings = AppSettings(id="default", vendor_reminder_email=vendor_reminder_email)
+        db.add(app_settings)
+    else:
+        app_settings.vendor_reminder_email = vendor_reminder_email
+        app_settings.updated_at = datetime.utcnow()
+
+    await db.commit()
+    return ResponseFormatter.create_success(message="Settings updated successfully")
+
+
 @router.get("/{invoice_id}")
 async def get_vendor_invoice(
     invoice_id: str,
@@ -497,54 +551,6 @@ async def delete_vendor_invoice(
 
     await db.delete(invoice)
     await db.commit()
-
-
-@router.get("/settings")
-async def get_vendor_invoice_settings(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
-    """Returns the default recipient email for automatic vendor-invoice
-    payment reminders (see _daily_tasks_runner in main.py). A single
-    app-wide value, same "one settings row" pattern as payment_window_days
-    — set once here, it's then used for every vendor invoice's automatic
-    reminders rather than needing to be re-entered per invoice."""
-    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
-        raise UnauthorizedFeature("Invoice Management")
-
-    from app.models import AppSettings
-    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
-    app_settings = result.scalars().first()
-    return ResponseFormatter.create_success(
-        data={"vendor_reminder_email": app_settings.vendor_reminder_email if app_settings else None}
-    )
-
-
-@router.put("/settings")
-async def update_vendor_invoice_settings(
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-    vendor_reminder_email: Optional[str] = Form(None),
-):
-    """Sets the default recipient for automatic vendor-invoice payment
-    reminders. Deliberately gated by normal vendor-invoice feature access
-    (not admin-only) — this is edited from the Vendor Bills page itself
-    by whoever manages vendor bills day-to-day."""
-    if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
-        raise UnauthorizedFeature("Invoice Management")
-
-    from app.models import AppSettings
-    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
-    app_settings = result.scalars().first()
-    if not app_settings:
-        app_settings = AppSettings(id="default", vendor_reminder_email=vendor_reminder_email)
-        db.add(app_settings)
-    else:
-        app_settings.vendor_reminder_email = vendor_reminder_email
-        app_settings.updated_at = datetime.utcnow()
-
-    await db.commit()
-    return ResponseFormatter.create_success(message="Settings updated successfully")
 
 
 @router.post("/{invoice_id}/send-reminder")
