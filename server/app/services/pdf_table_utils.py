@@ -17,6 +17,7 @@ matching fails, and only for real (non-OCR) PDFs — pdfplumber needs
 vector-drawn table lines, which a scanned/photographed page doesn't have.
 """
 import io
+import re
 from typing import Optional
 
 try:
@@ -47,12 +48,74 @@ ITEM_AMOUNT_LABELS = ("amount", "total", "value")
 # Row description text that means "this isn't a real item row, it's a
 # summary line" — also substring-checked for the same reason.
 _ITEM_SKIP_DESC = ("total", "amount in words", "items in total")
+# Markers checked against the WHOLE row (every column, not just the
+# description column) that mean the items table has ended entirely —
+# extraction stops as soon as one is seen, rather than merely skipping
+# that one row, since everything after it is summary/payment/legal
+# boilerplate. This matters most when a borderless-table strategy has
+# lumped the whole page into a single "table": without an explicit stop,
+# extraction would otherwise keep treating footer text (payment
+# instructions, bank details, T&Cs) as further item rows.
+_ITEM_TABLE_END_KEYWORDS = (
+    "subtotal", "sub total", "grand total", "amount due", "balance due",
+    "amount in words", "total in words", "items in total",
+    "tax to be paid", "reverse charge", "wire funds", "beneficiary",
+    "swift code", "authorized signature", "authorised signature",
+    "bank name and address", "please remit payment", "for wire transfer",
+    "wire transfer routing", "ach routing", "electronic payment details",
+    "thank you for your purchase", "thank you for your business",
+    "terms of payment", "all charges are in",
+)
+_PAGE_OF_RE = re.compile(r"\bpage\s+\d+\s+of\s+\d+\b", re.IGNORECASE)
 
 
 def _find_col(norm_header, labels):
     for i, h in enumerate(norm_header):
         if any(lbl in h for lbl in labels):
             return i
+    return None
+
+
+def _merge_header_rows(row_a, row_b):
+    """Concatenates two rows cell-by-cell. Needed because a text-alignment
+    (borderless) table strategy splits a header cell that visually wraps
+    onto two lines — e.g. "Unit price" / "(excl. tax)" — into two separate
+    table rows at the same column position, rather than one cell
+    containing both lines."""
+    width = max(len(row_a), len(row_b))
+    merged = []
+    for i in range(width):
+        a = row_a[i] if i < len(row_a) and row_a[i] else ""
+        b = row_b[i] if i < len(row_b) and row_b[i] else ""
+        merged.append((a + " " + b).strip())
+    return merged
+
+
+def _find_header_row(table):
+    """Scans every row of the table (not just row 0) for one that looks
+    like an items-table header, also trying it merged with the row right
+    after it (see _merge_header_rows) in case the real header wraps
+    across two visual lines. This matters most for borderless/text-based
+    table detection, which can lump an entire page — everything above
+    the real header included — into a single "table", so the header is
+    rarely still at index 0.
+
+    Returns (first_item_row_index, desc_idx, qty_idx, rate_idx,
+    amount_idx, hsn_idx), or None if no row looks like a header.
+    """
+    for i, row in enumerate(table):
+        candidates = [(row, i + 1)]
+        if i + 1 < len(table):
+            candidates.append((_merge_header_rows(row, table[i + 1]), i + 2))
+        for header_row, next_idx in candidates:
+            norm_header = [_norm_key((c or "").replace("\n", " ")) for c in header_row]
+            desc_idx = _find_col(norm_header, ITEM_DESC_LABELS)
+            qty_idx = _find_col(norm_header, ITEM_QTY_LABELS)
+            rate_idx = _find_col(norm_header, ITEM_RATE_LABELS)
+            amount_idx = _find_col(norm_header, ITEM_AMOUNT_LABELS)
+            hsn_idx = _find_col(norm_header, ITEM_HSN_LABELS)
+            if desc_idx is not None and (qty_idx is not None or amount_idx is not None):
+                return next_idx, desc_idx, qty_idx, rate_idx, amount_idx, hsn_idx
     return None
 
 
@@ -63,20 +126,16 @@ def _items_from_tables(tables) -> list:
     for table in tables:
         if len(table) < 2:
             continue
-        header_row = table[0]
-        norm_header = [_norm_key((c or "").replace("\n", " ")) for c in header_row]
-
-        desc_idx = _find_col(norm_header, ITEM_DESC_LABELS)
-        qty_idx = _find_col(norm_header, ITEM_QTY_LABELS)
-        rate_idx = _find_col(norm_header, ITEM_RATE_LABELS)
-        amount_idx = _find_col(norm_header, ITEM_AMOUNT_LABELS)
-        hsn_idx = _find_col(norm_header, ITEM_HSN_LABELS)
-
-        if desc_idx is None or (qty_idx is None and amount_idx is None):
+        header_info = _find_header_row(table)
+        if header_info is None:
             continue
+        start_idx, desc_idx, qty_idx, rate_idx, amount_idx, hsn_idx = header_info
 
         items = []
-        for row in table[1:]:
+        for row in table[start_idx:]:
+            row_text_norm = _norm_key(" ".join((c or "") for c in row).replace("\n", " "))
+            if any(kw in row_text_norm for kw in _ITEM_TABLE_END_KEYWORDS) or _PAGE_OF_RE.search(row_text_norm):
+                break
             if desc_idx >= len(row):
                 continue
             desc = (row[desc_idx] or "").replace("\n", " ").strip()
@@ -104,7 +163,18 @@ def _items_from_tables(tables) -> list:
             amount_val = _parse_amount(cell(amount_idx))
             if amount_val is not None:
                 item["amount"] = amount_val
-            items.append(item)
+
+            # A row with a description but no qty/rate/amount/HSN of its
+            # own is almost always the wrapped second (or third...) line
+            # of the PREVIOUS row's description, not a genuinely separate
+            # item — e.g. a subscription's "Sep 3, 2026–Sep 3, 2027" date
+            # range printed under its own line. Fold it into the previous
+            # item instead of creating a spurious item with no numbers.
+            has_numeric_data = any(k in item for k in ("hsn", "qty", "rate", "amount"))
+            if not has_numeric_data and items:
+                items[-1]["desc"] = (items[-1]["desc"] + " " + desc).strip()
+            else:
+                items.append(item)
 
         if items:
             return items
