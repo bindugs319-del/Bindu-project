@@ -11,6 +11,41 @@ from app.config import settings
 
 router = APIRouter()
 
+SYSTEM_PROMPT = (
+    "You are a helpful credit assistant for CreditDataWatch. Answer the "
+    "user's questions clearly, directly, and concisely using the "
+    "information from the SOP document. Do not mention sections, guides, "
+    "or 'according to' anything. Just give the answer."
+)
+
+
+async def _call_anthropic(message: str, context: str) -> str:
+    """Cloud fallback for environments without a local Ollama server
+    (e.g. Render). Raises on any failure so the caller's existing
+    except-block handling (timeout / generic error messages) still
+    applies uniformly regardless of which provider was actually used."""
+    system_prompt = SYSTEM_PROMPT + (f"\n\n{context}" if context else "")
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": settings.ANTHROPIC_API_KEY,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-haiku-4-5-20251001",
+                "max_tokens": 1024,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": message}],
+            },
+            timeout=60.0,
+        )
+        response.raise_for_status()
+        data = response.json()
+        return "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
+
+
 @router.post("/chat")
 async def chat(
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -33,34 +68,42 @@ async def chat(
             print(f"Error fetching SOP: {str(e)}")
             pass
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{settings.OLLAMA_BASE_URL}/api/generate",
-                json={
-                    "model": "llama3",
-                    "prompt": f"You are a helpful credit assistant for CreditDataWatch. Answer the user's questions clearly, directly, and concisely using the information from the SOP document. Do not mention sections, guides, or 'according to' anything. Just give the answer. {context}\n\nUser: {message}",
-                    "stream": False,
-                    "options": {
-                        "temperature": 0.7,
-                        "top_p": 0.9
-                    }
-                },
-                timeout=120.0
-            )
-            
-            if response.status_code == 200:
-                ai_response = response.json().get("response", "")
-                return ResponseFormatter.create_success(data={"reply": ai_response})
-            else:
-                print(f"Ollama returned status code: {response.status_code}")
-                print(f"Ollama response: {response.text}")
-                return ResponseFormatter.create_success(data={"reply": "I am having trouble connecting to my AI core right now. Please try again later."})
-                
-    except httpx.ConnectError:
-        print("Ollama connection error: Ollama is not running")
-        return ResponseFormatter.create_success(data={"reply": "Ollama is not running. Please start Ollama on localhost:11434 to enable AI chat."})
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{settings.OLLAMA_BASE_URL}/api/generate",
+                    json={
+                        "model": "llama3",
+                        "prompt": f"{SYSTEM_PROMPT} {context}\n\nUser: {message}",
+                        "stream": False,
+                        "options": {
+                            "temperature": 0.7,
+                            "top_p": 0.9
+                        }
+                    },
+                    timeout=120.0
+                )
+
+                if response.status_code == 200:
+                    ai_response = response.json().get("response", "")
+                    return ResponseFormatter.create_success(data={"reply": ai_response})
+                else:
+                    print(f"Ollama returned status code: {response.status_code}")
+                    print(f"Ollama response: {response.text}")
+                    return ResponseFormatter.create_success(data={"reply": "I am having trouble connecting to my AI core right now. Please try again later."})
+
+        except httpx.ConnectError:
+            # No local Ollama server reachable (expected on Render and any
+            # host without it installed) — fall back to the Anthropic API
+            # if a key is configured, rather than failing outright.
+            if not settings.ANTHROPIC_API_KEY:
+                print("Ollama connection error: Ollama is not running, and no ANTHROPIC_API_KEY is configured")
+                return ResponseFormatter.create_success(data={"reply": "Ollama is not running. Please start Ollama on localhost:11434 to enable AI chat."})
+            ai_response = await _call_anthropic(message, context)
+            return ResponseFormatter.create_success(data={"reply": ai_response})
+
     except httpx.TimeoutException:
-        print("Ollama timeout error")
+        print("AI chat timeout error")
         return ResponseFormatter.create_success(data={"reply": "The AI is taking too long to respond. Please try again."})
     except Exception as e:
         import traceback
