@@ -70,6 +70,7 @@ export default function VendorInvoices() {
   const [reminderEmail, setReminderEmail] = useState('')
   const [reminderEmailSaved, setReminderEmailSaved] = useState('')
   const [savingReminderEmail, setSavingReminderEmail] = useState(false)
+  const [reminderEmailError, setReminderEmailError] = useState('')
   const [sendingReminderId, setSendingReminderId] = useState(null)
 
   const formPanelRef = useRef(null)
@@ -106,9 +107,12 @@ export default function VendorInvoices() {
   const saveReminderEmail = async () => {
     if (reminderEmail === reminderEmailSaved) return
     setSavingReminderEmail(true)
+    setReminderEmailError('')
     const res = await vendorInvoicesApi.updateSettings(reminderEmail)
     if (res.ok) {
       setReminderEmailSaved(reminderEmail)
+    } else {
+      setReminderEmailError(res.error || 'Failed to save.')
     }
     setSavingReminderEmail(false)
   }
@@ -544,15 +548,24 @@ export default function VendorInvoices() {
                 type="email"
                 value={reminderEmail}
                 onChange={e => setReminderEmail(e.target.value)}
-                onBlur={saveReminderEmail}
                 placeholder="e.g. accounts@yourcompany.com"
                 className="flex-1 border p-2 rounded-lg text-sm"
               />
-              {savingReminderEmail && <span className="text-xs text-gray-400 self-center">Saving…</span>}
-              {!savingReminderEmail && reminderEmail && reminderEmail === reminderEmailSaved && (
-                <span className="text-xs text-green-600 self-center">Saved</span>
-              )}
+              <button
+                type="button"
+                onClick={saveReminderEmail}
+                disabled={savingReminderEmail || reminderEmail === reminderEmailSaved}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+              >
+                {savingReminderEmail ? 'Saving…' : 'Save'}
+              </button>
             </div>
+            {!savingReminderEmail && reminderEmail && reminderEmail === reminderEmailSaved && (
+              <p className="text-xs text-green-600 mt-1">✓ Saved — used for all reminders until you change it.</p>
+            )}
+            {reminderEmailError && (
+              <p className="text-xs text-red-600 mt-1">{reminderEmailError}</p>
+            )}
           </div>
 
           {pdfScanBanner && (
