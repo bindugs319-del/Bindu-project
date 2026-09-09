@@ -104,6 +104,16 @@ def _find_header_row(table):
     amount_idx, hsn_idx), or None if no row looks like a header.
     """
     for i, row in enumerate(table):
+        # A single-column (or otherwise too-narrow) row can't be a real
+        # header — a real items table always separates description from
+        # its numeric columns. Skipping this outright also protects
+        # against a whole-page-as-one-giant-cell false table (a known
+        # pdfplumber artifact on some invoice templates): that blob cell
+        # contains every label word mashed together, which would
+        # otherwise satisfy the checks below with every index pointing
+        # at the same single column.
+        if len(row) < 2:
+            continue
         candidates = [(row, i + 1)]
         if i + 1 < len(table):
             candidates.append((_merge_header_rows(row, table[i + 1]), i + 2))
@@ -114,8 +124,16 @@ def _find_header_row(table):
             rate_idx = _find_col(norm_header, ITEM_RATE_LABELS)
             amount_idx = _find_col(norm_header, ITEM_AMOUNT_LABELS)
             hsn_idx = _find_col(norm_header, ITEM_HSN_LABELS)
-            if desc_idx is not None and (qty_idx is not None or amount_idx is not None):
-                return next_idx, desc_idx, qty_idx, rate_idx, amount_idx, hsn_idx
+            if desc_idx is None or (qty_idx is None and amount_idx is None):
+                continue
+            # A real header never has two different roles (description
+            # vs. a numeric/HSN column) landing on the very same column
+            # index — that only happens when the "header" is actually
+            # one blob of merged text with no real column structure.
+            other_idxs = {qty_idx, rate_idx, amount_idx, hsn_idx} - {None}
+            if desc_idx in other_idxs:
+                continue
+            return next_idx, desc_idx, qty_idx, rate_idx, amount_idx, hsn_idx
     return None
 
 
