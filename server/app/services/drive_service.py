@@ -127,6 +127,17 @@ class DriveService:
             Authorization URL
         """
         flow = DriveService.get_oauth2_flow()
+        # PKCE (the code_verifier/code_challenge pair) is meant for
+        # public clients that can't hold a secret (mobile/SPA apps).
+        # This is a confidential server-side client (it has a client
+        # secret), and — critically — the auth-url and callback endpoints
+        # are two separate HTTP requests handled by two separate Flow
+        # instances, so a verifier generated during the first request
+        # can't be recovered during the second. Without disabling this,
+        # every callback fails with "(invalid_grant) Missing code
+        # verifier." Explicitly opting out avoids needing to persist that
+        # verifier anywhere.
+        flow.autogenerate_code_verifier = False
         # access_type='offline' is what makes Google issue a refresh_token
         # alongside the short-lived access token — without it, this would
         # stop working again in about an hour. prompt='consent' forces
