@@ -345,7 +345,7 @@ export default function VendorInvoices() {
       <div className="grid lg:grid-cols-[1fr_480px] gap-6 items-start">
 
         {/* LIST */}
-        <div>
+        <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-3 mb-4">
             {['All', 'Unpaid', 'Overdue', 'Paid'].map(f => (
               <button
@@ -469,7 +469,7 @@ export default function VendorInvoices() {
         </div>
 
         {/* ADD / EDIT PANEL */}
-        <div ref={formPanelRef} className="bg-white rounded-xl shadow-sm border p-6 sticky top-6">
+        <div ref={formPanelRef} className="min-w-0 bg-white rounded-xl shadow-sm border p-6 sticky top-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-bold text-primary-600">
               {editingInvoiceId ? 'Edit Vendor Invoice' : 'Add Vendor Invoice'}
