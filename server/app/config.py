@@ -144,9 +144,10 @@ class Settings(BaseSettings):
     
     # Ollama LLM Configuration — kept for local development. On Render
     # (and any host without Ollama installed), the chat route below falls
-    # back to the Anthropic API instead, which needs no local server.
+    # back to the Groq API instead, which needs no local server and has
+    # a free tier with no credit card required.
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    ANTHROPIC_API_KEY: str = ""
+    GROQ_API_KEY: str = ""
 
     class Config:
         # Retain default for environments that run from server/ directory

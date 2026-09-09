@@ -19,31 +19,33 @@ SYSTEM_PROMPT = (
 )
 
 
-async def _call_anthropic(message: str, context: str) -> str:
-    """Cloud fallback for environments without a local Ollama server
-    (e.g. Render). Raises on any failure so the caller's existing
-    except-block handling (timeout / generic error messages) still
-    applies uniformly regardless of which provider was actually used."""
+async def _call_groq(message: str, context: str) -> str:
+    """Free cloud fallback for environments without a local Ollama server
+    (e.g. Render) — Groq's free tier needs no credit card. Raises on any
+    failure so the caller's existing except-block handling (timeout /
+    generic error messages) still applies uniformly regardless of which
+    provider was actually used."""
     system_prompt = SYSTEM_PROMPT + (f"\n\n{context}" if context else "")
     async with httpx.AsyncClient() as client:
         response = await client.post(
-            "https://api.anthropic.com/v1/messages",
+            "https://api.groq.com/openai/v1/chat/completions",
             headers={
-                "x-api-key": settings.ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
+                "Authorization": f"Bearer {settings.GROQ_API_KEY}",
                 "content-type": "application/json",
             },
             json={
-                "model": "claude-haiku-4-5-20251001",
-                "max_tokens": 1024,
-                "system": system_prompt,
-                "messages": [{"role": "user", "content": message}],
+                "model": "llama-3.1-8b-instant",
+                "messages": [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": message},
+                ],
+                "temperature": 0.7,
             },
             timeout=60.0,
         )
         response.raise_for_status()
         data = response.json()
-        return "".join(block.get("text", "") for block in data.get("content", []) if block.get("type") == "text")
+        return data["choices"][0]["message"]["content"]
 
 
 @router.post("/chat")
@@ -94,12 +96,12 @@ async def chat(
 
         except httpx.ConnectError:
             # No local Ollama server reachable (expected on Render and any
-            # host without it installed) — fall back to the Anthropic API
+            # host without it installed) — fall back to the free Groq API
             # if a key is configured, rather than failing outright.
-            if not settings.ANTHROPIC_API_KEY:
-                print("Ollama connection error: Ollama is not running, and no ANTHROPIC_API_KEY is configured")
+            if not settings.GROQ_API_KEY:
+                print("Ollama connection error: Ollama is not running, and no GROQ_API_KEY is configured")
                 return ResponseFormatter.create_success(data={"reply": "Ollama is not running. Please start Ollama on localhost:11434 to enable AI chat."})
-            ai_response = await _call_anthropic(message, context)
+            ai_response = await _call_groq(message, context)
             return ResponseFormatter.create_success(data={"reply": ai_response})
 
     except httpx.TimeoutException:
