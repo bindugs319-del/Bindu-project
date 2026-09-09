@@ -355,7 +355,15 @@ async def update_vendor_invoice(
     if invoice.status == "Paid":
         raise HTTPException(status_code=400, detail="This vendor invoice is already marked paid and can't be edited.")
 
-    update_data = payload.model_dump(exclude_unset=True, exclude={"items"}, mode="json")
+    # NOTE: mode="python" (the default) — NOT mode="json". With "json",
+    # Pydantic serializes date/datetime fields to ISO strings, which then
+    # get assigned directly onto the SQLAlchemy model below via setattr,
+    # bypassing any conversion back to a real date object. asyncpg
+    # requires actual date objects for a DATE column and raises
+    # "'str' object has no attribute 'toordinal'" on a plain string —
+    # surfaced to the user as a misleading "Database service is
+    # unavailable" error, even though the database itself is fine.
+    update_data = payload.model_dump(exclude_unset=True, exclude={"items"})
     update_data = _sync_tax_id_fields(update_data)
     for field, value in update_data.items():
         if field in ("vendor_gstin", "vendor_pan", "vendor_tax_id") and value:
