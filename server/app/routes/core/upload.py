@@ -21,16 +21,15 @@ async def upload_evidence(
 ):
     """Upload evidence file for PO edit"""
     try:
-        from app.utils.uploads import get_upload_subdir
-        upload_dir = get_upload_subdir("evidence")
+        from app.services.file_storage_service import store_uploaded_file
+
         file_ext = file.filename.split(".")[-1]
         file_id = str(uuid.uuid4())
-        file_path = upload_dir / f"{file_id}.{file_ext}"
-        
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-            
-        url = f"{settings.BASE_URL}/uploads/evidence/{file_id}.{file_ext}"
+        filename = f"{file_id}.{file_ext}"
+        file_bytes = await file.read()
+        result = await store_uploaded_file(file_bytes, filename, file.content_type, "evidence")
+        url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
+
         return ResponseFormatter.create_success(data={"url": url, "filename": file.filename})
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")

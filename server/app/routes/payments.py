@@ -18,6 +18,7 @@ from app.exceptions import PlanNotFound, UserNotFound
 from app.utils.response import ResponseFormatter
 from app.dependencies import get_current_user
 from app.models import Payment, Plan, User
+from app.config import settings
 from app.utils.audit import log_audit
 from sqlalchemy import select, text
 import logging
@@ -398,16 +399,12 @@ async def upload_payment_proof(
 ):
     """Upload payment proof screenshot"""
     try:
-        from app.utils.uploads import get_upload_subdir
-        upload_dir = get_upload_subdir("payment_proofs")
-        
+        from app.services.file_storage_service import store_uploaded_file
+
         filename = f"{uuid.uuid4()}_{file.filename}"
-        filepath = upload_dir / filename
-        
-        with open(filepath, "wb") as f:
-            shutil.copyfileobj(file.file, f)
-        
-        proof_url = f"/uploads/payment_proofs/{filename}"
+        file_bytes = await file.read()
+        result = await store_uploaded_file(file_bytes, filename, file.content_type, "payment_proofs")
+        proof_url = result["url"] if result["storage"] == "drive" else f"{settings.BASE_URL}{result['url']}"
         
         await db.execute(text("""
             UPDATE payments SET 

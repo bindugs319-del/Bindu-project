@@ -13,6 +13,7 @@ from app.models import User
 from app.dependencies import get_current_user, require_master_admin, require_role
 from app.utils.response import ResponseFormatter
 from app.services.notification_service import NotificationService
+from app.config import settings
 
 router = APIRouter(prefix="/business-check", tags=["Business Check Requests"])
 
@@ -161,7 +162,6 @@ async def operations_review(
         
         upload_dir = get_upload_subdir("reports")
         pdf_path = str(upload_dir / f"safety_report_{id}.pdf")
-        
         doc = SimpleDocTemplate(pdf_path, pagesize=A4,
             rightMargin=inch, leftMargin=inch,
             topMargin=inch, bottomMargin=inch)
@@ -200,7 +200,18 @@ async def operations_review(
         ]
         
         doc.build(story)
-        report_url = f"http://localhost:8000/uploads/reports/safety_report_{id}.pdf"
+        # reportlab's SimpleDocTemplate only writes to a local file path
+        # (no in-memory API), so the PDF is generated locally first, then
+        # uploaded through the same Drive-aware storage used everywhere
+        # else in the app — reading it straight back off disk for that.
+        # This also fixes a pre-existing separate bug: report_url used to
+        # be hardcoded to http://localhost:8000, which was never valid on
+        # Render regardless of storage backend.
+        from app.services.file_storage_service import store_uploaded_file
+        with open(pdf_path, "rb") as f:
+            pdf_bytes = f.read()
+        upload_result = await store_uploaded_file(pdf_bytes, f"safety_report_{id}.pdf", "application/pdf", "reports")
+        report_url = upload_result["url"] if upload_result["storage"] == "drive" else f"{settings.BASE_URL}{upload_result['url']}"
         print(f"[BUSINESS] ✅ PDF generated: {pdf_path}")
         
     except Exception as e:
