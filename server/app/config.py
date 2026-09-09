@@ -86,8 +86,10 @@ class Settings(BaseSettings):
 
     # Google Drive OAuth2
     GOOGLE_CLIENT_CREDENTIALS_FILE: str = "server/credentials/client-credentials.json"
+    GOOGLE_CLIENT_CREDENTIALS_JSON: str = ""  # raw OAuth client JSON content, Render-friendly equivalent of the file above
     GOOGLE_SERVICE_ACCOUNT_FILE: str = "server/credentials/service-account.json"
     GOOGLE_SERVICE_ACCOUNT_JSON: str = ""  # raw JSON key content, for platforms (e.g. Render) where writing a secret file to disk isn't reliable
+    GOOGLE_OAUTH_TOKEN_JSON: str = ""  # raw personal-account OAuth token JSON, obtained once via GET /api/v1/drive/auth-url — see get_service_account_credentials() for why this is preferred over the service account
     GOOGLE_FOLDER_ID: str = ""
     GOOGLE_REDIRECT_URI: str = "http://localhost:8000/api/v1/drive/callback"
 

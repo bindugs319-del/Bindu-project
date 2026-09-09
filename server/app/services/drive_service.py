@@ -25,11 +25,24 @@ class DriveService:
     @staticmethod
     def get_oauth2_flow() -> Flow:
         """
-        Create OAuth2 flow for Google Drive using client credentials file
-        
+        Create OAuth2 flow for Google Drive using client credentials —
+        from a raw JSON env var first (GOOGLE_CLIENT_CREDENTIALS_JSON,
+        for Render — see get_service_account_credentials for why),
+        falling back to a local file for dev environments where writing
+        one is easy.
+
         Returns:
             OAuth2 Flow object
         """
+        if settings.GOOGLE_CLIENT_CREDENTIALS_JSON:
+            try:
+                info = json.loads(settings.GOOGLE_CLIENT_CREDENTIALS_JSON)
+                flow = Flow.from_client_config(info, scopes=SCOPES)
+                flow.redirect_uri = settings.GOOGLE_REDIRECT_URI
+                return flow
+            except Exception as e:
+                logger.error(f"Failed to parse GOOGLE_CLIENT_CREDENTIALS_JSON: {e}")
+
         if not os.path.exists(settings.GOOGLE_CLIENT_CREDENTIALS_FILE):
             raise DriveAccessDenied("Client credentials file not found")
         
@@ -43,19 +56,41 @@ class DriveService:
     @staticmethod
     def get_service_account_credentials() -> Credentials:
         """
-        Get credentials from (in priority order): a raw JSON env var, a
-        service account file, or token.json (per-user OAuth).
+        Get credentials from (in priority order): a personal OAuth token
+        env var, a raw service-account JSON env var, a service account
+        file, or token.json (per-user OAuth from a local file).
 
-        The env var check comes first specifically for platforms like
+        Personal OAuth is checked FIRST because it's the only option with
+        real Drive storage quota — a plain Google service account has
+        ZERO storage quota of its own (a Google policy, not something
+        fixable via folder sharing) and can only write into a Shared
+        Drive, which requires paid Google Workspace. For a free personal
+        Google account, authorizing as yourself (GOOGLE_OAUTH_TOKEN_JSON,
+        obtained via GET /api/v1/drive/auth-url) is what actually makes
+        uploads persist.
+
+        The env var checks come first specifically for platforms like
         Render, where a file written to disk at runtime (or even a
         "Secret File" in some configurations) isn't guaranteed to survive
-        every deploy — pasting the service account key's JSON content
-        directly into an environment variable sidesteps that entirely.
+        every deploy — pasting JSON content directly into an environment
+        variable sidesteps that entirely.
         """
         from google.oauth2 import service_account
         from google.oauth2.credentials import Credentials as UserCredentials
 
-        # 1. Try raw JSON from an environment variable
+        # 1. Try a personal OAuth token from an environment variable —
+        # see docstring above for why this is checked first.
+        if settings.GOOGLE_OAUTH_TOKEN_JSON:
+            try:
+                info = json.loads(settings.GOOGLE_OAUTH_TOKEN_JSON)
+                creds = UserCredentials.from_authorized_user_info(info, SCOPES)
+                if creds.expired and creds.refresh_token:
+                    creds.refresh(Request())
+                return creds
+            except Exception as e:
+                logger.error(f"Failed to parse/refresh GOOGLE_OAUTH_TOKEN_JSON: {e}")
+
+        # 2. Try raw service-account JSON from an environment variable
         if settings.GOOGLE_SERVICE_ACCOUNT_JSON:
             try:
                 info = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
@@ -63,13 +98,13 @@ class DriveService:
             except Exception as e:
                 logger.error(f"Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON: {e}")
 
-        # 2. Try Service Account file
+        # 3. Try Service Account file
         if os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
              return service_account.Credentials.from_service_account_file(
                 settings.GOOGLE_SERVICE_ACCOUNT_FILE, scopes=SCOPES
             )
             
-        # 3. Try User Token (OAuth)
+        # 4. Try User Token (OAuth) from a local file — dev-environment fallback
         token_path = os.path.join(os.path.dirname(settings.GOOGLE_CLIENT_CREDENTIALS_FILE), 'token.json')
         if os.path.exists(token_path):
             try:
@@ -79,8 +114,8 @@ class DriveService:
             except Exception as e:
                 logger.error(f"Failed to load token.json: {e}")
         
-        # 4. Fail
-        logger.warning(f"No valid credentials found (checked GOOGLE_SERVICE_ACCOUNT_JSON, service-account.json, and token.json)")
+        # 5. Fail
+        logger.warning(f"No valid credentials found (checked GOOGLE_OAUTH_TOKEN_JSON, GOOGLE_SERVICE_ACCOUNT_JSON, service-account.json, and token.json)")
         raise DriveAccessDenied("Google Drive credentials not configured. Please run 'python authorize_drive.py' or add service-account.json.")
 
     @staticmethod
@@ -92,7 +127,12 @@ class DriveService:
             Authorization URL
         """
         flow = DriveService.get_oauth2_flow()
-        auth_url, _state = flow.authorization_url(prompt="consent")
+        # access_type='offline' is what makes Google issue a refresh_token
+        # alongside the short-lived access token — without it, this would
+        # stop working again in about an hour. prompt='consent' forces
+        # Google to reissue one on every authorization, even for an
+        # account that's approved this app before.
+        auth_url, _state = flow.authorization_url(access_type="offline", prompt="consent")
         return auth_url
 
     @staticmethod

@@ -34,19 +34,51 @@ async def get_drive_auth_url(http_request: Request = None):
         raise
 
 
-@router.post("/callback")
-async def drive_oauth_callback(current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)], code: str, state: str, http_request: Request = None):
-    """Handle OAuth2 callback from Google Drive"""
-    try:
+@router.get("/callback")
+async def drive_oauth_callback(code: str, state: str = None, http_request: Request = None):
+    """Handle OAuth2 redirect from Google after the user grants access.
 
-        request_id = http_request.state.request_id if http_request else ""
-        return ResponseFormatter.create_success(
-            message="Drive connected successfully",
-            request_id=request_id
-        )
+    Deliberately a GET route with no login requirement: this is Google's
+    browser redirecting here directly (it can't attach your app's login
+    cookie/JSON auth header), and the authorization `code` itself is the
+    proof of consent, not a session.
+
+    Rather than trying to persist the resulting token to Render's
+    non-persistent local disk (the exact problem this whole flow exists
+    to avoid), this just displays the token JSON once so it can be
+    copied into the GOOGLE_OAUTH_TOKEN_JSON environment variable —
+    mirroring how GOOGLE_SERVICE_ACCOUNT_JSON already works. It never
+    touches the database or disk.
+    """
+    from fastapi.responses import HTMLResponse
+    import html as html_module
+
+    try:
+        credentials = await DriveService.get_credentials_from_code(code)
+        token_json = DriveService.save_credentials(credentials)
+        escaped = html_module.escape(token_json)
+        body = f"""
+        <html><head><title>Drive connected</title>
+        <style>
+          body {{ font-family: sans-serif; max-width: 700px; margin: 40px auto; padding: 0 16px; }}
+          textarea {{ width: 100%; height: 160px; font-family: monospace; font-size: 13px; }}
+          .note {{ color: #555; }}
+        </style>
+        </head><body>
+        <h2>Google Drive connected ✅</h2>
+        <p class="note">Copy the text below and paste it into Render as an environment
+        variable named <code>GOOGLE_OAUTH_TOKEN_JSON</code>, then save.
+        This page won't be shown again with this value — copy it now.</p>
+        <textarea readonly onclick="this.select()">{escaped}</textarea>
+        </body></html>
+        """
+        return HTMLResponse(content=body)
     except Exception as e:
         logger.error(f"Error in OAuth callback: {str(e)}")
-        raise
+        return HTMLResponse(
+            content=f"<html><body><h2>Drive connection failed</h2><p>{html_module.escape(str(e))}</p></body></html>",
+            status_code=400,
+        )
 
 
 @router.get("/status")
