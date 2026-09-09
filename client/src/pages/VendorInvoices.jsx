@@ -1,6 +1,8 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { vendorInvoices as vendorInvoicesApi, STATIC_BASE_URL } from '../services/api/apiClient'
 import VendorInvoicePDFImportModal from '../components/vendor-invoices/VendorInvoicePDFImportModal'
+import StatsChart from '../components/ui/StatsChart'
+import { buildMonthlySeries } from '../utils/monthlySeries'
 
 /**
  * OEM / Vendor Bills — Accounts Payable: bills RECEIVED from a vendor.
@@ -375,12 +377,118 @@ export default function VendorInvoices() {
 
   const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0)
 
+  // Dashboard summary (top of page) — deliberately computed from ALL
+  // non-archived bills regardless of the "All/Unpaid/Overdue/Paid" filter
+  // or "Show Archived" checkbox below, mirroring how InvoiceDashboard.jsx
+  // treats its own summary as a stable snapshot separate from whatever
+  // the detail table underneath happens to be filtered to right now.
+  const activeInvoices = useMemo(() => invoices.filter(inv => !inv.archived), [invoices])
+  const dashboardPending = useMemo(() => activeInvoices.filter(inv => inv.status !== 'Paid'), [activeInvoices])
+  const dashboardPendingTotal = useMemo(
+    () => dashboardPending.reduce((sum, inv) => sum + (Number(inv.balance_due ?? inv.total) || 0), 0),
+    [dashboardPending]
+  )
+  const dashboardPaidCount = activeInvoices.length - dashboardPending.length
+  const vendorBillMonthlySeries = useMemo(() => buildMonthlySeries(activeInvoices, {
+    getDate: (inv) => inv.created_at,
+    getAmount: (inv) => inv.total,
+  }), [activeInvoices])
+  const recentInvoices = useMemo(
+    () => [...activeInvoices].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5),
+    [activeInvoices]
+  )
+  const formatINR = (n) => `₹${(Number(n) || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`
+
   return (
     <div className="max-w-[1600px] mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[#0F172A]">OEM / Vendor Bills</h1>
           <p className="text-gray-500 text-sm mt-1">Bills received from your vendors — Accounts Payable.</p>
+        </div>
+      </div>
+
+      {/* DASHBOARD SUMMARY */}
+      <div className="grid sm:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-2xl border-l-4 border-emerald-500 shadow-sm p-5 flex items-center justify-between">
+          <div>
+            <p className="text-gray-600 font-medium">Bills</p>
+            <p className="text-3xl font-black text-[#0F172A] mt-1">{activeInvoices.length}</p>
+          </div>
+          <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-2xl">💰</div>
+        </div>
+        <div className="bg-white rounded-2xl border-l-4 border-amber-500 shadow-sm p-5 flex items-center justify-between">
+          <div>
+            <p className="text-gray-600 font-medium">Pending Bills</p>
+            <p className="text-amber-600 text-xs font-semibold">{formatINR(dashboardPendingTotal)} outstanding</p>
+            <p className="text-3xl font-black text-[#0F172A] mt-1">{dashboardPending.length}</p>
+          </div>
+          <div className="w-12 h-12 rounded-full bg-amber-50 flex items-center justify-center text-2xl">⏳</div>
+        </div>
+      </div>
+
+      <div className="mb-6">
+        <StatsChart
+          data={vendorBillMonthlySeries}
+          title="Monthly Vendor Bill Overview"
+          countLabel="Bills Raised"
+          amountLabel="Bill Value (₹)"
+        />
+      </div>
+
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 mb-6">
+        <h2 className="text-lg font-bold text-amber-900">Vendor Bill Overview</h2>
+        <p className="text-amber-800 text-sm mb-4">A snapshot of your active vendor bills by status.</p>
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div className="bg-white/70 rounded-xl p-4">
+            <p className="text-amber-800 text-sm font-medium">Total Bills</p>
+            <p className="text-2xl font-bold text-amber-950">{activeInvoices.length}</p>
+          </div>
+          <div className="bg-white/70 rounded-xl p-4">
+            <p className="text-amber-800 text-sm font-medium">Paid Bills</p>
+            <p className="text-2xl font-bold text-emerald-700">{dashboardPaidCount}</p>
+          </div>
+          <div className="bg-white/70 rounded-xl p-4">
+            <p className="text-amber-800 text-sm font-medium">Pending Bills</p>
+            <p className="text-2xl font-bold text-amber-800">{dashboardPending.length}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-bold text-[#0F172A] uppercase tracking-wide">Recent Vendor Bills</h2>
+        </div>
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 text-[#0F172A] font-bold uppercase text-[11px] tracking-wide">
+              <tr>
+                <th className="px-6 py-3">Invoice#</th>
+                <th className="px-6 py-3">Vendor</th>
+                <th className="px-6 py-3">Amount</th>
+                <th className="px-6 py-3">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {recentInvoices.map(inv => (
+                <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-6 py-3 font-semibold text-blue-700">{inv.invoice_number}</td>
+                  <td className="px-6 py-3 text-gray-600">{inv.vendor_name}</td>
+                  <td className="px-6 py-3 font-semibold text-[#0F172A]">{formatINR(inv.total)}</td>
+                  <td className="px-6 py-3">
+                    <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                      {inv.status}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+              {recentInvoices.length === 0 && (
+                <tr>
+                  <td colSpan="4" className="px-6 py-8 text-center text-gray-400 italic">No vendor bills yet — import or add one to see it here.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
 
