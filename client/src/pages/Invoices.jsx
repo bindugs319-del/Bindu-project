@@ -248,7 +248,12 @@ export default function Invoices({ onDataChange } = {}) {
   }, [activeRows, statusFilter])
   const displayRows = showArchived ? invoices : filteredRows
   const archivedCount = useMemo(() => invoices.filter(inv => inv.archived).length, [invoices])
-  const invoiceTotal = useMemo(() => displayRows.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0), [displayRows])
+  // Converts each invoice's own-currency total to INR (via exchange_rate,
+  // INR per unit of that currency) before summing — otherwise a USD
+  // invoice's total gets added to an INR invoice's total as if both were
+  // rupees. exchange_rate already exists on every invoice (defaults to
+  // 1.0 for already-INR ones), it just wasn't being used here before.
+  const invoiceTotal = useMemo(() => displayRows.reduce((sum, inv) => sum + (Number(inv.total) || 0) * (Number(inv.exchange_rate) || 1), 0), [displayRows])
 
   const invoiceStats = useMemo(() => {
     const totalCount = activeRows.length

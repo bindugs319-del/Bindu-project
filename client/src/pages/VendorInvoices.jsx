@@ -30,6 +30,7 @@ export default function VendorInvoices() {
     payment_terms: '',
     place_of_supply: '',
     currency: 'INR',
+    exchange_rate: 1,
     items: [{ desc: '', hsn: '', qty: 1, rate: 0, amount: 0 }],
     subtotal: 0,
     tax_breakdown: null,
@@ -192,6 +193,7 @@ export default function VendorInvoices() {
       payment_terms: invoice.payment_terms || '',
       place_of_supply: invoice.place_of_supply || '',
       currency: invoice.currency || 'INR',
+      exchange_rate: invoice.exchange_rate || 1,
       items: invoice.items && invoice.items.length > 0 ? invoice.items : emptyForm.items,
       subtotal: invoice.subtotal || 0,
       tax_breakdown: invoice.tax_breakdown || null,
@@ -284,6 +286,7 @@ export default function VendorInvoices() {
       ...formData,
       vendor_tax_id: formData.vendor_tax_id || null,
       vendor_tax_id_type: formData.vendor_tax_id ? (formData.vendor_tax_id_type || 'OTHER') : null,
+      exchange_rate: Number(formData.exchange_rate) || 1,
       items: formData.items.filter(it => it.desc && it.desc.trim()),
     }
 
@@ -375,23 +378,39 @@ export default function VendorInvoices() {
     return true
   })
 
-  const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0), 0)
+  // Converts each invoice's own-currency total to INR before summing —
+  // same reasoning as inrValue() above, needed here too since
+  // filteredInvoices can mix currencies (e.g. a USD bill and an INR
+  // bill together).
+  const totalAmount = filteredInvoices.reduce((sum, inv) => sum + (Number(inv.total) || 0) * (Number(inv.exchange_rate) || 1), 0)
 
   // Dashboard summary (top of page) — deliberately computed from ALL
   // non-archived bills regardless of the "All/Unpaid/Overdue/Paid" filter
   // or "Show Archived" checkbox below, mirroring how InvoiceDashboard.jsx
   // treats its own summary as a stable snapshot separate from whatever
   // the detail table underneath happens to be filtered to right now.
+  //
+  // inrValue() converts a bill's own-currency total into INR using its
+  // exchange_rate (INR per unit of that currency, manually entered on
+  // the bill — mirrors SalesInvoice.exchange_rate). Without this, a
+  // $775.80 USD bill and a ₹1,93,732.90 INR bill would just get added
+  // together as if both were rupees — off by roughly 80x for the USD
+  // one. Individual rows still DISPLAY in their own currency (via the
+  // existing money() helper below) — only SUMS get converted.
+  const inrValue = (inv) => (Number(inv.total) || 0) * (Number(inv.exchange_rate) || 1)
   const activeInvoices = useMemo(() => invoices.filter(inv => !inv.archived), [invoices])
   const dashboardPending = useMemo(() => activeInvoices.filter(inv => inv.status !== 'Paid'), [activeInvoices])
   const dashboardPendingTotal = useMemo(
-    () => dashboardPending.reduce((sum, inv) => sum + (Number(inv.balance_due ?? inv.total) || 0), 0),
+    () => dashboardPending.reduce((sum, inv) => {
+      const balance = Number(inv.balance_due ?? inv.total) || 0
+      return sum + balance * (Number(inv.exchange_rate) || 1)
+    }, 0),
     [dashboardPending]
   )
   const dashboardPaidCount = activeInvoices.length - dashboardPending.length
   const vendorBillMonthlySeries = useMemo(() => buildMonthlySeries(activeInvoices, {
     getDate: (inv) => inv.created_at,
-    getAmount: (inv) => inv.total,
+    getAmount: (inv) => inrValue(inv),
   }), [activeInvoices])
   const recentInvoices = useMemo(
     () => [...activeInvoices].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0)).slice(0, 5),
@@ -474,7 +493,7 @@ export default function VendorInvoices() {
                 <tr key={inv.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-3 font-semibold text-blue-700">{inv.invoice_number}</td>
                   <td className="px-6 py-3 text-gray-600">{inv.vendor_name}</td>
-                  <td className="px-6 py-3 font-semibold text-[#0F172A]">{formatINR(inv.total)}</td>
+                  <td className="px-6 py-3 font-semibold text-[#0F172A]">{money(inv.total, inv.currency)}</td>
                   <td className="px-6 py-3">
                     <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${inv.status === 'Paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
                       {inv.status}
@@ -774,6 +793,23 @@ export default function VendorInvoices() {
                   <option value="GBP">GBP</option>
                 </select>
               </div>
+              {formData.currency !== 'INR' && (
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">
+                    Exchange Rate (₹ per 1 {formData.currency})
+                  </label>
+                  <input
+                    type="number" step="0.01" min="0.01"
+                    value={formData.exchange_rate}
+                    onChange={e => setFormData({ ...formData, exchange_rate: e.target.value })}
+                    className="border p-2 rounded w-full"
+                    placeholder="e.g. 83.50"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Used to convert this bill into ₹ for dashboard totals — check today's actual rate.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* ITEMS */}

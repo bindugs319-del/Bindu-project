@@ -57,6 +57,7 @@ class VendorInvoiceCreate(BaseModel):
 
     place_of_supply: Optional[str] = None
     currency: Optional[str] = "INR"
+    exchange_rate: Optional[float] = Field(default=1.0, gt=0)
 
     subtotal: Optional[float] = 0.0
     tax_breakdown: Optional[Dict[str, Any]] = None
@@ -114,6 +115,7 @@ class VendorInvoiceUpdate(BaseModel):
 
     place_of_supply: Optional[str] = None
     currency: Optional[str] = None
+    exchange_rate: Optional[float] = Field(default=None, gt=0)
 
     subtotal: Optional[float] = None
     tax_breakdown: Optional[Dict[str, Any]] = None
@@ -175,6 +177,7 @@ class VendorInvoiceResponse(BaseModel):
 
     place_of_supply: Optional[str] = None
     currency: str
+    exchange_rate: float = 1.0
 
     items: Optional[List[Dict[str, Any]]] = None
 

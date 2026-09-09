@@ -142,9 +142,26 @@ export default function InvoiceDashboard() {
     setInvoiceLoading(false)
   }, [])
 
+  // Formats an amount in its OWN currency (e.g. "$775.80" for a USD
+  // invoice) rather than always as INR — used for the Recent Invoices
+  // table below, where each row should show what the invoice actually
+  // says, not a forced-INR misreading of a foreign-currency amount.
+  // (Aggregate figures like invoiceMonthlySeries below are a separate
+  // case — those correctly convert via exchange_rate before summing.)
+  const money = (value, currency = 'INR') => {
+    try {
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency || 'INR', minimumFractionDigits: 2 }).format(Number(value) || 0)
+    } catch {
+      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(value) || 0)
+    }
+  }
+
   const invoiceMonthlySeries = useMemo(() => buildMonthlySeries(invoiceRows, {
     getDate: (inv) => inv.created_at,
-    getAmount: (inv) => inv.total,
+    // Converted to INR via exchange_rate — same reasoning as
+    // invoiceTotal in Invoices.jsx (an unconverted sum would treat a
+    // USD invoice's total as if it were already rupees).
+    getAmount: (inv) => (Number(inv.total) || 0) * (Number(inv.exchange_rate) || 1),
   }), [invoiceRows])
 
   // Defaulters count, scoped to cases that reference a real invoice number
@@ -371,7 +388,7 @@ export default function InvoiceDashboard() {
                     <tr key={inv.id} className="hover:bg-[#F0F4FF] transition-colors duration-150" style={{backgroundColor: index % 2 === 0 ? 'white' : '#FAFBFF'}}>
                       <td className="px-6 py-4 font-semibold text-[#1E3A8A] hover:underline cursor-pointer">{inv.invoice_number}</td>
                       <td className="px-6 py-4 text-[#475569]">{inv.counterparty_name}</td>
-                      <td className="px-6 py-4 font-semibold text-[#0F172A]">{formatCurrency(inv.total)}</td>
+                      <td className="px-6 py-4 font-semibold text-[#0F172A]">{money(inv.total, inv.currency)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${inv.status === 'Paid' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#DBEAFE] text-[#1D4ED8]'}`}>
                           {inv.status}

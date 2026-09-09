@@ -951,6 +951,11 @@ class VendorInvoice(Base):
 
     place_of_supply = Column(String(100), nullable=True)
     currency = Column(String(3), nullable=False, default="INR")
+    # Manually-entered INR-per-unit-of-currency rate — total * exchange_rate
+    # gives the INR-equivalent for dashboard/list totals that sum across
+    # invoices in different currencies. Mirrors SalesInvoice.exchange_rate
+    # exactly. Defaults to 1.0, so already-INR invoices are unaffected.
+    exchange_rate = Column(Float, nullable=False, default=1.0)
 
     # Line items as a single JSON array, matching SalesInvoice.items'
     # shape: [{"desc": "...", "hsn": "...", "qty": 1, "rate": 0.0, "amount": 0.0}]

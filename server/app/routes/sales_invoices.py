@@ -489,7 +489,11 @@ async def get_pending_summary(
     ]
 
     result = await db.execute(
-        select(func.count(), func.coalesce(func.sum(SalesInvoice.balance_due), 0.0))
+        # balance_due * exchange_rate converts each invoice's own-currency
+        # balance into INR before summing — a raw SUM(balance_due) would
+        # otherwise add a USD invoice's balance to an INR invoice's
+        # balance as if both were rupees.
+        select(func.count(), func.coalesce(func.sum(SalesInvoice.balance_due * SalesInvoice.exchange_rate), 0.0))
         .select_from(SalesInvoice)
         .where(and_(*conditions))
     )

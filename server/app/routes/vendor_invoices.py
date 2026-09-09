@@ -294,6 +294,7 @@ async def create_vendor_invoice(
 
         place_of_supply=payload.place_of_supply,
         currency=payload.currency or "INR",
+        exchange_rate=payload.exchange_rate or 1.0,
 
         items=[item.model_dump() for item in payload.items],
 
