@@ -112,7 +112,7 @@ class DriveService:
             return flow.credentials
         except Exception as e:
             logger.error(f"Failed to get credentials: {str(e)}")
-            raise DriveAccessDenied()
+            raise DriveAccessDenied(str(e))
 
     @staticmethod
     def save_credentials(credentials: Credentials) -> str:
@@ -174,7 +174,7 @@ class DriveService:
             return results.get("files", [])
         except HttpError as e:
             logger.error(f"Drive API error: {str(e)}")
-            raise DriveAccessDenied()
+            raise DriveAccessDenied(str(e))
 
     @staticmethod
     async def create_folder(credentials_json: str, folder_name: str) -> str:
@@ -201,7 +201,7 @@ class DriveService:
             return folder.get("id")
         except HttpError as e:
             logger.error(f"Failed to create folder: {str(e)}")
-            raise DriveAccessDenied()
+            raise DriveAccessDenied(str(e))
 
     @staticmethod
     async def get_file_download_url(credentials_json: str, file_id: str) -> str:
@@ -223,7 +223,7 @@ class DriveService:
             return file.get("webContentLink")
         except HttpError as e:
             logger.error(f"Failed to get download URL: {str(e)}")
-            raise DriveAccessDenied()
+            raise DriveAccessDenied(str(e))
 
     @staticmethod
     async def make_public(credentials, file_id: str) -> None:
@@ -242,7 +242,7 @@ class DriveService:
             ).execute()
         except HttpError as e:
             logger.error(f"Failed to set public permission on file {file_id}: {str(e)}")
-            raise DriveAccessDenied()
+            raise DriveAccessDenied(str(e))
 
     @staticmethod
     async def upload_file(file_obj, filename: str, mime_type: str, credentials, folder_id: Optional[str] = None) -> dict:
@@ -279,4 +279,4 @@ class DriveService:
             return file
         except HttpError as e:
             logger.error(f"Failed to upload file: {str(e)}")
-            raise DriveAccessDenied()
+            raise DriveAccessDenied(str(e))
