@@ -74,6 +74,13 @@ export default function VendorInvoices() {
   const [reminderEmailSaved, setReminderEmailSaved] = useState('')
   const [savingReminderEmail, setSavingReminderEmail] = useState(false)
   const [reminderEmailError, setReminderEmailError] = useState('')
+  // How many days before the due date automatic reminders start (they
+  // then repeat daily until the bill is marked Paid, regardless of this
+  // number — see _daily_tasks_runner in main.py).
+  const [reminderDaysBefore, setReminderDaysBefore] = useState(5)
+  const [reminderDaysBeforeSaved, setReminderDaysBeforeSaved] = useState(5)
+  const [savingReminderDays, setSavingReminderDays] = useState(false)
+  const [reminderDaysError, setReminderDaysError] = useState('')
   const [sendingReminderId, setSendingReminderId] = useState(null)
 
   const formPanelRef = useRef(null)
@@ -103,6 +110,9 @@ export default function VendorInvoices() {
         const email = res.data?.vendor_reminder_email || ''
         setReminderEmail(email)
         setReminderEmailSaved(email)
+        const days = res.data?.vendor_reminder_days_before ?? 5
+        setReminderDaysBefore(days)
+        setReminderDaysBeforeSaved(days)
       }
     })
   }, [])
@@ -111,13 +121,26 @@ export default function VendorInvoices() {
     if (reminderEmail === reminderEmailSaved) return
     setSavingReminderEmail(true)
     setReminderEmailError('')
-    const res = await vendorInvoicesApi.updateSettings(reminderEmail)
+    const res = await vendorInvoicesApi.updateSettings({ vendorReminderEmail: reminderEmail })
     if (res.ok) {
       setReminderEmailSaved(reminderEmail)
     } else {
       setReminderEmailError(res.error || 'Failed to save.')
     }
     setSavingReminderEmail(false)
+  }
+
+  const saveReminderDays = async () => {
+    if (Number(reminderDaysBefore) === Number(reminderDaysBeforeSaved)) return
+    setSavingReminderDays(true)
+    setReminderDaysError('')
+    const res = await vendorInvoicesApi.updateSettings({ vendorReminderDaysBefore: reminderDaysBefore })
+    if (res.ok) {
+      setReminderDaysBeforeSaved(reminderDaysBefore)
+    } else {
+      setReminderDaysError(res.error || 'Failed to save.')
+    }
+    setSavingReminderDays(false)
   }
 
   const handleSendReminder = async (inv) => {
@@ -696,7 +719,7 @@ export default function VendorInvoices() {
           <div className="mb-6 rounded-xl border border-gray-200 bg-gray-50 p-4">
             <label className="block text-sm font-semibold text-gray-700 mb-1">Reminder Email</label>
             <p className="text-xs text-gray-500 mb-2">
-              Set once — every vendor bill's payment reminders (automatic, starting 5 days before the due date and
+              Set once — every vendor bill's payment reminders (automatic, starting {reminderDaysBeforeSaved} day{Number(reminderDaysBeforeSaved) === 1 ? '' : 's'} before the due date and
               repeating daily until paid, plus manual "Send Reminder") go to this address until you change it.
             </p>
             <div className="flex gap-2">
@@ -722,6 +745,35 @@ export default function VendorInvoices() {
             {reminderEmailError && (
               <p className="text-xs text-red-600 mt-1">{reminderEmailError}</p>
             )}
+
+            <div className="border-t border-gray-200 mt-4 pt-4">
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Remind Me (days before due date)</label>
+              <p className="text-xs text-gray-500 mb-2">
+                Automatic reminders start this many days before a bill's due date, then repeat daily until it's paid.
+              </p>
+              <div className="flex gap-2">
+                <input
+                  type="number" min="0" step="1"
+                  value={reminderDaysBefore}
+                  onChange={e => setReminderDaysBefore(e.target.value)}
+                  className="w-24 border p-2 rounded-lg text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={saveReminderDays}
+                  disabled={savingReminderDays || Number(reminderDaysBefore) === Number(reminderDaysBeforeSaved)}
+                  className="px-4 py-2 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {savingReminderDays ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+              {!savingReminderDays && Number(reminderDaysBefore) === Number(reminderDaysBeforeSaved) && (
+                <p className="text-xs text-green-600 mt-1">✓ Saved — used for all reminders until you change it.</p>
+              )}
+              {reminderDaysError && (
+                <p className="text-xs text-red-600 mt-1">{reminderDaysError}</p>
+              )}
+            </div>
           </div>
 
           {pdfScanBanner && (

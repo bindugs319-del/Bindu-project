@@ -337,11 +337,11 @@ async def get_vendor_invoice_settings(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Returns the default recipient email for automatic vendor-invoice
-    payment reminders (see _daily_tasks_runner in main.py). A single
-    app-wide value, same "one settings row" pattern as payment_window_days
-    — set once here, it's then used for every vendor invoice's automatic
-    reminders rather than needing to be re-entered per invoice."""
+    """Returns the default recipient email and reminder lead time for
+    automatic vendor-invoice payment reminders (see _daily_tasks_runner in
+    main.py). Single app-wide values, same "one settings row" pattern as
+    payment_window_days — set once here, then used for every vendor
+    invoice's automatic reminders rather than being re-entered per invoice."""
     if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
         raise UnauthorizedFeature("Invoice Management")
 
@@ -349,7 +349,10 @@ async def get_vendor_invoice_settings(
     result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
     app_settings = result.scalars().first()
     return ResponseFormatter.create_success(
-        data={"vendor_reminder_email": app_settings.vendor_reminder_email if app_settings else None}
+        data={
+            "vendor_reminder_email": app_settings.vendor_reminder_email if app_settings else None,
+            "vendor_reminder_days_before": app_settings.vendor_reminder_days_before if app_settings else 5,
+        }
     )
 
 
@@ -357,23 +360,39 @@ async def get_vendor_invoice_settings(
 async def update_vendor_invoice_settings(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
+    # Both fields are optional and left UNTOUCHED when omitted from the
+    # request (rather than reset/blanked) — the frontend has two separate
+    # Save buttons (email, days-before) that each only send the one field
+    # being changed, and neither should be able to accidentally wipe out
+    # the other's already-saved value.
     vendor_reminder_email: Optional[str] = Form(None),
+    vendor_reminder_days_before: Optional[int] = Form(None),
 ):
-    """Sets the default recipient for automatic vendor-invoice payment
-    reminders. Deliberately gated by normal vendor-invoice feature access
-    (not admin-only) — this is edited from the Vendor Bills page itself
-    by whoever manages vendor bills day-to-day."""
+    """Sets the default recipient and/or lead time for automatic
+    vendor-invoice payment reminders. Deliberately gated by normal
+    vendor-invoice feature access (not admin-only) — this is edited from
+    the Vendor Bills page itself by whoever manages vendor bills
+    day-to-day."""
     if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
         raise UnauthorizedFeature("Invoice Management")
+    if vendor_reminder_days_before is not None and vendor_reminder_days_before < 0:
+        raise HTTPException(status_code=400, detail="Reminder days before due date can't be negative.")
 
     from app.models import AppSettings
     result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
     app_settings = result.scalars().first()
     if not app_settings:
-        app_settings = AppSettings(id="default", vendor_reminder_email=vendor_reminder_email)
+        app_settings = AppSettings(
+            id="default",
+            vendor_reminder_email=vendor_reminder_email,
+            vendor_reminder_days_before=vendor_reminder_days_before if vendor_reminder_days_before is not None else 5,
+        )
         db.add(app_settings)
     else:
-        app_settings.vendor_reminder_email = vendor_reminder_email
+        if vendor_reminder_email is not None:
+            app_settings.vendor_reminder_email = vendor_reminder_email
+        if vendor_reminder_days_before is not None:
+            app_settings.vendor_reminder_days_before = vendor_reminder_days_before
         app_settings.updated_at = datetime.utcnow()
 
     await db.commit()
@@ -564,7 +583,8 @@ async def send_vendor_invoice_reminder(
     now, to the default reminder email configured via /settings above.
     Mirrors sales_invoices' send-reminder endpoint, minus the
     scheduled-for-later and legal-notice options that don't apply here.
-    The automatic version of this (5 days before due, then daily until
+    The automatic version of this (starts N days before due, per
+    vendor_reminder_days_before in /settings, then daily until
     paid) lives in _daily_tasks_runner in main.py."""
     if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
         raise UnauthorizedFeature("Invoice Management")

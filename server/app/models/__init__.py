@@ -701,6 +701,10 @@ class AppSettings(Base):
     # _daily_tasks_runner). Nullable — automatic reminders simply don't
     # send until someone sets this.
     vendor_reminder_email = Column(String(255), nullable=True)
+    # How many days before a bill's due date the daily automatic
+    # reminders start (they then repeat every day until the bill is
+    # marked Paid, regardless of this number).
+    vendor_reminder_days_before = Column(Integer, nullable=False, default=5)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class CompanyRating(Base):

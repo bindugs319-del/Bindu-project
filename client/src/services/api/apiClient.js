@@ -588,9 +588,14 @@ export const vendorInvoices = {
     })
   },
   getSettings: () => apiRequest('/vendor-invoices/settings'),
-  updateSettings: (vendorReminderEmail) => {
+  updateSettings: ({ vendorReminderEmail, vendorReminderDaysBefore } = {}) => {
     const formData = new FormData()
-    formData.append('vendor_reminder_email', vendorReminderEmail || '')
+    if (vendorReminderEmail !== undefined) {
+      formData.append('vendor_reminder_email', vendorReminderEmail || '')
+    }
+    if (vendorReminderDaysBefore !== undefined && vendorReminderDaysBefore !== null) {
+      formData.append('vendor_reminder_days_before', vendorReminderDaysBefore)
+    }
     return apiRequest('/vendor-invoices/settings', { method: 'PUT', body: formData, headers: {} })
   },
   sendReminder: (id) => apiRequest(`/vendor-invoices/${id}/send-reminder`, { method: 'POST' }),

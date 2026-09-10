@@ -1189,11 +1189,13 @@ async def _daily_tasks_runner():
                 except Exception as e:
                     logger.error(f"Error in background reminder tasks: {e}")
 
-                # Vendor invoice (Accounts Payable) reminders — starts 5
-                # days before the due date and repeats every day this
-                # task runs (once daily) until the bill is marked Paid,
-                # per the single default reminder email set on the
-                # Vendor Bills page (AppSettings.vendor_reminder_email).
+                # Vendor invoice (Accounts Payable) reminders — starts a
+                # configurable number of days before the due date
+                # (AppSettings.vendor_reminder_days_before, defaults to 5)
+                # and repeats every day this task runs (once daily) until
+                # the bill is marked Paid, sent to the single default
+                # reminder email set on the Vendor Bills page
+                # (AppSettings.vendor_reminder_email).
                 # Deliberately separate from the PO reminder block above:
                 # vendor invoices have their own status field (no
                 # payment_completed_at) and their own settings row field.
@@ -1202,9 +1204,10 @@ async def _daily_tasks_runner():
                     vi_cfg_res = await session.execute(select(AppSettings).where(AppSettings.id == "default"))
                     vi_cfg = vi_cfg_res.scalars().first()
                     reminder_email = (vi_cfg.vendor_reminder_email if vi_cfg else None) or None
+                    reminder_days_before = (vi_cfg.vendor_reminder_days_before if vi_cfg else None) or 5
 
                     if reminder_email:
-                        cutoff = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=5)
+                        cutoff = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=reminder_days_before)
                         vi_q = select(VendorInvoice).where(
                             (VendorInvoice.status != "Paid") &
                             (VendorInvoice.archived.is_(False) | VendorInvoice.archived.is_(None)) &
