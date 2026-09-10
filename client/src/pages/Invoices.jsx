@@ -1292,6 +1292,7 @@ export default function Invoices({ onDataChange } = {}) {
                           <td className="p-2">
                             <input
                               type="number"
+                              step="0.01"
                               min="0"
                               value={item.rate}
                               onChange={e =>
