@@ -15,8 +15,17 @@ from app.exceptions import DriveAccessDenied
 
 logger = logging.getLogger(__name__)
 
-# Scopes for Drive access
-SCOPES = ["https://www.googleapis.com/auth/drive"]
+# drive.file (not the broader "drive" scope) — this app only ever
+# creates/uploads its own files and folders, never reads pre-existing
+# ones in the user's Drive, so it doesn't need broader access. This
+# matters beyond just following least-privilege: Google classifies full
+# "drive" as a sensitive scope requiring a lengthy verification process
+# to move out of Testing mode, while "drive.file" doesn't — and Testing
+# mode is exactly what causes the OAuth token to silently expire and
+# need re-authorizing every 7 days. Publishing to Production (see
+# Audience page in Google Cloud Console) with this narrower scope is
+# what actually makes the connection permanent.
+SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
 class DriveService:
