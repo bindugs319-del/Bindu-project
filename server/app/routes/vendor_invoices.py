@@ -337,16 +337,20 @@ async def get_vendor_invoice_settings(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    """Returns the default recipient email and reminder lead time for
-    automatic vendor-invoice payment reminders (see _daily_tasks_runner in
-    main.py). Single app-wide values, same "one settings row" pattern as
-    payment_window_days — set once here, then used for every vendor
-    invoice's automatic reminders rather than being re-entered per invoice."""
+    """Returns the recipient email and reminder lead time for automatic
+    vendor-invoice payment reminders (see _daily_tasks_runner in main.py),
+    scoped to the current user's own company — NOT the same "default" row
+    used by payment_window_days (that one really is meant to be global
+    across the whole app; this one must not be, since each company's
+    reminders need to go to that company's own inbox, not whichever
+    company last saved a value here). Falls back to scoping by user ID if
+    the user has no company_id set."""
     if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
         raise UnauthorizedFeature("Invoice Management")
 
     from app.models import AppSettings
-    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    settings_id = getattr(current_user, "company_id", None) or f"user:{current_user.id}"
+    result = await db.execute(select(AppSettings).where(AppSettings.id == settings_id))
     app_settings = result.scalars().first()
     return ResponseFormatter.create_success(
         data={
@@ -368,22 +372,24 @@ async def update_vendor_invoice_settings(
     vendor_reminder_email: Optional[str] = Form(None),
     vendor_reminder_days_before: Optional[int] = Form(None),
 ):
-    """Sets the default recipient and/or lead time for automatic
-    vendor-invoice payment reminders. Deliberately gated by normal
-    vendor-invoice feature access (not admin-only) — this is edited from
-    the Vendor Bills page itself by whoever manages vendor bills
-    day-to-day."""
+    """Sets the recipient and/or lead time for automatic vendor-invoice
+    payment reminders, scoped to the current user's own company (see
+    get_vendor_invoice_settings above for why). Deliberately gated by
+    normal vendor-invoice feature access (not admin-only) — this is
+    edited from the Vendor Bills page itself by whoever manages vendor
+    bills day-to-day."""
     if not await AccessControlService.can_access_feature(current_user.id, VENDOR_INVOICE_FEATURE, db):
         raise UnauthorizedFeature("Invoice Management")
     if vendor_reminder_days_before is not None and vendor_reminder_days_before < 0:
         raise HTTPException(status_code=400, detail="Reminder days before due date can't be negative.")
 
     from app.models import AppSettings
-    result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    settings_id = getattr(current_user, "company_id", None) or f"user:{current_user.id}"
+    result = await db.execute(select(AppSettings).where(AppSettings.id == settings_id))
     app_settings = result.scalars().first()
     if not app_settings:
         app_settings = AppSettings(
-            id="default",
+            id=settings_id,
             vendor_reminder_email=vendor_reminder_email,
             vendor_reminder_days_before=vendor_reminder_days_before if vendor_reminder_days_before is not None else 5,
         )
@@ -593,7 +599,8 @@ async def send_vendor_invoice_reminder(
         raise HTTPException(status_code=404, detail=VENDOR_INVOICE_NOT_FOUND_ERROR)
 
     from app.models import AppSettings
-    settings_result = await db.execute(select(AppSettings).where(AppSettings.id == "default"))
+    settings_id = getattr(current_user, "company_id", None) or f"user:{current_user.id}"
+    settings_result = await db.execute(select(AppSettings).where(AppSettings.id == settings_id))
     app_settings = settings_result.scalars().first()
     to_email = (app_settings.vendor_reminder_email if app_settings else None) or ""
     if not to_email:

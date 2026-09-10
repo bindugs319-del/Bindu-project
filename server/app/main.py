@@ -1190,28 +1190,47 @@ async def _daily_tasks_runner():
                     logger.error(f"Error in background reminder tasks: {e}")
 
                 # Vendor invoice (Accounts Payable) reminders — starts a
-                # configurable number of days before the due date
-                # (AppSettings.vendor_reminder_days_before, defaults to 5)
-                # and repeats every day this task runs (once daily) until
-                # the bill is marked Paid, sent to the single default
-                # reminder email set on the Vendor Bills page
-                # (AppSettings.vendor_reminder_email).
-                # Deliberately separate from the PO reminder block above:
-                # vendor invoices have their own status field (no
-                # payment_completed_at) and their own settings row field.
+                # per-company configurable number of days before the due
+                # date (AppSettings.vendor_reminder_days_before, defaults
+                # to 5) and repeats every day this task runs (once daily)
+                # until the bill is marked Paid, sent to that company's
+                # OWN reminder email (AppSettings.vendor_reminder_email).
+                #
+                # IMPORTANT: settings rows here are scoped per company
+                # (AppSettings.id = company_id, or "user:{user_id}" for
+                # users with no company) — see get_vendor_invoice_settings
+                # in vendor_invoices.py for why. An earlier version of
+                # this used one single shared settings row for every
+                # company on the platform, which meant every company's
+                # vendor-bill reminders were silently sent to whichever
+                # one email address was saved last, regardless of whose
+                # bill it actually was — a real cross-tenant data leak,
+                # not just a cosmetic bug. Each company is now looped
+                # over separately with its own email and its own
+                # days-before threshold, matched to only ITS OWN invoices.
                 try:
                     from app.models import VendorInvoice, AppSettings
-                    vi_cfg_res = await session.execute(select(AppSettings).where(AppSettings.id == "default"))
-                    vi_cfg = vi_cfg_res.scalars().first()
-                    reminder_email = (vi_cfg.vendor_reminder_email if vi_cfg else None) or None
-                    reminder_days_before = (vi_cfg.vendor_reminder_days_before if vi_cfg else None) or 5
-
-                    if reminder_email:
+                    vi_cfg_res = await session.execute(
+                        select(AppSettings).where(AppSettings.vendor_reminder_email.isnot(None))
+                    )
+                    for vi_cfg in vi_cfg_res.scalars().all():
+                        reminder_email = vi_cfg.vendor_reminder_email
+                        if not reminder_email:
+                            continue
+                        reminder_days_before = vi_cfg.vendor_reminder_days_before or 5
                         cutoff = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=reminder_days_before)
+
+                        if vi_cfg.id.startswith("user:"):
+                            scope_user_id = vi_cfg.id.split("user:", 1)[1]
+                            scope_filter = (VendorInvoice.company_id.is_(None)) & (VendorInvoice.user_id == scope_user_id)
+                        else:
+                            scope_filter = VendorInvoice.company_id == vi_cfg.id
+
                         vi_q = select(VendorInvoice).where(
                             (VendorInvoice.status != "Paid") &
                             (VendorInvoice.archived.is_(False) | VendorInvoice.archived.is_(None)) &
-                            (VendorInvoice.payment_due_date < cutoff.date())
+                            (VendorInvoice.payment_due_date < cutoff.date()) &
+                            scope_filter
                         )
                         vi_res = await session.execute(vi_q)
                         for vi in vi_res.scalars().all():
