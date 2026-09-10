@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 from datetime import datetime, timezone
 import uuid
+import asyncio
 from app.database import get_db
 from app.models import User
 from app.dependencies import get_current_user, require_master_admin, require_role
@@ -208,10 +209,17 @@ async def operations_review(
         # be hardcoded to http://localhost:8000, which was never valid on
         # Render regardless of storage backend.
         from app.services.file_storage_service import store_uploaded_file
-        with open(pdf_path, "rb") as f:
-            pdf_bytes = f.read()
+        # Plain (blocking) open()/read() here would stall the whole event
+        # loop while waiting on disk I/O — asyncio.to_thread() runs it on
+        # a worker thread instead, same fix already applied to
+        # email_service.py and file_storage_service.py's own local-disk
+        # write path (flagged by SonarCloud's Reliability rating check).
+        def _read_pdf_bytes(path):
+            with open(path, "rb") as f:
+                return f.read()
+        pdf_bytes = await asyncio.to_thread(_read_pdf_bytes, pdf_path)
         upload_result = await store_uploaded_file(pdf_bytes, f"safety_report_{id}.pdf", "application/pdf", "reports")
-        report_url = upload_result["url"] if upload_result["storage"] == "drive" else f"{settings.BASE_URL}{upload_result['url']}"
+        report_url = upload_result["url"] if upload_result["storage"] == "b2" else f"{settings.BASE_URL}{upload_result['url']}"
         print(f"[BUSINESS] ✅ PDF generated: {pdf_path}")
         
     except Exception as e:
