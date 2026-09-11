@@ -84,53 +84,8 @@ export default function Contact() {
             </motion.div>
           )}
 
-          {/* Info Cards */}
-          <div className="space-y-4 mb-8">
-            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-lg">📧</div>
-                <h3 className="font-bold text-[#0F172A] text-lg">Support</h3>
-              </div>
-              <p className="text-[#475569] text-sm mb-2">
-                For general inquiries, verification issues, or support tickets:
-              </p>
-              <a
-                href="mailto:support@preflexsol.com"
-                className="text-[#1D4ED8] font-bold text-base"
-              >
-                support@preflexsol.com
-              </a>
-              <p className="text-[#64748B] text-xs mt-3">
-                We typically respond within 1–2 business days.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-lg">📋</div>
-                <h3 className="font-bold text-[#0F172A] text-lg">For Defaulter Verification Issues</h3>
-              </div>
-              <p className="text-[#475569] text-sm">
-                If you submitted the required documents but the defaulting party has not appeared on the list yet,
-                email us at <a href="mailto:support@preflexsol.com" className="font-bold text-[#1D4ED8]">support@preflexsol.com</a> with
-                your submission reference and we will investigate promptly.
-              </p>
-            </div>
-
-            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-lg">🤝</div>
-                <h3 className="font-bold text-[#0F172A] text-lg">Missing a Name from the Registry?</h3>
-              </div>
-              <p className="text-[#475569] text-sm">
-                Email <a href="mailto:support@preflexsol.com" className="font-bold text-[#1D4ED8]">support@preflexsol.com</a> with
-                the vendor's GSTN and our team will assist you in adding them to the Collaborative Overdue Registry.
-              </p>
-            </div>
-          </div>
-
           {/* Contact Form Card */}
-          <div className="bg-white rounded-[20px] shadow-lg max-w-[600px] mx-auto p-8">
+          <div className="bg-white rounded-[20px] shadow-lg max-w-[600px] mx-auto p-8 mb-8">
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="name" className="text-sm font-semibold text-[#374151]">Name</label>
@@ -181,6 +136,62 @@ export default function Contact() {
                 {loading ? 'Sending...' : 'Send'}
               </button>
             </form>
+          </div>
+
+          {/* Info Cards */}
+          <div className="space-y-4 mb-8">
+            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 text-lg">📧</div>
+                <h3 className="font-bold text-[#0F172A] text-lg">Support</h3>
+              </div>
+              <p className="text-[#475569] text-sm mb-2">
+                For general inquiries, verification issues, or support tickets:
+              </p>
+              <a
+                href="mailto:support@preflexsol.com"
+                className="text-[#1D4ED8] font-bold text-base"
+              >
+                support@preflexsol.com
+              </a>
+              <p className="text-[#64748B] text-xs mt-3">
+                We typically respond within 1–2 business days.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 text-lg">📋</div>
+                <h3 className="font-bold text-[#0F172A] text-lg">For Defaulter Verification Issues</h3>
+              </div>
+              <p className="text-[#475569] text-sm">
+                If you submitted the required documents but the defaulting party has not appeared on the list yet,
+                email us at <a href="mailto:support@preflexsol.com" className="font-bold text-[#1D4ED8]">support@preflexsol.com</a> with
+                your submission reference and we will investigate promptly.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-green-700 text-lg">🤝</div>
+                <h3 className="font-bold text-[#0F172A] text-lg">Missing a Name from the Registry?</h3>
+              </div>
+              <p className="text-[#475569] text-sm">
+                Email <a href="mailto:support@preflexsol.com" className="font-bold text-[#1D4ED8]">support@preflexsol.com</a> with
+                the vendor's GSTN and our team will assist you in adding them to the Collaborative Overdue Registry.
+              </p>
+            </div>
+
+            {/* TODO: Replace with the actual registered office address before publishing */}
+            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-lg">📍</div>
+                <h3 className="font-bold text-[#0F172A] text-lg">Our Location</h3>
+              </div>
+              <p className="text-[#475569] text-sm">
+                [Add registered office address here]
+              </p>
+            </div>
           </div>
         </motion.div>
       </div>

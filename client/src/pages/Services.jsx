@@ -48,6 +48,44 @@ FAQSection.propTypes = {
   })).isRequired
 }
 
+// Shared expand/collapse wrapper so every service segment (Report Overdue
+// Payer, Credit Management, Partners Credit Overdue Report, Finalization
+// Steps) follows the same structure and interaction pattern.
+function CollapsibleSection({ id, icon, title, defaultOpen = false, bg = 'bg-white', children }) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <section id={id} className={`py-8 px-4 ${bg} border-b border-gray-200`}>
+      <div className="max-w-5xl mx-auto">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="w-full flex items-center justify-between gap-3 text-left"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-3xl">{icon}</span>
+            <div>
+              <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A' }}>{title}</h2>
+              <div style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B', marginTop: '4px' }}></div>
+            </div>
+          </div>
+          <span className="text-2xl font-bold text-blue-600 flex-shrink-0">{open ? '−' : '+'}</span>
+        </button>
+        {open && <div className="mt-6">{children}</div>}
+      </div>
+    </section>
+  )
+}
+
+CollapsibleSection.propTypes = {
+  id: PropTypes.string.isRequired,
+  icon: PropTypes.node.isRequired,
+  title: PropTypes.string.isRequired,
+  defaultOpen: PropTypes.bool,
+  bg: PropTypes.string,
+  children: PropTypes.node.isRequired
+}
+
 const reportOverdueFaqs = [
   { q: "Q1. Definition of a Defaulting Purchasing Party?", a: "A defaulter is a business that fails to pay its suppliers on time. CreditDataWatch offers a reliable, accessible database of these entities, compiling reports submitted exclusively by our network of GST-registered members." },
   { q: "Q2. Required Documentation for Defaulter Verification?", a: "To substantiate a defaulter claim, members must upload an updated ledger for the defaulting party alongside a valid PO and a valid GST number. Please be aware that CreditDataWatch reserves the right to request further documentation if required for verification." },
@@ -114,16 +152,7 @@ export default function Services() {
       </section>
 
       {/* SECTION 1 — Report Overdue Payer */}
-      <section id="report-overdue-payer" className="py-8 px-4 bg-white" style={{ marginBottom: '24px' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">⚠️</span>
-            <div>
-              <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A' }}>Report Overdue Payer</h2>
-              <div style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B', marginTop: '4px' }}></div>
-            </div>
-          </div>
-
+      <CollapsibleSection id="report-overdue-payer" icon="⚠️" title="Report Overdue Payer" defaultOpen bg="bg-white">
           <div className="space-y-3">
             {/* Card 1 */}
             <div className="bg-white rounded-xl p-4 border border-gray-200">
@@ -171,20 +200,10 @@ export default function Services() {
             <h3 style={{ fontSize: '14px', fontWeight: 500 }} className="text-xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
             <FAQSection faqs={reportOverdueFaqs} />
           </div>
-        </div>
-      </section>
+      </CollapsibleSection>
 
       {/* SECTION 2 — Streamlined Credit Management */}
-      <section id="streamlined-credit-management" className="py-8 px-4 bg-gray-50" style={{ marginBottom: '24px' }}>
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">💳</span>
-            <div>
-              <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A' }}>Credit Management</h2>
-              <div style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B', marginTop: '4px' }}></div>
-            </div>
-          </div>
-
+      <CollapsibleSection id="streamlined-credit-management" icon="💳" title="Credit Management" bg="bg-gray-50">
           <div className="space-y-3">
             {/* Intro */}
             <p style={{ fontSize: '15px', lineHeight: 1.7, color: '#333' }} className="text-lg mb-8 max-w-3xl leading-relaxed">
@@ -231,20 +250,10 @@ export default function Services() {
             <h3 style={{ fontSize: '14px', fontWeight: 500 }} className="text-xl font-bold text-gray-800 mb-4">Frequently Asked Questions</h3>
             <FAQSection faqs={creditManagementFaqs} />
           </div>
-        </div>
-      </section>
+      </CollapsibleSection>
 
       {/* SECTION 3 — Partners Credit Overdue Report */}
-      <section id="partners-credit-overdue-report" className="py-8 px-4 bg-white">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-3xl">🤝</span>
-            <div>
-              <h2 style={{ fontSize: '28px', fontWeight: 700, color: '#0F172A' }}>Partners Credit Overdue Report</h2>
-              <div style={{ width: '48px', height: '3px', backgroundColor: '#F59E0B', marginTop: '4px' }}></div>
-            </div>
-          </div>
-
+      <CollapsibleSection id="partners-credit-overdue-report" icon="🤝" title="Partners Credit Overdue Report" bg="bg-white">
           <div className="space-y-3">
             {/* Intro */}
             <div className="mb-8">
@@ -290,9 +299,12 @@ export default function Services() {
                 </div>
               </div>
             </div>
+          </div>
+      </CollapsibleSection>
 
-            {/* Resolution & Finalization Guide */}
-            <div id="resolution-finalization-guide" className="bg-white rounded-xl p-4 border border-gray-200">
+      {/* SECTION 4 — Finalization Steps */}
+      <CollapsibleSection id="finalization-steps" icon="📝" title="Finalization Steps" bg="bg-gray-50">
+            <div className="bg-white rounded-xl p-4 border border-gray-200">
               <h3 style={{ fontSize: '18px', fontWeight: 500, color: '#1a3c6e' }} className="text-xl font-bold text-primary-700 mb-4">
                 Resolution & Finalization Guide
               </h3>
@@ -362,9 +374,7 @@ export default function Services() {
                 <p className="text-gray-700 text-xs">Go to User Dashboard → Search Invoice No → Mark as "Closed"</p>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
+      </CollapsibleSection>
 
     </div>
   )

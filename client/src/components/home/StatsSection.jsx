@@ -2,10 +2,10 @@ import { useEffect, useState } from 'react'
 import { getPublicBusinessStats } from '../../services/api/apiClient'
 
 const DEFAULT_STATS = [
-  { label: 'Highest No. of Defaulters by a Single Customer', value: '668+' },
-  { label: 'Total Number of MSMEs Connected', value: '39+ Lakhs' },
-  { label: 'Average Percentage of Settlements', value: '59%' },
-  { label: 'Total amount reported defaulter', value: '4578+ Crores' },
+  { label: 'Defaulters by a Single Customer', value: '668+' },
+  { label: 'MSMEs Connected', value: '39+ Lakhs' },
+  { label: 'Settlements', value: '59%' },
+  { label: 'Reported Defaulter Amount', value: '4578+ Crores' },
 ]
 
 const AnimatedStatValue = ({ value }) => (
@@ -42,7 +42,7 @@ export default function StatsSection() {
             Trusted by Thousands of Businesses
           </h2>
           <p className="text-[#475569] text-lg">
-            Real-time stats showing our platform's impact across India
+            Real-time statistics showing our platform's impact across India
           </p>
         </div>
 

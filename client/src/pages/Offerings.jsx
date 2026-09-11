@@ -1,5 +1,4 @@
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
 import PricingTable from '../components/common/PricingTable'
 
 const DEFAULT_CONTENT = {
@@ -102,47 +101,11 @@ export default function Offerings() {
         <PricingTable content={DEFAULT_CONTENT} />
       </section>
 
-      {/* Bottom CTA Section */}
-      <section 
-        className="py-20 px-4 text-center relative overflow-hidden"
-        style={{
-          background: 'linear-gradient(135deg, #0F172A 0%, #1E3A8A 60%, #1D4ED8 100%)'
-        }}
-      >
-        {/* Decorative Circles */}
-        <div 
-          className="absolute top-10 left-10 w-64 h-64 rounded-full"
-          style={{
-            backgroundColor: '#1E3A8A',
-            opacity: 0.1
-          }}
-        ></div>
-        <div 
-          className="absolute bottom-10 right-10 w-96 h-96 rounded-full"
-          style={{
-            backgroundColor: '#0F172A',
-            opacity: 0.1
-          }}
-        ></div>
-
-        <div className="relative z-10 max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold text-white mb-4">
-            Ready to protect your business?
-          </h2>
-          <p className="text-[#93C5FD] text-lg mb-8">
-            Join thousands of Indian businesses using CreditDataWatch
-          </p>
-          <Link 
-            to="/membership"
-            className="inline-block px-8 py-4 rounded-[10px] font-bold text-[#0F172A] transition-all duration-200 hover:scale-105"
-            style={{
-              background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)'
-            }}
-          >
-            Get Started Now
-          </Link>
-        </div>
-      </section>
+      {/* Note: this page used to have its own bottom CTA ("Ready to protect
+          your business?" -> Get Started Now) here. It was removed because
+          MainLayout already renders a global CTASection right after every
+          page's content, which was producing two near-identical CTA blocks
+          stacked back to back on this page. */}
     </motion.div>
   )
 }

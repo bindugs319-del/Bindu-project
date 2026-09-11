@@ -131,6 +131,24 @@ export default function About() {
       {/* Vision & Mission — Row 2 */}
       <section className="py-16 px-4 bg-[#F0F4FF]">
         <div className="max-w-5xl mx-auto grid lg:grid-cols-2 gap-8">
+          {/* Our Vision */}
+          <div 
+            className="card relative overflow-hidden"
+            style={{ 
+              backgroundColor: '#EFF6FF', 
+              borderLeft: '4px solid #1E3A8A' 
+            }}
+          >
+            <span 
+              className="absolute top-2 right-4 text-6xl font-serif opacity-10"
+              style={{ color: '#1E3A8A' }}
+            >"</span>
+            <h3 className="text-2xl font-bold text-[#1E3A8A] mb-4">Our Vision</h3>
+            <p className="text-[#475569] leading-relaxed">
+              "To create a transparent and trusted business ecosystem where every organization can make informed credit decisions, minimize financial risk, and strengthen long-term partnerships through verified data and actionable insights."
+            </p>
+          </div>
+
           {/* Our Mission */}
           <div 
             className="card relative overflow-hidden"
@@ -166,24 +184,6 @@ export default function About() {
                 <span>Build a community of responsible businesses that collaborate to maintain financial health and trust across industries.</span>
               </li>
             </ol>
-          </div>
-
-          {/* Our Vision */}
-          <div 
-            className="card relative overflow-hidden"
-            style={{ 
-              backgroundColor: '#EFF6FF', 
-              borderLeft: '4px solid #1E3A8A' 
-            }}
-          >
-            <span 
-              className="absolute top-2 right-4 text-6xl font-serif opacity-10"
-              style={{ color: '#1E3A8A' }}
-            >"</span>
-            <h3 className="text-2xl font-bold text-[#1E3A8A] mb-4">Our Vision</h3>
-            <p className="text-[#475569] leading-relaxed">
-              "To create a transparent and trusted business ecosystem where every organization can make informed credit decisions, minimize financial risk, and strengthen long-term partnerships through verified data and actionable insights."
-            </p>
           </div>
         </div>
       </section>
