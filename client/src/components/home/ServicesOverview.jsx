@@ -7,7 +7,7 @@ export default function ServicesOverview() {
         <div className="grid lg:grid-cols-2 gap-10 items-start">
           {/* Copy */}
           <div>
-            <div className="inline-block w-24 h-1 bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] rounded-full mb-4" />
+            <div className="w-24 h-1 mx-auto bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] rounded-full mb-4" />
             <h2 className="text-xl sm:text-2xl font-heading font-bold text-[#0F172A] mb-3">
               What CreditDataWatch Does
             </h2>
@@ -43,7 +43,7 @@ export default function ServicesOverview() {
               instead of stretching to fill the full grid column. */}
           <div className="flex justify-center lg:justify-end">
             <div
-              className="card max-w-[320px] sm:max-w-[360px] w-full"
+              className="card max-w-[380px] sm:max-w-[430px] w-full"
               style={{ borderTop: '3px solid #1E3A8A', boxShadow: '0 4px 24px rgba(30, 58, 138, 0.15)' }}
             >
               <img

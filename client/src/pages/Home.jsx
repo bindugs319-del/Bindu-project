@@ -13,8 +13,8 @@ export default function Home() {
       <HeroSection />
       <TrustTicker />
       <ScamAlert />
-      <ServicesOverview />
       <StatsSection />
+      <ServicesOverview />
       <Testimonial />
       <CreditScoreInfo />
       <FAQSection />
