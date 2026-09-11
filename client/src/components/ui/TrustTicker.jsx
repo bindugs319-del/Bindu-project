@@ -42,7 +42,7 @@ const TrustTicker = () => {
               )}
               <div className="text-center w-full px-4 py-2">
                 <div
-                  className="text-3xl md:text-4xl lg:text-5xl font-heading font-extrabold mb-1"
+                  className="text-2xl md:text-3xl lg:text-4xl font-heading font-extrabold mb-1"
                   style={{
                     background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
                     WebkitBackgroundClip: 'text',
