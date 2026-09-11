@@ -4,7 +4,7 @@ export default function ServicesOverview() {
   return (
     <section className="section-padding bg-white">
       <div className="container-custom">
-        <div className="grid lg:grid-cols-2 gap-10 items-center">
+        <div className="grid lg:grid-cols-2 gap-10 items-start">
           {/* Copy */}
           <div>
             <div className="inline-block w-24 h-1 bg-gradient-to-r from-[#1E3A8A] to-[#3B82F6] rounded-full mb-4" />
