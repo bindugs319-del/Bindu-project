@@ -182,15 +182,36 @@ export default function Contact() {
               </p>
             </div>
 
-            {/* TODO: Replace with the actual registered office address before publishing */}
             <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-lg">📍</div>
                 <h3 className="font-bold text-[#0F172A] text-lg">Our Location</h3>
               </div>
               <p className="text-[#475569] text-sm">
-                [Add registered office address here]
+                26/27, 1st Main Rd, Old Manjunatha Layout, Ramamurthy Nagar,<br />
+                Bengaluru, Karnataka 560016
               </p>
+              <a
+                href="https://www.preflexsol.com/contact"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-block text-[#1D4ED8] font-bold text-sm mt-3"
+              >
+                View on our website →
+              </a>
+            </div>
+
+            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 text-lg">📞</div>
+                <h3 className="font-bold text-[#0F172A] text-lg">Call Us</h3>
+              </div>
+              <a
+                href="tel:+918079623427"
+                className="text-[#1D4ED8] font-bold text-base"
+              >
+                080 7962 3427
+              </a>
             </div>
           </div>
         </motion.div>
