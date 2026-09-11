@@ -200,19 +200,6 @@ export default function Contact() {
                 View on our website →
               </a>
             </div>
-
-            <div className="bg-white rounded-[20px] p-6 border border-[#E2E8F0] shadow-md">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center text-rose-700 text-lg">📞</div>
-                <h3 className="font-bold text-[#0F172A] text-lg">Call Us</h3>
-              </div>
-              <a
-                href="tel:+918079623427"
-                className="text-[#1D4ED8] font-bold text-base"
-              >
-                080 7962 3427
-              </a>
-            </div>
           </div>
         </motion.div>
       </div>
