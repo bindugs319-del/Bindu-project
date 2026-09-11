@@ -38,16 +38,23 @@ export default function ServicesOverview() {
             </Link>
           </div>
 
-          {/* Flow diagram (same one used on About Us) */}
-          <div
-            className="card"
-            style={{ borderTop: '3px solid #1E3A8A', boxShadow: '0 4px 24px rgba(30, 58, 138, 0.15)' }}
-          >
-            <img
-              src="/flow-diagram.png"
-              alt="How CreditDataWatch works"
-              className="w-full rounded-lg border border-gray-200"
-            />
+          {/* Flow diagram (same one used on About Us) — the source image is a
+              tall portrait infographic, so it's capped to a sane width here
+              instead of stretching to fill the full grid column. */}
+          <div className="flex justify-center lg:justify-end">
+            <div
+              className="card max-w-[320px] sm:max-w-[360px] w-full"
+              style={{ borderTop: '3px solid #1E3A8A', boxShadow: '0 4px 24px rgba(30, 58, 138, 0.15)' }}
+            >
+              <img
+                src="/flow-diagram.png"
+                alt="How CreditDataWatch works"
+                className="w-full rounded-lg border border-gray-200"
+              />
+              <p className="text-center text-xs text-[#64748B] mt-3">
+                From reporting an overdue payer to settlement — end to end
+              </p>
+            </div>
           </div>
         </div>
       </div>

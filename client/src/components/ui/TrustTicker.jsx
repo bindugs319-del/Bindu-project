@@ -22,16 +22,39 @@ const TrustTicker = () => {
   }, [])
 
   return (
-    <section className="py-10 bg-white border-y border-primary-100 overflow-hidden">
+    <section
+      className="py-8 overflow-hidden"
+      style={{ background: 'linear-gradient(180deg, #F8FAFC 0%, #EFF6FF 100%)' }}
+    >
       <div className="container-custom">
-        <div className="flex items-center justify-center gap-8 md:gap-16 flex-wrap">
-          {items.map((item) => (
-            <div key={item.label} className="text-center">
-              <div className="text-4xl md:text-5xl font-heading font-bold bg-gradient-primary bg-clip-text text-transparent mb-1">
-                {item.value}
-              </div>
-              <div className="text-text-secondary text-sm md:text-base font-medium">
-                {item.label}
+        <div
+          className="rounded-[16px] px-6 py-6 md:py-8 flex items-stretch justify-center gap-0 flex-wrap md:flex-nowrap"
+          style={{
+            background: '#FFFFFF',
+            boxShadow: '0 8px 30px -12px rgba(30, 58, 138, 0.18)',
+            border: '1px solid #E2E8F0',
+          }}
+        >
+          {items.map((item, idx) => (
+            <div key={item.label} className="flex items-center flex-1 min-w-[160px]">
+              {idx > 0 && (
+                <div className="hidden md:block w-px self-stretch bg-[#E2E8F0] mx-6 lg:mx-10" />
+              )}
+              <div className="text-center w-full px-4 py-2">
+                <div
+                  className="text-3xl md:text-4xl lg:text-5xl font-heading font-extrabold mb-1"
+                  style={{
+                    background: 'linear-gradient(135deg, #1E3A8A 0%, #3B82F6 100%)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    backgroundClip: 'text',
+                  }}
+                >
+                  {item.value}
+                </div>
+                <div className="text-[#64748B] text-xs md:text-sm font-semibold uppercase tracking-wide">
+                  {item.label}
+                </div>
               </div>
             </div>
           ))}
