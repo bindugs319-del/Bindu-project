@@ -47,7 +47,7 @@ async def get_access_token() -> str:
         "grant_type": "refresh_token",
     }
     async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(token_url, params=params)
+        resp = await client.post(token_url, data=params)
 
     if resp.status_code != 200:
         logger.error("Zoho token refresh failed: %s %s", resp.status_code, resp.text)
