@@ -1062,6 +1062,8 @@ app.include_router(chat.router, prefix=f"{API_PREFIX}", tags=["Chat"])
 app.include_router(activity.router, prefix=f"{API_PREFIX}/activity", tags=["Activity"])
 app.include_router(core.business_requests_router, prefix=f"{API_PREFIX}", tags=["Business Requests"])
 app.include_router(credibility_index.router)
+from app.routes import integrations_zoho
+app.include_router(integrations_zoho.router, prefix=f"{API_PREFIX}", tags=["Zoho Integration"])
 app.include_router(business_check.router, prefix=API_PREFIX)
 app.include_router(files.router, prefix=API_PREFIX, tags=["Files"])
 

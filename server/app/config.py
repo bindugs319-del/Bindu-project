@@ -183,6 +183,27 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     GROQ_API_KEY: str = ""
 
+    # Zoho Invoice integration — see docs/zoho-integration-setup.md.
+    # Lets an invoice created/updated in Zoho Invoice appear in
+    # CreditDataWatch automatically via a webhook, instead of a manual
+    # export-then-import step.
+    ZOHO_CLIENT_ID: str = ""
+    ZOHO_CLIENT_SECRET: str = ""
+    ZOHO_REFRESH_TOKEN: str = ""
+    ZOHO_ORGANIZATION_ID: str = ""
+    # Change to https://accounts.zoho.in, .eu, .com.au etc. to match the
+    # Zoho data center your account is in.
+    ZOHO_ACCOUNTS_BASE_URL: str = "https://accounts.zoho.com"
+    # Change to https://www.zohoapis.in/invoice/v3 etc. to match your DC.
+    ZOHO_API_BASE_URL: str = "https://www.zohoapis.com/invoice/v3"
+    # A random string you choose — put the same value in the webhook URL
+    # you configure in Zoho, as ?secret=... . Stops random callers from
+    # hitting the webhook endpoint.
+    ZOHO_WEBHOOK_SECRET: str = ""
+    # The CreditDataWatch account email that Zoho-synced invoices get
+    # filed under.
+    ZOHO_TARGET_USER_EMAIL: str = ""
+
     class Config:
         # Retain default for environments that run from server/ directory
         env_file = ".env"
