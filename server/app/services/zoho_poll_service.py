@@ -101,6 +101,7 @@ async def run_zoho_poll_once(db: AsyncSession) -> dict:
 
     invoices = await zoho_service.list_invoices(per_page=100)
     if not invoices:
+        logger.info("Zoho poll: checked 0 invoice(s), synced 0 (Zoho returned no invoices at all)")
         return {"status": "ok", "checked": 0, "synced": 0}
 
     target_user = await zoho_sync_service.get_target_user(db)
