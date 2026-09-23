@@ -21,8 +21,22 @@ export default function Login() {
   const [sendingOtp, setSendingOtp] = useState(false)
   const [submittingOtp, setSubmittingOtp] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [savedGstins, setSavedGstins] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('cdw_saved_gstins') || '[]') } catch { return [] }
+  })
 
-  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+  const rememberGstin = (g) => {
+    const v = (g || '').trim().toUpperCase()
+    if (!v) return
+    const next = [v, ...savedGstins.filter((x) => x !== v)].slice(0, 5)
+    try { localStorage.setItem('cdw_saved_gstins', JSON.stringify(next)) } catch {}
+    setSavedGstins(next)
+  }
+
+  const handleChange = (e) => {
+    const { name, value } = e.target
+    setForm((prev) => ({ ...prev, [name]: value }))
+  }
   
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -53,6 +67,7 @@ export default function Login() {
       })
       
       if (success) {
+        rememberGstin(form.gstin)
         logActivity(ACTIONS.LOGIN, { details: 'User logged in successfully' }) 
         setStatus({ type: 'success', message: 'Login successful! Redirecting...' })
         
@@ -123,6 +138,7 @@ export default function Login() {
       otpCode.trim()
     )
     if (res.ok) {
+      rememberGstin(otpGstin)
       const userData = await loadUser()
       setStatus({ type: 'success', message: 'Login successful! Redirecting...' })
       
@@ -249,9 +265,13 @@ export default function Login() {
                   value={form.gstin}
                   onChange={handleChange}
                   required
+                  list="saved-gstins"
                   className="mt-2 w-full px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
                   placeholder="22AAAAA0000A1Z5"
                 />
+                <datalist id="saved-gstins">
+                  {savedGstins.map((g) => <option key={g} value={g} />)}
+                </datalist>
                 <p className="text-xs text-[#64748B] mt-1">GSTIN will be validated during login.</p>
               </div>
 
@@ -302,9 +322,13 @@ export default function Login() {
                   value={otpGstin}
                   onChange={(e) => setOtpGstin(e.target.value)}
                   disabled={otpSent}
+                  list="saved-gstins"
                   className="mt-2 w-full px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)] disabled:bg-[#F1F5F9]"
                   placeholder="22AAAAA0000A1Z5"
                 />
+                <datalist id="saved-gstins">
+                  {savedGstins.map((g) => <option key={g} value={g} />)}
+                </datalist>
               </div>
 
               <div className="flex gap-2">
