@@ -944,6 +944,7 @@ async def lifespan(app: FastAPI):
         spawn_background_task(_daily_tasks_runner())
         spawn_background_task(_scheduled_reminders_runner())
         spawn_background_task(_overdue_legal_notifier_runner())
+        spawn_background_task(_zoho_poll_runner())
 
     yield
 
@@ -1356,6 +1357,27 @@ async def _scheduled_reminders_runner():
             logger.error(f"Error in scheduled reminders runner: {e}")
         
         await asyncio.sleep(60)
+
+async def _zoho_poll_runner():
+    """Checks Zoho Invoice for new/changed invoices on a timer and syncs
+    them into sales_invoices. See app/services/zoho_poll_service.py for
+    why this polls instead of using a webhook (Zoho's free plan has no
+    Automation/Webhooks). Stays quiet (just sleeps) until all the
+    ZOHO_* settings are configured, so it's harmless to have running
+    before Zoho setup is finished."""
+    from app.services.zoho_poll_service import run_zoho_poll_once, zoho_configured
+
+    interval = getattr(settings, "ZOHO_POLL_INTERVAL_SECONDS", 900)
+    logger.info(f"Starting Zoho invoice poll runner ({interval}s interval)")
+    while True:
+        try:
+            if zoho_configured():
+                async with AsyncSessionLocal() as session:
+                    await run_zoho_poll_once(session)
+        except Exception as e:
+            logger.error(f"Error in Zoho poll runner: {e}")
+        await asyncio.sleep(interval)
+
 
 async def _overdue_legal_notifier_runner():
     """Checks for newly overdue POs and notifies legal team every minute"""

@@ -94,3 +94,42 @@ async def fetch_invoice(invoice_id: str) -> dict:
     if not invoice:
         raise RuntimeError(f"Zoho fetch_invoice response had no 'invoice' key: {body}")
     return invoice
+
+
+async def list_invoices(per_page: int = 100) -> list:
+    """Fetches up to `per_page` invoices, most-recently-modified first.
+
+    Used by the polling sync (app/services/zoho_poll_service.py) instead
+    of a webhook, since Zoho's free plan doesn't include
+    Automation/Webhooks. Zoho's List Invoices endpoint accepts a
+    last_modified_time filter, but its exact matching behaviour (exact
+    match vs. "since") isn't confirmed for this account, so we don't
+    rely on it — we always fetch newest-first and let the caller decide
+    where to stop based on its own saved watermark. per_page=100 covers
+    a very large amount of invoicing activity per 15-minute poll; raise
+    it (Zoho allows up to 200) if you have an unusually high volume.
+    """
+    if not settings.ZOHO_ORGANIZATION_ID:
+        raise RuntimeError("ZOHO_ORGANIZATION_ID is not configured.")
+
+    access_token = await get_access_token()
+    url = f"{settings.ZOHO_API_BASE_URL}/invoices"
+    headers = {
+        "Authorization": f"Zoho-oauthtoken {access_token}",
+        "X-com-zoho-invoice-organizationid": settings.ZOHO_ORGANIZATION_ID,
+    }
+    params = {
+        "sort_column": "last_modified_time",
+        "sort_order": "D",  # descending — newest first
+        "per_page": per_page,
+        "page": 1,
+    }
+    async with httpx.AsyncClient(timeout=20) as client:
+        resp = await client.get(url, headers=headers, params=params)
+
+    if resp.status_code != 200:
+        logger.error("Zoho list_invoices failed: %s %s", resp.status_code, resp.text)
+        raise RuntimeError(f"Zoho list_invoices failed ({resp.status_code}): {resp.text}")
+
+    body = resp.json()
+    return body.get("invoices") or []

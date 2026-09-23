@@ -203,6 +203,10 @@ class Settings(BaseSettings):
     # The CreditDataWatch account email that Zoho-synced invoices get
     # filed under.
     ZOHO_TARGET_USER_EMAIL: str = ""
+    # How often (seconds) the background poller checks Zoho for new/
+    # changed invoices. Used because Zoho's free plan has no webhooks —
+    # see app/services/zoho_poll_service.py. Default: 15 minutes.
+    ZOHO_POLL_INTERVAL_SECONDS: int = 900
 
     class Config:
         # Retain default for environments that run from server/ directory
