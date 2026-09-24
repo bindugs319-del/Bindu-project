@@ -170,40 +170,54 @@ async def send_email_with_attachment(
     attachment_path: str = None,
     attachment_name: str = "Legal_Notice.pdf"
 ):
+    """Back-compat single-file wrapper around send_email_with_attachments
+    (below), which every caller that needs 2+ attachments — e.g. the
+    sales-invoice reminder's "attach invoice document AND legal notice"
+    option — should use instead."""
     import os
     import asyncio
 
+    attachments = []
+    if attachment_path and os.path.exists(attachment_path):
+        def _read_file_bytes(path: str) -> bytes:
+            with open(path, "rb") as f:
+                return f.read()
+        file_bytes = await asyncio.to_thread(_read_file_bytes, attachment_path)
+        attachments.append((file_bytes, attachment_name))
+    else:
+        print(f"[EMAIL] No attachment found at: {attachment_path}")
+
+    return await send_email_with_attachments(to_email, subject, body, attachments)
+
+
+async def send_email_with_attachments(
+    to_email: str,
+    subject: str,
+    body: str,
+    attachments: list,  # list of (file_bytes: bytes, filename: str) tuples
+):
+    """Same as send_email_with_attachment but for any number of files at
+    once (Brevo's API already accepts a list under "attachment" — the
+    single-file version just never used more than one slot of it)."""
     svc = EmailService()
 
     if svc._looks_like_placeholder():
-        print(f"[MOCK ATTACHMENT EMAIL] To: {to_email} | Subject: {subject} | Attachment: {attachment_name}")
+        names = ", ".join(name for _, name in attachments) or "(none)"
+        print(f"[MOCK ATTACHMENT EMAIL] To: {to_email} | Subject: {subject} | Attachments: {names}")
         return False
 
     payload = svc._base_payload(to_email, subject)
     payload["textContent"] = body
 
-    if attachment_path and os.path.exists(attachment_path):
-        # Reading the file with the plain (blocking) open() here would
-        # block the whole event loop while it waits on disk I/O, which is
-        # a real problem in an async server handling concurrent requests.
-        # asyncio.to_thread() runs it on a worker thread instead, keeping
-        # this coroutine non-blocking without adding a new dependency
-        # (e.g. aiofiles) for what's normally a small, occasional read.
-        def _read_file_bytes(path: str) -> bytes:
-            with open(path, "rb") as f:
-                return f.read()
-
-        file_bytes = await asyncio.to_thread(_read_file_bytes, attachment_path)
-        payload["attachment"] = [{
-            "name": attachment_name,
-            "content": base64.b64encode(file_bytes).decode("ascii"),
-        }]
-        print(f"[EMAIL] Attaching PDF: {attachment_name}")
-    else:
-        print(f"[EMAIL] No attachment found at: {attachment_path}")
+    if attachments:
+        payload["attachment"] = [
+            {"name": name, "content": base64.b64encode(file_bytes).decode("ascii")}
+            for file_bytes, name in attachments
+        ]
+        print(f"[EMAIL] Attaching {len(attachments)} file(s): {', '.join(n for _, n in attachments)}")
 
     try:
         return await svc._post_to_brevo(payload)
     except Exception as e:
-        print(f"[EMAIL] Failed to send email with attachment: {str(e)}")
-        return False
+        logger.error(f"Email FAILED: {e}")
+        raise

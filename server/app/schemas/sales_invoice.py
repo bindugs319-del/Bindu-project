@@ -330,3 +330,4 @@ class SalesInvoiceReminderRequest(BaseModel):
     scheduled_at: Optional[str] = None
     include_legal_notice: bool = False
     legal_notice_content: Optional[str] = None
+    attach_invoice_document: bool = False

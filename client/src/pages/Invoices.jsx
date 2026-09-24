@@ -435,6 +435,12 @@ export default function Invoices({ onDataChange } = {}) {
   const [reminderIncludeLegalNotice, setReminderIncludeLegalNotice] = useState(false)
   const [reminderLegalNoticeContent, setReminderLegalNoticeContent] = useState('')
   const [showInvoiceLegalNoticeConfirm, setShowInvoiceLegalNoticeConfirm] = useState(null)
+  // "Attach Invoice Document" option — attaches whatever's already
+  // uploaded at invoice.document_url (see the Documents column/upload
+  // on this page) alongside the reminder, and alongside the legal
+  // notice PDF too if both are checked.
+  const [reminderAttachInvoiceDoc, setReminderAttachInvoiceDoc] = useState(false)
+  const [reminderModalError, setReminderModalError] = useState(null)
 
   const handleSendReminder = (invoice) => {
     const dueDateStr = invoice.payment_due_date?.slice(0, 10) || 'N/A'
@@ -449,6 +455,8 @@ export default function Invoices({ onDataChange } = {}) {
     setReminderScheduleType('now')
     setReminderScheduledAt('')
     setReminderIncludeLegalNotice(false)
+    setReminderAttachInvoiceDoc(false)
+    setReminderModalError(null)
     setReminderLegalNoticeContent(
       `To: ${invoice.counterparty_name || ''}\n` +
       `RE: Outstanding Payment - Invoice ${invoice.invoice_number || ''}\n\n` +
@@ -468,6 +476,8 @@ export default function Invoices({ onDataChange } = {}) {
     setReminderScheduleType('now')
     setReminderScheduledAt('')
     setReminderIncludeLegalNotice(false)
+    setReminderAttachInvoiceDoc(false)
+    setReminderModalError(null)
     setReminderLegalNoticeContent('')
   }
 
@@ -501,12 +511,23 @@ export default function Invoices({ onDataChange } = {}) {
   }
 
   const handleConfirmReminder = async () => {
+    setReminderModalError(null)
+
+    // "Attach Invoice Document" is checked but this invoice has nothing
+    // uploaded to attach — block here instead of letting the request go
+    // out and fail (the backend enforces this too, as the real guard).
+    if (reminderAttachInvoiceDoc && !reminderModalInvoice?.document_url) {
+      setReminderModalError('Please attach the invoice document to this invoice before including it in the reminder.')
+      return
+    }
+
     const payload = {
       subject: reminderSubject,
       body: reminderBody,
       scheduled_at: reminderScheduleType === 'later' ? new Date(reminderScheduledAt).toISOString() : null,
       include_legal_notice: reminderIncludeLegalNotice,
       legal_notice_content: reminderIncludeLegalNotice ? reminderLegalNoticeContent : null,
+      attach_invoice_document: reminderAttachInvoiceDoc,
     }
     // Sending now with a legal notice attached needs an explicit
     // confirmation step first, mirroring the Purchase Orders page.
@@ -2373,6 +2394,32 @@ export default function Invoices({ onDataChange } = {}) {
                     </p>
                   </div>
                 )}
+
+                {/* Attach Invoice Document — attaches whatever's already
+                    uploaded on this invoice (see the Documents column),
+                    alongside the legal notice PDF too if both are checked. */}
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer mt-3">
+                  <input
+                    type="checkbox"
+                    checked={reminderAttachInvoiceDoc}
+                    onChange={(e) => {
+                      setReminderAttachInvoiceDoc(e.target.checked)
+                      setReminderModalError(null)
+                    }}
+                  />
+                  📎 Attach Invoice Document
+                </label>
+                {reminderAttachInvoiceDoc && !reminderModalInvoice?.document_url && (
+                  <p className="text-xs text-red-600 mt-1">
+                    This invoice has no document uploaded yet — upload one first (Documents column) or uncheck this.
+                  </p>
+                )}
+
+                {reminderModalError && (
+                  <p className="text-sm text-red-600 mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                    {reminderModalError}
+                  </p>
+                )}
               </div>
 
               <div className="border-t border-gray-100 pt-6">
@@ -2426,7 +2473,7 @@ export default function Invoices({ onDataChange } = {}) {
               </button>
               <button
                 onClick={handleConfirmReminder}
-                disabled={reminderSending || (reminderScheduleType === 'later' && !reminderScheduledAt)}
+                disabled={reminderSending || (reminderScheduleType === 'later' && !reminderScheduledAt) || (reminderAttachInvoiceDoc && !reminderModalInvoice?.document_url)}
                 className="px-8 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {reminderSending ? 'Processing...' : reminderScheduleType === 'later' ? 'Schedule Reminder' : 'Send Reminder'}

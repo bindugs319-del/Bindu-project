@@ -97,6 +97,28 @@ def serialize_sales_invoice(invoice: SalesInvoice) -> dict:
     return SalesInvoiceResponse.model_validate(invoice).model_dump(mode="json")
 
 
+async def _fetch_invoice_document_bytes(document_url: str) -> Optional[bytes]:
+    """Resolves invoice.document_url — a relative /uploads/... path OR an
+    absolute URL, depending on which storage backend (B2, Google Drive,
+    local disk) store_uploaded_file used — down to raw bytes, so it can
+    be attached to the reminder email regardless of where it's stored.
+    Returns None (never raises) if it can't be fetched."""
+    import httpx
+
+    url = document_url
+    if not url.startswith("http://") and not url.startswith("https://"):
+        url = f"{settings.BASE_URL.rstrip('/')}/{url.lstrip('/')}"
+
+    try:
+        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
+            resp = await client.get(url)
+        if resp.status_code != 200:
+            return None
+        return resp.content
+    except Exception:
+        return None
+
+
 async def _get_owned_invoice(db: AsyncSession, invoice_id: str, user_id: str) -> Optional[SalesInvoice]:
     result = await db.execute(
         select(SalesInvoice).where(
@@ -344,15 +366,38 @@ async def send_sales_invoice_reminder(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid scheduled_at format")
 
-    from app.services.email_service import EmailService, send_email_with_attachment
+    from app.services.email_service import EmailService, send_email_with_attachment, send_email_with_attachments
     from app.utils.audit import log_audit
 
-    # Send NOW — optionally with a formal legal-notice PDF attached,
-    # mirroring purchase_orders' send-reminder endpoint exactly.
+    # "Attach Invoice Document" checked but nothing was ever uploaded to
+    # this invoice — reject up front rather than silently sending a
+    # reminder with no attachment (the frontend also checks this before
+    # even calling the API, but this is the real guard).
+    if req.attach_invoice_document and not (invoice.document_url or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Please attach the invoice document to this invoice before including it in the reminder.",
+        )
+
+    # Send NOW — optionally with the invoice's own uploaded document
+    # and/or a formal legal-notice PDF attached. include_legal_notice
+    # mirrors purchase_orders' send-reminder endpoint exactly.
     email_sent = False
     try:
+        import os
+        attachments = []  # list of (bytes, filename) — built up below
+
+        if req.attach_invoice_document:
+            doc_bytes = await _fetch_invoice_document_bytes(invoice.document_url)
+            if doc_bytes is None:
+                raise HTTPException(
+                    status_code=502,
+                    detail="Could not retrieve the attached invoice document. Please try re-uploading it and send the reminder again.",
+                )
+            ext = os.path.splitext(invoice.document_url.split("?")[0])[1] or ".pdf"
+            attachments.append((doc_bytes, f"Invoice_{invoice.invoice_number}{ext}"))
+
         if req.include_legal_notice:
-            import os
             from app.services.legal_notice_service import generate_legal_notice_pdf
             from app.utils.uploads import get_upload_subdir
 
@@ -367,13 +412,12 @@ async def send_sales_invoice_reminder(
             }
             generate_legal_notice_pdf(invoice_data, pdf_path, req.legal_notice_content)
 
-            email_sent = await send_email_with_attachment(
-                to_email=to_email,
-                subject=subject,
-                body=body,
-                attachment_path=pdf_path,
-                attachment_name=f"Legal_Notice_{invoice.invoice_number}.pdf",
-            )
+            def _read_pdf_bytes(path: str) -> bytes:
+                with open(path, "rb") as f:
+                    return f.read()
+            import asyncio
+            legal_notice_bytes = await asyncio.to_thread(_read_pdf_bytes, pdf_path)
+            attachments.append((legal_notice_bytes, f"Legal_Notice_{invoice.invoice_number}.pdf"))
 
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
@@ -383,8 +427,13 @@ async def send_sales_invoice_reminder(
                 db=db, user=current_user, action="SALES_INVOICE_LEGAL_NOTICE_SENT",
                 entity_obj=invoice, reason=f"To: {to_email}",
             )
+
+        if attachments:
+            email_sent = await send_email_with_attachments(to_email, subject, body, attachments)
         else:
             email_sent = await EmailService().send_email(to_email, subject, body)
+
+        if not req.include_legal_notice:
             await log_audit(
                 db=db, user=current_user, action="SALES_INVOICE_REMINDER_SENT",
                 entity_obj=invoice, reason=f"Reminder sent to {to_email}" if email_sent else f"Reminder NOT delivered (email not configured) — intended for {to_email}",
@@ -392,22 +441,28 @@ async def send_sales_invoice_reminder(
 
         invoice.updated_at = get_utc_now()
         await db.commit()
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send reminder email: {str(e)}")
 
     if not email_sent:
-        # send_email() / send_email_with_attachment() return False (rather
-        # than raising) specifically when no real email provider is
-        # configured — see EmailService. Reporting success here anyway
-        # would silently convince the user a customer was reminded when
-        # nothing was actually sent.
+        # send_email() / send_email_with_attachment(s)() return False
+        # (rather than raising) specifically when no real email provider
+        # is configured — see EmailService. Reporting success here
+        # anyway would silently convince the user a customer was
+        # reminded when nothing was actually sent.
         return success_response(
             message="Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY.",
         )
 
-    return success_response(
-        message=f"Reminder with Legal Notice sent to {to_email}" if req.include_legal_notice else f"Reminder sent to {to_email}"
-    )
+    attached_bits = []
+    if req.attach_invoice_document:
+        attached_bits.append("invoice document")
+    if req.include_legal_notice:
+        attached_bits.append("legal notice")
+    suffix = f" with {' and '.join(attached_bits)}" if attached_bits else ""
+    return success_response(message=f"Reminder{suffix} sent to {to_email}")
 
 
 @router.post("/{invoice_id}/send-to-legal-support")
