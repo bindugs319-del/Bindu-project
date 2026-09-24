@@ -23,9 +23,37 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.models import SalesInvoice, User
+from app.services import zoho_service
 from app.services.business_profile_service import BusinessProfileService
 
 logger = logging.getLogger(__name__)
+
+
+async def _attach_zoho_pdf(zoho_invoice: dict, invoice_row: SalesInvoice) -> None:
+    """Downloads the invoice exactly as Zoho renders it and stores it as
+    this invoice's document, the same field the manual document-upload
+    button (and the reminder email's "Attach Invoice Document" option)
+    both use — so a Zoho-synced invoice gets a real, attachable document
+    automatically instead of sitting with none until someone uploads one
+    by hand. Never raises: a PDF-attach failure (e.g. a transient Zoho
+    API hiccup) shouldn't stop the invoice's actual data from syncing —
+    only a warning is logged, and the next poll cycle will retry it."""
+    zoho_invoice_id = zoho_invoice.get("invoice_id")
+    if not zoho_invoice_id:
+        return
+
+    try:
+        pdf_bytes = await zoho_service.fetch_invoice_pdf(str(zoho_invoice_id))
+        if pdf_bytes is None:
+            logger.warning("Zoho sync: could not fetch PDF for invoice %s — leaving document as-is.", invoice_row.invoice_number)
+            return
+
+        from app.services.file_storage_service import store_uploaded_file
+        filename = f"zoho_{invoice_row.invoice_number}.pdf"
+        result = await store_uploaded_file(pdf_bytes, filename, "application/pdf", "sales_invoices")
+        invoice_row.document_url = result["url"]
+    except Exception as e:
+        logger.warning("Zoho sync: failed to attach PDF for invoice %s: %s", invoice_row.invoice_number, e)
 
 
 def _parse_zoho_date(value: Optional[str]) -> Optional[date]:
@@ -114,6 +142,7 @@ async def sync_one_invoice(zoho_invoice: dict, db: AsyncSession, target_user: Us
         existing.invoice_date = invoice_date_obj
         existing.payment_due_date = due_date_obj
         existing.updated_at = datetime.utcnow()
+        await _attach_zoho_pdf(zoho_invoice, existing)
         await db.commit()
         logger.info("Zoho sync: updated existing invoice %s (id=%s)", invoice_number, existing.id)
         return {"status": "updated", "invoice_number": invoice_number, "id": existing.id}
@@ -155,6 +184,7 @@ async def sync_one_invoice(zoho_invoice: dict, db: AsyncSession, target_user: Us
         updated_at=now,
     )
     db.add(invoice)
+    await _attach_zoho_pdf(zoho_invoice, invoice)
     await db.commit()
     logger.info("Zoho sync: created new invoice %s (id=%s)", invoice_number, invoice.id)
     return {"status": "created", "invoice_number": invoice_number, "id": invoice.id}

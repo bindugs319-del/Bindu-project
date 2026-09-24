@@ -133,3 +133,34 @@ async def list_invoices(per_page: int = 100) -> list:
 
     body = resp.json()
     return body.get("invoices") or []
+
+
+async def fetch_invoice_pdf(invoice_id: str) -> Optional[bytes]:
+    """Downloads the invoice as a PDF, exactly as Zoho itself renders it.
+    Confirmed endpoint: GET /invoices/{id} with an Accept: application/pdf
+    header returns the PDF bytes directly instead of the usual JSON —
+    see https://www.zoho.com/invoice/api/v3/response/ ("Other Formats").
+    Returns None (never raises) on any failure, since a PDF-attach
+    problem shouldn't block the invoice record itself from syncing —
+    see zoho_sync_service.py, which logs a warning and carries on."""
+    if not settings.ZOHO_ORGANIZATION_ID:
+        return None
+
+    try:
+        access_token = await get_access_token()
+        url = f"{settings.ZOHO_API_BASE_URL}/invoices/{invoice_id}"
+        headers = {
+            "Authorization": f"Zoho-oauthtoken {access_token}",
+            "X-com-zoho-invoice-organizationid": settings.ZOHO_ORGANIZATION_ID,
+            "Accept": "application/pdf",
+        }
+        async with httpx.AsyncClient(timeout=20) as client:
+            resp = await client.get(url, headers=headers)
+
+        if resp.status_code != 200 or "pdf" not in resp.headers.get("content-type", ""):
+            logger.warning("Zoho fetch_invoice_pdf: unexpected response for %s (%s, %s)", invoice_id, resp.status_code, resp.headers.get("content-type"))
+            return None
+        return resp.content
+    except Exception as e:
+        logger.warning("Zoho fetch_invoice_pdf failed for %s: %s", invoice_id, e)
+        return None
