@@ -171,8 +171,14 @@ export default function Invoices({ onDataChange } = {}) {
   const onDataChangeRef = useRef(onDataChange)
   useEffect(() => { onDataChangeRef.current = onDataChange }, [onDataChange])
 
-  const fetchInvoices = useCallback(async () => {
-    setLoading(true)
+  const fetchInvoices = useCallback(async (opts = {}) => {
+    const { silent = false } = opts
+    // silent=true is used by the background auto-refresh below — it
+    // must NOT toggle `loading`, since that swaps the entire table for
+    // a "Loading invoices..." placeholder (see the render below), which
+    // would make the whole list flash every 45s. Only a user-triggered
+    // fetch (initial load, filter change, after save) shows that state.
+    if (!silent) setLoading(true)
 
     try {
       const response = await invoicesApi.list({ limit: 100, include_archived: showArchived })
@@ -190,18 +196,33 @@ export default function Invoices({ onDataChange } = {}) {
         // updates this component's own state, and anything else on the
         // page showing the same data stays stale until a full reload.
         onDataChangeRef.current?.()
-      } else {
+      } else if (!silent) {
+        // A background poll failing quietly (e.g. one dropped request)
+        // shouldn't surface as a user-facing error banner — only a
+        // fetch the user actually triggered should.
         setError(response.error)
       }
     } catch (err) {
-      setError(err.message)
+      if (!silent) setError(err.message)
     }
 
-    setLoading(false)
+    if (!silent) setLoading(false)
   }, [showArchived])
 
   useEffect(() => {
     fetchInvoices()
+
+    // Keeps this list current without a manual reload — e.g. an
+    // invoice the Zoho sync (or anyone else) adds in the background
+    // would otherwise sit unseen until the page is refreshed, since a
+    // normal page load only fetches once. Silent: doesn't show the
+    // loading placeholder or surface errors — see fetchInvoices above.
+    const REFRESH_INTERVAL_MS = 45000
+    const intervalId = setInterval(() => {
+      fetchInvoices({ silent: true })
+    }, REFRESH_INTERVAL_MS)
+
+    return () => clearInterval(intervalId)
   }, [fetchInvoices])
 
   const handleQuickInvoiceDocUpload = async (invoice, file) => {
