@@ -26,8 +26,23 @@ export default function Defaulters() {
   // Only apply the context filter once we actually know the real PO/Invoice
   // numbers (contextNumbers !== null) — otherwise the list would flash
   // empty while that lookup is still loading.
+  //
+  // When contextNumbers is a non-empty set, a case must match one of
+  // those real PO/Invoice numbers to count as "context-related" — this
+  // is the normal case, when the picker had real records to offer.
+  //
+  // But when contextNumbers is EMPTY (nothing in Sales Invoices/POs to
+  // pick from — see the "No invoices/POs found to pick from" message),
+  // matching against it would mean NOTHING ever passes the filter, even
+  // a case the person just filed themselves by typing the number in by
+  // hand, since there's nothing for it to match against. In that
+  // situation, fall back to "has an invoice/PO number at all" instead —
+  // otherwise a case filed with no real invoices/POs in the system yet
+  // would be saved successfully but permanently invisible in this view.
   const visibleRows = (context && contextNumbers)
-    ? rows.filter(r => contextNumbers.has(r.invoice_number))
+    ? (contextNumbers.size > 0
+        ? rows.filter(r => contextNumbers.has(r.invoice_number))
+        : rows.filter(r => !!r.invoice_number))
     : rows
 
   const applyContextOption = (optionId) => {

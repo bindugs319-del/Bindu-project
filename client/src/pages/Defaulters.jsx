@@ -63,8 +63,17 @@ export default function Defaulters() {
   // Only apply the context filter once we actually know the real PO/Invoice
   // numbers (contextNumbers !== null) — otherwise the list would flash
   // empty while that lookup is still loading.
+  //
+  // When contextNumbers is EMPTY (nothing in Sales Invoices/POs to pick
+  // from), fall back to "has an invoice/PO number at all" instead of
+  // requiring a match against an empty set — otherwise a case filed by
+  // hand (no real invoices/POs in the system yet) would save
+  // successfully but be permanently invisible here. See the fuller note
+  // in ReportDefaulter.jsx, where this same filter is duplicated.
   const visibleRows = (context && contextNumbers)
-    ? rows.filter(r => contextNumbers.has(r.invoice_number))
+    ? (contextNumbers.size > 0
+        ? rows.filter(r => contextNumbers.has(r.invoice_number))
+        : rows.filter(r => !!r.invoice_number))
     : rows
 
   useEffect(() => { 
