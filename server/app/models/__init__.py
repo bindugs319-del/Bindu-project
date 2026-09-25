@@ -692,9 +692,7 @@ class ScheduledReminder(Base):
     sent_at = Column(DateTime, nullable=True, index=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
-class AppSettings(Base):
-    __tablename__ = "app_settings"
-    id = Column(String(36), primary_key=True, index=True)
+    id = Column(String(64), primary_key=True, index=True)
     payment_window_days = Column(Integer, nullable=False, default=50)
     # Default recipient for automatic vendor-invoice payment reminders
     # (see /vendor-invoices/settings and the vendor-invoice block in

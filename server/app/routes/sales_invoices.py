@@ -322,6 +322,16 @@ async def send_sales_invoice_reminder(
     if not to_email:
         raise HTTPException(status_code=400, detail="No customer email configured for this invoice")
 
+    # Mandatory as of this change: no reminder — sent now or scheduled —
+    # goes out without the invoice's own document attached. Checked here,
+    # before either path below, so scheduling a reminder for later can't
+    # bypass it either.
+    if not (invoice.document_url or "").strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Please attach the invoice document to this invoice before sending a reminder.",
+        )
+
     due_date_str = invoice.payment_due_date.isoformat() if invoice.payment_due_date else "N/A"
     amount_str = f"₹{invoice.total:,.2f}"
 
@@ -369,33 +379,25 @@ async def send_sales_invoice_reminder(
     from app.services.email_service import EmailService, send_email_with_attachment, send_email_with_attachments
     from app.utils.audit import log_audit
 
-    # "Attach Invoice Document" checked but nothing was ever uploaded to
-    # this invoice — reject up front rather than silently sending a
-    # reminder with no attachment (the frontend also checks this before
-    # even calling the API, but this is the real guard).
-    if req.attach_invoice_document and not (invoice.document_url or "").strip():
-        raise HTTPException(
-            status_code=400,
-            detail="Please attach the invoice document to this invoice before including it in the reminder.",
-        )
-
-    # Send NOW — optionally with the invoice's own uploaded document
-    # and/or a formal legal-notice PDF attached. include_legal_notice
-    # mirrors purchase_orders' send-reminder endpoint exactly.
+    # Send NOW — the invoice's own uploaded document is always attached
+    # (mandatory as of this change — see the check right after to_email
+    # above, which covers this path and the "schedule for later" path
+    # above equally), plus a formal legal-notice PDF too if requested.
+    # include_legal_notice mirrors purchase_orders' send-reminder
+    # endpoint exactly.
     email_sent = False
     try:
         import os
         attachments = []  # list of (bytes, filename) — built up below
 
-        if req.attach_invoice_document:
-            doc_bytes = await _fetch_invoice_document_bytes(invoice.document_url)
-            if doc_bytes is None:
-                raise HTTPException(
-                    status_code=502,
-                    detail="Could not retrieve the attached invoice document. Please try re-uploading it and send the reminder again.",
-                )
-            ext = os.path.splitext(invoice.document_url.split("?")[0])[1] or ".pdf"
-            attachments.append((doc_bytes, f"Invoice_{invoice.invoice_number}{ext}"))
+        doc_bytes = await _fetch_invoice_document_bytes(invoice.document_url)
+        if doc_bytes is None:
+            raise HTTPException(
+                status_code=502,
+                detail="Could not retrieve the attached invoice document. Please try re-uploading it and send the reminder again.",
+            )
+        ext = os.path.splitext(invoice.document_url.split("?")[0])[1] or ".pdf"
+        attachments.append((doc_bytes, f"Invoice_{invoice.invoice_number}{ext}"))
 
         if req.include_legal_notice:
             from app.services.legal_notice_service import generate_legal_notice_pdf
@@ -456,12 +458,10 @@ async def send_sales_invoice_reminder(
             message="Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY.",
         )
 
-    attached_bits = []
-    if req.attach_invoice_document:
-        attached_bits.append("invoice document")
+    attached_bits = ["invoice document"]  # always attached now — see the mandatory check above
     if req.include_legal_notice:
         attached_bits.append("legal notice")
-    suffix = f" with {' and '.join(attached_bits)}" if attached_bits else ""
+    suffix = f" with {' and '.join(attached_bits)}"
     return success_response(message=f"Reminder{suffix} sent to {to_email}")
 
 
