@@ -96,7 +96,7 @@ export default function POReminderConfig() {
         setIsLoading(false)
       }
     }
-    fetchConfig()
+    void fetchConfig()
   }, [])
 
   const handleAddDay = () => {

@@ -20,7 +20,7 @@ export default function Appointment() {
 
   useEffect(() => {
     if (user && showList) {
-      fetchAppointments()
+      void fetchAppointments()
     }
   }, [user, showList])
 
@@ -64,7 +64,7 @@ export default function Appointment() {
         notes: '',
       })
       if (user) {
-        fetchAppointments()
+        void fetchAppointments()
       }
     } else {
       setMessage(res.error || 'Failed to book appointment')

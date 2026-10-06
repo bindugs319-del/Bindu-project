@@ -33,8 +33,8 @@ export default function TeamManagement() {
   }
 
   useEffect(() => {
-    loadInvitations()
-    loadUsers()
+    void loadInvitations()
+    void loadUsers()
   }, [])
 
   const startEdit = (inv) => {

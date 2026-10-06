@@ -38,7 +38,7 @@ export default function ReminderModal({ po, onClose, onSend }) {
       }
       setLoading(false)
     }
-    loadTemplate()
+    void loadTemplate()
   }, [po, user])
 
   const handleSend = async () => {

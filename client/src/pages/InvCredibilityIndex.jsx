@@ -37,7 +37,7 @@ export default function InvCredibilityIndex() {
         console.error('Inv Credibility fetch error:', err)
       }
     }
-    loadFromBackend()
+    void loadFromBackend()
     const onChanged = () => loadFromBackend()
     window.addEventListener('invoiceChanged', onChanged)
     return () => window.removeEventListener('invoiceChanged', onChanged)

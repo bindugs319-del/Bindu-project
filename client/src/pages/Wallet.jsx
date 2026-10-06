@@ -48,7 +48,7 @@ export default function Wallet() {
         if (res.ok) {
             setMsg(`Success! Redeemed ${redeemAmount} points.`)
             setRedeemAmount('')
-            fetchWalletData() // Refresh
+            void fetchWalletData() // Refresh
         } else {
             setMsg(res.error || 'Redemption failed')
         }

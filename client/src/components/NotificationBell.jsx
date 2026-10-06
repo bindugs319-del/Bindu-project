@@ -70,7 +70,7 @@ export default function NotificationBell() {
 
   const markAllRead = async () => { 
     await api.post('/workflow/notifications/read-all') 
-    fetch_notifs() 
+    void fetch_notifs() 
   } 
 
   const getLink = (notification) => {
@@ -88,7 +88,7 @@ export default function NotificationBell() {
   }
 
   useEffect(() => { 
-    fetch_notifs() 
+    void fetch_notifs() 
     const timer = setInterval(fetch_notifs, 10000)
     return () => clearInterval(timer) 
   }, [token]) 
@@ -143,7 +143,7 @@ export default function NotificationBell() {
                   <div 
                     key={n.id} 
                     onClick={() => { 
-                      markAsRead(n.id)
+                      void markAsRead(n.id)
                       const link = getLink(n)
                       if (link.startsWith('http')) {
                         window.location.href = link

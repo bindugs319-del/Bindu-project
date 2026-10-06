@@ -166,7 +166,7 @@ CredibilityDetailBase({ mode = 'vendor' }) {
         console.error('Load error:', err)
       }
     }
-    load()
+    void load()
   }, [companyId])
 
   const handleRatingSubmit = async () => {
@@ -361,13 +361,13 @@ CredibilityDetailBase({ mode = 'vendor' }) {
 
   useEffect(() => {
     if (data) {
-      fetchAiRecommendation(data)
+      void fetchAiRecommendation(data)
     }
   }, [data])
 
   useEffect(() => {
     if (activeTab === 'ai-report') {
-      fetchAiAnalysis()
+      void fetchAiAnalysis()
     }
   }, [activeTab])
 

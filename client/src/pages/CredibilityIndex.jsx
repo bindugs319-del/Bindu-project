@@ -30,7 +30,7 @@ export default function CredibilityIndex() {
         setPoRows([])
       }
     }
-    loadPOs()
+    void loadPOs()
     const onChanged = () => loadPOs()
     window.addEventListener('poChanged', onChanged)
     return () => window.removeEventListener('poChanged', onChanged)
@@ -60,7 +60,7 @@ export default function CredibilityIndex() {
         ) 
       } 
     } 
-    loadFromBackend() 
+    void loadFromBackend() 
   }, [user]) 
 
   const computedCompanies = useMemo(() => {

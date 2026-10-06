@@ -95,7 +95,7 @@ export default function ManagePlans() {
       if (res.ok) {
         setMessage(isNew ? '✅ Plan created.' : '✅ Plan updated.')
         closeForm()
-        fetchPlans()
+        void fetchPlans()
       } else {
         setMessage(res.error || 'Failed to save plan')
       }
@@ -111,7 +111,7 @@ export default function ManagePlans() {
       const res = await subscriptions.adminDeactivatePlan(plan.id)
       if (res.ok) {
         setMessage(`✅ "${plan.display_name}" deactivated.`)
-        fetchPlans()
+        void fetchPlans()
       } else {
         setMessage(res.error || 'Failed to deactivate plan')
       }
@@ -125,7 +125,7 @@ export default function ManagePlans() {
       const res = await subscriptions.adminUpdatePlan(plan.id, { is_active: true })
       if (res.ok) {
         setMessage(`✅ "${plan.display_name}" is active again.`)
-        fetchPlans()
+        void fetchPlans()
       } else {
         setMessage(res.error || 'Failed to activate plan')
       }

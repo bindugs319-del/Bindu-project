@@ -105,7 +105,7 @@ export default function CompanyProfile() {
 
     if (res.ok) {
       setSuccess('Company profile saved.')
-      loadProfile()
+      void loadProfile()
     } else {
       setError(res.error)
     }

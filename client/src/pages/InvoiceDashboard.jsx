@@ -47,8 +47,8 @@ export default function InvoiceDashboard() {
   useEffect(() => {
     if (user) {
       logActivity(ACTIONS.VIEW_DASHBOARD) 
-      fetchDashboardData()
-      loadInvoiceHistory()
+      void fetchDashboardData()
+      void loadInvoiceHistory()
     }
   }, [user])
 

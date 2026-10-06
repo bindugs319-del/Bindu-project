@@ -235,7 +235,7 @@ export default function Invoices({ onDataChange } = {}) {
   // Purchase Orders page's always-visible Add PO panel) instead of a
   // modal opened by a button, so prefill it once on mount.
   useEffect(() => {
-    openCreateModal()
+    void openCreateModal()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -267,7 +267,7 @@ export default function Invoices({ onDataChange } = {}) {
     try {
       const res = await invoicesApi.archive(invoice.id)
       if (res.ok) {
-        fetchInvoices()
+        void fetchInvoices()
       } else {
         alert(res.error || 'Failed to update archive status')
       }
@@ -395,7 +395,7 @@ export default function Invoices({ onDataChange } = {}) {
     if (!reasonText.trim()) { alert('Please enter a reason'); return }
     const res = await invoicesApi.markPaid(reasonModal.invoice.id, reasonText, paymentReceipt)
     if (res.ok) {
-      fetchInvoices()
+      void fetchInvoices()
     } else {
       alert(res.error || 'Failed to mark as paid')
     }
@@ -467,7 +467,7 @@ export default function Invoices({ onDataChange } = {}) {
         alert(res.message || res.data?.message || 'Reminder processed.')
         closeReminderModal()
         setShowInvoiceLegalNoticeConfirm(null)
-        fetchInvoices()
+        void fetchInvoices()
       } else {
         alert(res.error || 'Failed to send reminder')
       }
@@ -499,7 +499,7 @@ export default function Invoices({ onDataChange } = {}) {
   const handleSendToLegal = async (invoice) => {
     const res = await invoicesApi.sendToLegal(invoice.id, legalSupportReason, legalSupportFile)
     if (res.ok) {
-      fetchInvoices()
+      void fetchInvoices()
     } else {
       alert(res.error || 'Failed to send to legal support')
     }
@@ -882,7 +882,7 @@ export default function Invoices({ onDataChange } = {}) {
         }
 
         closeFormModal()
-        fetchInvoices()
+        void fetchInvoices()
       } else {
         setError(response.error)
       }
@@ -935,7 +935,7 @@ export default function Invoices({ onDataChange } = {}) {
 
     const res = await invoicesApi.delete(invoice.id)
     if (res.ok) {
-      fetchInvoices()
+      void fetchInvoices()
     } else {
       setError(res.error)
     }
@@ -947,7 +947,7 @@ export default function Invoices({ onDataChange } = {}) {
 
     const res = await invoicesApi.update(invoice.id, payload)
     if (res.ok) {
-      fetchInvoices()
+      void fetchInvoices()
     } else {
       setError(res.error)
     }
@@ -1798,7 +1798,7 @@ export default function Invoices({ onDataChange } = {}) {
         {showInvoiceImport && (
           <InvoiceCSVImportModal
             onClose={() => setShowInvoiceImport(false)}
-            onImportComplete={() => { fetchInvoices() }}
+            onImportComplete={() => { void fetchInvoices() }}
           />
         )}
 

@@ -137,7 +137,7 @@ export function AuthProvider({ children }) {
       const now = Date.now()
       const idleFor = now - lastActivityRef.current
       if (idleFor >= IDLE_LOGOUT_MS) {
-        logout()
+        void logout()
         return
       }
       lastActivityRef.current = now
@@ -165,7 +165,7 @@ export function AuthProvider({ children }) {
     const interval = setInterval(() => {
       const idleFor = Date.now() - lastActivityRef.current
       if (idleFor >= IDLE_LOGOUT_MS) {
-        logout()
+        void logout()
       }
     }, 60 * 1000) // check once a minute
 

@@ -212,7 +212,7 @@ export default function PurchaseOrders() {
         setLoading(false)
       }
     }
-    fetchData()
+    void fetchData()
     // Load credibility index for current user's company
     async function fetchCred() {
       try {
@@ -225,9 +225,9 @@ export default function PurchaseOrders() {
         }
       } catch (err) { String(err) }
     }
-    fetchCred()
+    void fetchCred()
     const onChanged = () => {
-      fetchCred()
+      void fetchCred()
     }
     window.addEventListener('poChanged', onChanged)
     return () => window.removeEventListener('poChanged', onChanged)

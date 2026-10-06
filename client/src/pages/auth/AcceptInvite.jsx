@@ -30,7 +30,7 @@ export default function AcceptInvite() {
       }
       setLoading(false)
     }
-    run()
+    void run()
   }, [token])
 
   const handleSubmit = async (e) => {

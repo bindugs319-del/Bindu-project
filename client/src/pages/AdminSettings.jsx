@@ -12,7 +12,7 @@ export default function AdminSettings() {
         setPaymentWindowDays(res.data.payment_window_days);
       }
     }
-    fetchSettings();
+    void fetchSettings();
   }, []);
 
   const handleSave = async () => {

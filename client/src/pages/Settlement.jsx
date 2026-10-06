@@ -52,7 +52,7 @@ export default function Settlement() {
       }
       setContextLoading(false)
     }
-    loadContextOptions()
+    void loadContextOptions()
   }, [context])
 
   const visibleRows = (context && contextNumbers)
@@ -106,7 +106,7 @@ export default function Settlement() {
       setMessage(res.error || 'Failed to record settlement')
       return
     }
-    fetchSettlements()
+    void fetchSettlements()
     setMessage('Settlement recorded.')
     setNote('')
     setCaseRef('')
@@ -152,7 +152,7 @@ export default function Settlement() {
 
     setUploading(false)
     if (res.ok) {
-      fetchSettlements()
+      void fetchSettlements()
       setShowDetailModal(false)
       setMessage('Settlement updated successfully')
     } else {

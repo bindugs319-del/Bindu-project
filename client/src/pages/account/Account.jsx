@@ -44,7 +44,7 @@ export default function Account() {
   const [editingPO, setEditingPO] = useState(null)
   useEffect(() => {
     const handler = () => {
-      if (showPOHistory) loadPOs()
+      if (showPOHistory) void loadPOs()
     }
     window.addEventListener('poChanged', handler)
     return () => window.removeEventListener('poChanged', handler)
@@ -62,7 +62,7 @@ export default function Account() {
         localStorage.setItem('loginTime', new Date().toISOString())
       }
     }
-    loadProfile()
+    void loadProfile()
     
     // Update time every second
     const updateTime = () => {

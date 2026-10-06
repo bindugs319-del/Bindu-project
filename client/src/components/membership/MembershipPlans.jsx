@@ -30,7 +30,7 @@ export default function MembershipPlans() {
       }
     }
 
-    fetchPlans()
+    void fetchPlans()
   }, [])
 
   const getDefaultPlans = () => [

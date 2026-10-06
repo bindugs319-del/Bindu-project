@@ -98,7 +98,7 @@ export default function RoleDashboard() {
       })
       
       if (res.ok) {
-        fetchTasks()
+        void fetchTasks()
         alert(action === 'approve' 
           ? `✅ Approved! Report sent to user. ${shouldSaveToNetwork ? 'Company saved to Network Trust Intelligence.' : ''}`
           : '❌ Rejected and user notified.'
@@ -187,7 +187,7 @@ export default function RoleDashboard() {
       })
       if (res.ok) {
         alert(`✅ ${res.data?.message || 'Sent to Master Admin for approval.'}`)
-        fetchOpsRatingRequests()
+        void fetchOpsRatingRequests()
       } else {
         alert(`❌ ${res.error || 'Failed to submit proposal'}`)
       }
@@ -213,7 +213,7 @@ export default function RoleDashboard() {
       })
       if (res.ok) {
         alert(`✅ ${res.data?.message || 'Rating saved!'}`)
-        fetchRatingRequests()
+        void fetchRatingRequests()
       } else {
         alert(`❌ ${res.error || 'Failed to save rating'}`)
       }
@@ -248,7 +248,7 @@ export default function RoleDashboard() {
         : await invoicesApi.operationsReject(invoice.id, notes)
       if (res.ok) {
         alert(decision === 'verify' ? '✅ Verified! Forwarded to Master Admin for final approval.' : 'Invoice edit rejected.')
-        loadInvoiceQueues()
+        void loadInvoiceQueues()
       } else {
         alert(res.error || 'Action failed')
       }
@@ -268,7 +268,7 @@ export default function RoleDashboard() {
         : await invoicesApi.masterReject(invoice.id, notes)
       if (res.ok) {
         alert(decision === 'approve' ? '✅ Invoice edit approved and applied!' : 'Invoice edit rejected.')
-        loadInvoiceQueues()
+        void loadInvoiceQueues()
       } else {
         alert(res.error || 'Action failed')
       }
@@ -279,11 +279,11 @@ export default function RoleDashboard() {
   }
 
   useEffect(() => {
-    fetchTasks()
-    loadCompanies()
-    loadInvoiceQueues()
-    if (isMaster) fetchRatingRequests()
-    if (isOps) fetchOpsRatingRequests()
+    void fetchTasks()
+    void loadCompanies()
+    void loadInvoiceQueues()
+    if (isMaster) void fetchRatingRequests()
+    if (isOps) void fetchOpsRatingRequests()
     let timer = null
     // Only refresh tasks every 10 seconds if NOT on create-user page
     if (activeNav !== 'create-user') {
@@ -381,7 +381,7 @@ export default function RoleDashboard() {
 
   const handleCompanyClick = (company) => {
     setSelectedCompany(company)
-    loadCompanyDetails(company.id)
+    void loadCompanyDetails(company.id)
   }
 
   const handleBack = () => {
@@ -400,7 +400,7 @@ export default function RoleDashboard() {
       const res = await api.post(endpoint, body)
       if (res.ok) {
         alert(`✅ ${successMsg || res.message || 'Done!'}`)
-        fetchTasks()
+        void fetchTasks()
       } else {
         alert(`❌ ${res.error || res.message || 'Action failed'}`)
       }
@@ -729,7 +729,7 @@ export default function RoleDashboard() {
                 )}
                 onReject={() => {
                   const r = getRejectReason()
-                  if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Subscription rejected')
+                  if (r) void doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Subscription rejected')
                 }}
               />
             </div>
@@ -849,7 +849,7 @@ export default function RoleDashboard() {
                       ) 
                       if (r.ok) { 
                         alert('✅ Legal notice processed! Master Admin has been notified.') 
-                        fetchTasks() 
+                        void fetchTasks() 
                       } else { 
                         alert(r.error || 'Failed to process') 
                       } 
@@ -1047,7 +1047,7 @@ export default function RoleDashboard() {
                   )}
                   onReject={() => {
                     const r = getRejectReason()
-                    if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected')
+                    if (r) void doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected')
                   }}
                 />
               </div>
@@ -1118,7 +1118,7 @@ export default function RoleDashboard() {
               <button
                 onClick={() => {
                   const response = prompt('Response to user:') || 'Resolved by Operations team';
-                  doAction(
+                  void doAction(
                     `/support-requests/${req.id}/resolve`,
                     { response },
                     'Support request resolved! User notified.'
@@ -1154,7 +1154,7 @@ export default function RoleDashboard() {
                 <button
                   onClick={() => {
                     const notes = prompt('Notes:') || 'Processed by Operations'
-                    doAction(`/workflow/legal-notice/${req.workflow_id}/process`, { notes }, 'Sent to Master Admin!')
+                    void doAction(`/workflow/legal-notice/${req.workflow_id}/process`, { notes }, 'Sent to Master Admin!')
                   }}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold"
                 >
@@ -1240,7 +1240,7 @@ export default function RoleDashboard() {
                     if (res.ok) {
                       alert('✅ Report sent to Master Admin for approval!')
                       setSelectedBizRequest(null)
-                      fetchTasks()
+                      void fetchTasks()
                     } else {
                       alert(res.error || 'Failed')
                     }
@@ -1464,7 +1464,7 @@ export default function RoleDashboard() {
                     )}
                     onReject={() => {
                       const r = getRejectReason()
-                      if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
+                      if (r) void doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
                     }}
                   />
                 </div>
@@ -1517,7 +1517,7 @@ export default function RoleDashboard() {
                           onClick={() => {
                             const sn = req.is_new_company ? (document.getElementById('sn-'+req.id)?.checked || false) : false;
                             const notes = prompt('Notes:') || 'Approved by Master Admin';
-                            doAction('/business-check/'+req.id+'/master-approve', { save_to_network: sn, notes }, 'Report sent to user!' + (sn ? ' Saved to Network Trust.' : ''));
+                            void doAction('/business-check/'+req.id+'/master-approve', { save_to_network: sn, notes }, 'Report sent to user!' + (sn ? ' Saved to Network Trust.' : ''));
                           }}
                           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold"
                         >
@@ -1526,7 +1526,7 @@ export default function RoleDashboard() {
                         <button
                           onClick={() => {
                             const reason = prompt('Rejection reason:');
-                            if (reason) doAction('/business-check/'+req.id+'/reject', { reason }, 'Rejected.');
+                            if (reason) void doAction('/business-check/'+req.id+'/reject', { reason }, 'Rejected.');
                           }}
                           className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold"
                         >
@@ -1581,7 +1581,7 @@ export default function RoleDashboard() {
                     <button
                       onClick={() => {
                         const notes = prompt('Notes:') || 'Approved by Master Admin';
-                        doAction('/workflow/legal-notice/' + item.workflow_id + '/master-approve', { notes }, 'Legal notice approved!');
+                        void doAction('/workflow/legal-notice/' + item.workflow_id + '/master-approve', { notes }, 'Legal notice approved!');
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold"
                     >
@@ -1590,7 +1590,7 @@ export default function RoleDashboard() {
                     <button
                       onClick={() => {
                         const reason = prompt('Rejection reason:');
-                        if (reason) doAction('/workflow/legal-notice/' + item.workflow_id + '/reject', { reason }, 'Rejected.');
+                        if (reason) void doAction('/workflow/legal-notice/' + item.workflow_id + '/reject', { reason }, 'Rejected.');
                       }}
                       className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold"
                     >

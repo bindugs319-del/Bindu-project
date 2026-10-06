@@ -28,7 +28,7 @@ export default function POApprovals() {
         setLoading(false)
       }
     }
-    fetchQueue()
+    void fetchQueue()
   }, []) 
  
   const handleAction = async (poId, action) => { 

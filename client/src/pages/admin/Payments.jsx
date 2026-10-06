@@ -33,7 +33,7 @@ export default function Payments() {
       const endpoint = action === 'approve' ? `/workflow/approve/${id}` : `/workflow/reject/${id}`
       const res = await api.post(endpoint, { type: 'payment', notes })
       if (res.ok) {
-        fetchPayments()
+        void fetchPayments()
       } else {
         alert(res.error || "Action failed")
       }

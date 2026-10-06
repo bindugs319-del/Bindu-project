@@ -48,8 +48,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (user) {
       logActivity(ACTIONS.VIEW_DASHBOARD) 
-      fetchDashboardData()
-      loadPurchaseHistory()
+      void fetchDashboardData()
+      void loadPurchaseHistory()
     }
   }, [user])
 

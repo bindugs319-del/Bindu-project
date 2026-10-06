@@ -520,19 +520,19 @@ export default function VendorInvoices() {
 
     setSaving(false)
     closeFormModal()
-    fetchInvoices()
+    void fetchInvoices()
   }
 
   const handleArchive = async (invoice) => {
     await vendorInvoicesApi.archive(invoice.id)
-    fetchInvoices()
+    void fetchInvoices()
   }
 
   const handleDelete = async () => {
     if (!deleteConfirm) return
     await vendorInvoicesApi.delete(deleteConfirm.id)
     setDeleteConfirm(null)
-    fetchInvoices()
+    void fetchInvoices()
   }
 
   const openMarkPaid = (invoice) => {
@@ -552,7 +552,7 @@ export default function VendorInvoices() {
     setMarkingPaid(false)
     if (res.ok) {
       setMarkPaidModal(null)
-      fetchInvoices()
+      void fetchInvoices()
     }
   }
 

@@ -73,7 +73,7 @@ export default function Membership() {
       } 
       if (!cancelled) setPlansLoading(false) 
     } 
-    loadPlans() 
+    void loadPlans() 
     return () => { cancelled = true } 
   }, []) 
 

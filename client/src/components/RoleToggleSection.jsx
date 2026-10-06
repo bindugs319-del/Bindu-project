@@ -12,7 +12,7 @@ export default function RoleToggleSection({ token }) {
     } catch(e) { console.error(e) }
     setLoading(false)
   }
-  useEffect(() => { load() }, [token])
+  useEffect(() => { void load() }, [token])
   const toggle = async (key, val) => {
     setToggling(key)
     try {
@@ -50,7 +50,7 @@ export default function RoleToggleSection({ token }) {
                   {settings[role.key]?.updated_by && <p className="text-xs text-gray-400 mt-1">Last changed by: {settings[role.key].updated_by}</p>}
                 </div>
                 <button disabled={toggling === role.key}
-                  onClick={() => { if (window.confirm(`${isEnabled ? 'Disable' : 'Enable'} this role?`)) toggle(role.key, !isEnabled) }}
+                  onClick={() => { if (window.confirm(`${isEnabled ? 'Disable' : 'Enable'} this role?`)) void toggle(role.key, !isEnabled) }}
                   className={`relative inline-flex h-7 w-12 items-center rounded-full transition-colors disabled:opacity-50 ${isEnabled ? 'bg-green-500' : 'bg-gray-300'}`}>
                   <span className={`inline-block h-5 w-5 transform rounded-full bg-white shadow transition-transform ${isEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
                 </button>

@@ -83,7 +83,7 @@ const ACTION_COLORS = {
      }
    } 
 
-   useEffect(() => { fetchLogs() }, [])  
+   useEffect(() => { void fetchLogs() }, [])  
 
    const actionColor = (action) => 
      ACTION_COLORS[action] || ACTION_COLORS.DEFAULT 
@@ -147,7 +147,7 @@ const ACTION_COLORS = {
                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-blue-700"> 
                🔍 Search 
              </button> 
-             <button onClick={() => { setFilter({ search: '', action: '' }); fetchLogs() }} 
+             <button onClick={() => { setFilter({ search: '', action: '' }); void fetchLogs() }} 
                className="border border-gray-300 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-50"> 
                Clear 
              </button> 

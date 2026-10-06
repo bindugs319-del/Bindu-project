@@ -155,7 +155,7 @@ export default function Header() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      loadProfile()
+      void loadProfile()
     }
   }, [isAuthenticated, user])
 
@@ -163,7 +163,7 @@ export default function Header() {
   useEffect(() => {
     const handleFocus = () => {
       if (isAuthenticated && user) {
-        loadProfile()
+        void loadProfile()
       }
     }
     window.addEventListener('focus', handleFocus)
@@ -174,7 +174,7 @@ export default function Header() {
   useEffect(() => {
     const handleProfileUpdate = () => {
       if (isAuthenticated && user) {
-        loadProfile()
+        void loadProfile()
       }
     }
     window.addEventListener('profileUpdated', handleProfileUpdate)

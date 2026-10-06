@@ -57,7 +57,7 @@ export default function CreditReports() {
       setMessage(res.error || 'Failed to request report')
       return
     }
-    fetchReports()
+    void fetchReports()
     setForm({ entity_name: '', entity_gstin: '', email: '' })
     setMessage('Credit report requested successfully.')
   }
