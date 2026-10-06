@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react'
 import PropTypes from 'prop-types'
 import { isValidGstin } from '../../utils/validation'
-import { api } from '../../services/api/apiClient'
 
 export default function EditPOModal({ po, onClose, onSave }) {
   const [form, setForm] = useState({
@@ -18,8 +17,6 @@ export default function EditPOModal({ po, onClose, onSave }) {
   })
   const [error, setError] = useState('')
   const [saving, setSaving] = useState(false)
-  const [evidenceFile, setEvidenceFile] = useState(null)
-  const [submitForApproval, setSubmitForApproval] = useState(false)
 
   useEffect(() => {
     if (po) {
@@ -43,65 +40,11 @@ export default function EditPOModal({ po, onClose, onSave }) {
     setForm((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleFileChange = (e) => {
-    if (e.target.files && e.target.files[0]) {
-      setEvidenceFile(e.target.files[0])
-      setSubmitForApproval(true)
-    }
-  }
-
   const handleSave = async () => {
-    if (submitForApproval || evidenceFile) {
-      if (!evidenceFile) {
-        setError('Please attach evidence document for approval flow')
-        return
-      }
-      if (!form.reason) {
-        setError('Please enter reason for edit')
-        return
-      }
-
-      setSaving(true)
-      try {
-        // 1. Upload evidence file first
-        const formData = new FormData()
-        formData.append('file', evidenceFile)
-        
-        const uploadRes = await api.post('/upload/evidence', formData)
-        if (!uploadRes.ok) {
-          setError(uploadRes.error || 'Failed to upload evidence')
-          setSaving(false)
-          return
-        }
-        const evidenceUrl = uploadRes.data?.url
-        const evidenceFilename = uploadRes.data?.filename
-
-        // 2. Create PO approval request
-        const res = await api.post(`/purchase-orders/${po.id}/request-approval`, {
-          edit_data: form,
-          evidence_url: evidenceUrl,
-          evidence_filename: evidenceFilename,
-          reason: form.reason
-        })
-
-        if (res.ok) {
-          alert('✅ Edit submitted for approval! operation team will review it.')
-          onClose()
-        } else {
-          setError(res.error || 'Failed to submit for approval')
-        }
-      } catch (err) {
-        setError('An error occurred during submission')
-      } finally {
-        setSaving(false)
-      }
-    } else {
-      // Normal save without approval
-      setSaving(true)
-      const success = await onSave(form)
-      setSaving(false)
-      if (success) onClose()
-    }
+    setSaving(true)
+    const success = await onSave(form)
+    setSaving(false)
+    if (success) onClose()
   }
 
   const handleSubmit = async (e) => {
@@ -113,7 +56,7 @@ export default function EditPOModal({ po, onClose, onSave }) {
       return
     }
 
-    if (!form.po_number || !form.vendor || !form.amount || !form.due_date || (!submitForApproval && !form.reason)) {
+    if (!form.po_number || !form.vendor || !form.amount || !form.due_date || !form.reason) {
       setError('Fill all required fields.')
       return
     }
@@ -291,31 +234,6 @@ export default function EditPOModal({ po, onClose, onSave }) {
             />
           </div>
 
-          {/* Evidence Attachment Section */}
-          <div className="border-t border-gray-100 pt-4 mt-2">
-            <h4 className="text-sm font-semibold text-gray-700 mb-3">
-              📎 Attach Evidence (Required for Operations Review)
-            </h4>
-            <p className="text-xs text-gray-500 mb-3">
-              Upload payment proof or invoice — this will trigger a review by the operation team.
-            </p>
-            <input
-              type="file"
-              onChange={handleFileChange}
-              className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-700 hover:file:bg-primary-100 mb-4"
-            />
-            
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={submitForApproval}
-                onChange={e => setSubmitForApproval(e.target.checked)}
-                className="rounded text-primary-600 focus:ring-primary-500"
-              />
-              <span className="text-sm text-gray-600 font-medium">Submit for internal approval flow</span>
-            </label>
-          </div>
-
           <div className="flex gap-3 pt-4 sticky bottom-0 bg-white">
             <button
               type="button"
@@ -330,7 +248,7 @@ export default function EditPOModal({ po, onClose, onSave }) {
               className="flex-1 btn-primary shadow-lg"
               disabled={saving}
             >
-              {saving ? 'Processing...' : (submitForApproval ? '📤 Submit for Approval' : '💾 Save Changes')}
+              {saving ? 'Processing...' : '💾 Save Changes'}
             </button>
           </div>
         </form>

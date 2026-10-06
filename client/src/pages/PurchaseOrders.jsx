@@ -52,14 +52,9 @@ export default function PurchaseOrders() {
     const [reasonText, setReasonText] = useState('') 
     const [reason, setReason] = useState('')
     const [paymentReceipt, setPaymentReceipt] = useState(null)
-    const [legalSupportReason, setLegalSupportReason] = useState('')
-    const [legalSupportFile, setLegalSupportFile] = useState(null)
   const [showCSVImport, setShowCSVImport] = useState(false)
   const [showPdfImport, setShowPdfImport] = useState(false)
   const [uploadingDocForId, setUploadingDocForId] = useState(null)
-  const [showLegalNotice, setShowLegalNotice] = useState(false);
-  const [showLegalConfirm, setShowLegalNoticeConfirm] = useState(null);
-  const [showLegalSupportConfirm, setShowLegalSupportConfirm] = useState(null);
   const [receiptModal, setReceiptModal] = useState(null)
   const [receiptLoading, setReceiptLoading] = useState(false)
 
@@ -419,42 +414,11 @@ export default function PurchaseOrders() {
       })
     }
 
-    const handleSendToLegal = async (po) => {
-      if (!legalSupportReason.trim() || !legalSupportFile) {
-        setStatusMessage('Please provide both a reason and evidence file');
-        return;
-      }
-      
-      setIsLoading(true);
-      try {
-        const res = await purchaseOrders.sendToLegal(po.id, legalSupportReason, legalSupportFile);
-        if (res.ok) {
-          setStatusMessage('Legal support request submitted successfully');
-          setRows(prev => prev.map(r => r.id === po.id ? { ...r, legal_support_requested_at: new Date().toISOString(), legal_support_status: 'PENDING_LEGAL' } : r));
-          setLegalSupportReason('');
-          setLegalSupportFile(null);
-        } else {
-          setStatusMessage(res.error || 'Failed to submit legal support request');
-        }
-      } catch (err) {
-        setStatusMessage('Network error submitting legal support request');
-      } finally {
-        setIsLoading(false);
-        setShowLegalSupportConfirm(null);
-      }
-    };
-  
     const handleSendReminder = (po) => {
       setReminderPO(po);
     }
 
     const handleConfirmReminder = async (payload) => {
-      // Step 1: Confirmation logic if legal notice is being sent
-      if (payload.include_legal_notice && !payload.confirmed) {
-        setShowLegalNoticeConfirm({ po: reminderPO, payload });
-        return false;
-      }
-
       setIsLoading(true);
       const res = await sendPOReminder(reminderPO.id, payload)
       setIsLoading(false);
@@ -468,16 +432,7 @@ export default function PurchaseOrders() {
           // Use the backend's actual message rather than assuming success —
           // it may report the reminder was only logged, not actually
           // emailed (e.g. no email provider configured on the server).
-          setStatusMessage(res.message || res.data?.message || (payload.include_legal_notice ? 'Reminder with Legal Notice sent to vendor' : 'Reminder sent to vendor'))
-          // Refresh the list to show the badge if legal notice was sent
-          if (payload.include_legal_notice) {
-            const resList = await purchaseOrders.list(1, 100, true);
-            if (resList.ok && Array.isArray(resList.data?.items)) {
-              setRows(resList.data.items);
-            } else if (resList.ok && Array.isArray(resList.data)) {
-              setRows(resList.data);
-            }
-          }
+          setStatusMessage(res.message || res.data?.message || 'Reminder sent to vendor')
         }
         return true
       } else {
@@ -765,7 +720,6 @@ export default function PurchaseOrders() {
                       >
                         <td className="py-5 px-6 whitespace-nowrap">
                           <span className="font-bold text-gray-900">{row.po_number}</span>
-                          {row.legal_notice_sent_at && <span className="ml-2">⚖️</span>}
                         </td>
                         <td className="py-5 px-6">
                           <div className="text-sm font-medium text-gray-900">{row.vendor}</div>
@@ -864,23 +818,6 @@ export default function PurchaseOrders() {
                                   title={row.archived ? 'Restore' : 'Archive'}
                                 >
                                   <span className="text-sm">🗄️</span>
-                                </button>
-                                <button
-                                  onClick={() => !isPaid && setShowLegalSupportConfirm(row)}
-                                  disabled={isPaid}
-                                  className={`p-1 transition-colors ${
-                                    row.legal_support_requested_at 
-                                      ? 'text-emerald-600' 
-                                      : isPaid ? 'text-gray-400 cursor-not-allowed' : 'text-gray-500 hover:text-indigo-600 opacity-60 hover:opacity-100'
-                                  }`}
-                                  style={{ background: 'none', border: 'none', cursor: isPaid ? 'not-allowed' : 'pointer', opacity: isPaid ? 0.3 : 1 }}
-                                  title={isPaid ? 'Not available for paid POs' : 'Send to Legal Support'}
-                                >
-                                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"> 
-                                    <path d="M12 2L8 6H4v2l2 1-4 10h20L18 9l2-1V6h-4L12 2z"/> 
-                                    <path d="M8 6l4 4 4-4"/> 
-                                    <line x1="12" y1="10" x2="12" y2="20"/> 
-                                  </svg> 
                                 </button>
                                 <button
                                   onClick={() => handleDelete(row)}
@@ -1079,44 +1016,6 @@ export default function PurchaseOrders() {
             />
           )}
 
-          {showLegalNotice && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Legal Notice</h3>
-                <textarea
-                  className="w-full h-64 rounded-lg border border-gray-300 px-4 py-3 focus:border-primary-500 focus:ring-2 focus:ring-primary-200 font-mono text-sm bg-gray-50"
-                  defaultValue={`LEGAL NOTICE\n\nTo: ${form.vendor || ''}\nRE: Outstanding Payment - PO ${form.po_number || ''}\n\nDear ${form.vendor || ''},\n\nThis is a formal legal notice that payment of ₹${form.amount || ''} for Purchase Order ${form.po_number || ''} due on ${form.due_date || ''} remains unpaid/pending.\n\nYou are required to clear this payment within 7 days of receiving this notice, failing which legal proceedings will be initiated without further notice.\n\nIssued by: ${user?.company_name || ''}\nDate: ${new Date().toLocaleDateString()}`}
-                />
-                <div className="flex gap-3 mt-4">
-                  <button
-                    onClick={() => {
-                      const ta = document.querySelector('textarea');
-                      if (ta) navigator.clipboard.writeText(ta.value);
-                    }}
-                    className="btn-secondary"
-                  >
-                    📋 Copy Notice
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowLegalNotice(false);
-                      setStatusMessage('Save this PO first to send it via email.');
-                    }}
-                    className="btn-primary"
-                  >
-                    📧 Send via Email
-                  </button>
-                  <button
-                    onClick={() => setShowLegalNotice(false)}
-                    className="flex-1 px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
-                  >
-                    ❌ Close
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
           {reminderPO && (
             <ReminderModal
               po={reminderPO}
@@ -1217,106 +1116,6 @@ export default function PurchaseOrders() {
                 </div> 
               </div> 
             </div> 
-          )}
-
-          {showLegalConfirm && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 text-center">
-                <div className="text-4xl mb-4">⚖️</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Send Legal Notice?</h3>
-                <p className="text-gray-600 mb-6">
-                  Are you sure you want to send a legal notice to:<br/>
-                  <strong>{showLegalConfirm.po.vendor} ({showLegalConfirm.po.vendor_email})</strong><br/><br/>
-                  This action cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => setShowLegalNoticeConfirm(null)}
-                    className="flex-1 px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => handleConfirmReminder({ ...showLegalConfirm.payload, confirmed: true })}
-                    className="flex-1 px-6 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors font-medium shadow-md"
-                  >
-                    Yes, Send
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showLegalSupportConfirm && (
-            <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/50 p-4">
-              <div className="bg-white rounded-xl shadow-2xl max-w-lg w-full p-6">
-                <div className="text-4xl mb-4 text-center">🏛️</div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4 text-center">Send to Legal Support Team?</h3>
-                <div className="bg-gray-50 rounded-lg p-4 mb-4 text-left text-sm space-y-1">
-                  <p><strong>PO:</strong> {showLegalSupportConfirm.po_number}</p>
-                  <p><strong>Vendor:</strong> {showLegalSupportConfirm.vendor}</p>
-                  <p><strong>Amount:</strong> ₹{showLegalSupportConfirm.amount}</p>
-                  <p><strong>Status:</strong> {showLegalSupportConfirm.status}</p>
-                </div>
-                
-                <div className="space-y-4 mb-6">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Reason/Note *
-                      <span className="text-red-500 ml-1">*</span>
-                    </label>
-                    <textarea
-                      value={legalSupportReason}
-                      onChange={(e) => setLegalSupportReason(e.target.value)}
-                      placeholder="Why do you need legal support?"
-                      rows={3}
-                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Upload Evidence *
-                      <span className="text-red-500 ml-1">*</span>
-                      <span className="text-gray-400 text-xs ml-1">(PDF, JPG, PNG)</span>
-                    </label>
-                    <input
-                      type="file"
-                      accept=".pdf,.jpg,.jpeg,.png"
-                      onChange={(e) => setLegalSupportFile(e.target.files?.[0])}
-                      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-indigo-50 file:text-indigo-700 hover:file:bg-indigo-100"
-                    />
-                    {legalSupportFile && (
-                      <p className="text-xs text-gray-500 mt-1 flex items-center gap-3">
-                        <span>Selected: {legalSupportFile.name}</span>
-                        <button type="button" onClick={() => previewFile(legalSupportFile)} className="text-blue-700 hover:underline font-medium whitespace-nowrap">
-                          🔍 View
-                        </button>
-                      </p>
-                    )}
-                  </div>
-                </div>
-                
-                <div className="flex gap-3">
-                  <button
-                    onClick={() => {
-                      setShowLegalSupportConfirm(null);
-                      setLegalSupportReason('');
-                      setLegalSupportFile(null);
-                    }}
-                    className="flex-1 px-6 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={() => handleSendToLegal(showLegalSupportConfirm)}
-                    disabled={!legalSupportReason.trim() || !legalSupportFile}
-                    className="flex-1 px-6 py-2 rounded-lg bg-[#1a237e] text-white hover:bg-[#0d1440] transition-colors font-medium shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Send to Legal Team
-                  </button>
-                </div>
-              </div>
-            </div>
           )}
 
           {receiptModal && (

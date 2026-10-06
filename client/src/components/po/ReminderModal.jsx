@@ -9,8 +9,6 @@ export default function ReminderModal({ po, onClose, onSend }) {
   const [scheduleType, setScheduleType] = useState('now') // 'now' or 'later'
   const [scheduledAt, setScheduledAt] = useState('')
   const [isSending, setIsSending] = useState(false)
-  const [includeLegalNotice, setIncludeLegalNotice] = useState(false)
-  const [legalNoticeContent, setLegalNoticeContent] = useState('')
 
   useEffect(() => {
     async function loadTemplate() {
@@ -37,19 +35,6 @@ export default function ReminderModal({ po, onClose, onSend }) {
           subject: replaceVariables(template.reminder_subject || 'Payment Reminder: PO {po_number}'),
           body: replaceVariables(template.reminder_body || 'Dear {vendor_name}, your PO {po_number} is due.')
         })
-
-        const lnTemplate = `To: ${po.vendor || ''}
-RE: Outstanding Payment - PO ${po.po_number || ''}
-
-Dear ${po.vendor || ''},
-
-This is a formal legal notice that payment of ₹${po.amount || ''} for Purchase Order ${po.po_number || ''} due on ${po.due_date?.slice(0, 10) || ''} remains unpaid/pending.
-
-You are required to clear this payment within 7 days of receiving this notice, failing which legal proceedings will be initiated without further notice.
-
-Issued by: ${user?.company_name || ''}
-Date: ${new Date().toLocaleDateString('en-IN')}`;
-        setLegalNoticeContent(lnTemplate);
       }
       setLoading(false)
     }
@@ -63,8 +48,6 @@ Date: ${new Date().toLocaleDateString('en-IN')}`;
         subject: emailData.subject,
         body: emailData.body,
         scheduled_at: scheduleType === 'later' ? new Date(scheduledAt).toISOString() : null,
-        include_legal_notice: includeLegalNotice,
-        legal_notice_content: includeLegalNotice ? legalNoticeContent : null
       }
       const success = await onSend(payload)
       if (success) {
@@ -114,36 +97,6 @@ Date: ${new Date().toLocaleDateString('en-IN')}`;
                     className="w-full rounded-lg border-gray-300 focus:border-primary-500 focus:ring-primary-500 font-sans leading-relaxed"
                   />
                 </div>
-              </div>
-
-              {/* Legal Notice Section */}
-              <div className="legal-notice-section">
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={includeLegalNotice}
-                    onChange={(e) => setIncludeLegalNotice(e.target.checked)}
-                  />
-                  ⚖️ Attach Legal Notice as PDF
-                </label>
-
-                {includeLegalNotice && (
-                  <div>
-                    <p style={{fontSize: '12px', color: '#666'}}>
-                      📄 Edit legal notice below. It will be sent as a PDF attachment.
-                    </p>
-                    <textarea
-                      value={legalNoticeContent}
-                      onChange={(e) => setLegalNoticeContent(e.target.value)}
-                      rows={12}
-                      style={{width: '100%', fontFamily: 'monospace', fontSize: '12px'}}
-                      placeholder="Legal notice content will appear here..."
-                    />
-                    <p style={{fontSize: '11px', color: '#888'}}>
-                      ✅ This will be generated as a PDF and attached to the email
-                    </p>
-                  </div>
-                )}
               </div>
 
               <div className="border-t border-gray-100 pt-6">

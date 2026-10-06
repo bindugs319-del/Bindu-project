@@ -103,7 +103,6 @@ export default function Header() {
     // though RoleRoute already grants them access once there — there
     // was just never a link pointing at it).
     { label: 'PO Dashboard', to: '/dashboard/user' },
-    { label: 'PO Credibility Index', to: '/credibility-index' },
     ...(isMasterAdmin ? [{ label: 'Admin Control Center', to: '/dashboard/admin' }] : []),
   ]
 
