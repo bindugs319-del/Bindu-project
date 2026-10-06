@@ -900,10 +900,6 @@ export default function RoleDashboard() {
         <h1 className="text-3xl font-black text-white flex items-center gap-2">⚙️ Operations Dashboard</h1>
         <p className="text-sm text-amber-100 mt-2">Manage all pending requests</p>
         <div className="flex flex-wrap gap-3 mt-4">
-          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl">
-            <span className="text-white font-bold text-sm">Pending PO Verifications:</span>
-            <span className="bg-white text-amber-600 font-black text-lg px-3 py-1 rounded-full">{tasks.po_edit_verification?.length || 0}</span>
-          </div>
           {tasks.handling_legal && (
             <span className="text-xs bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-3 py-1 rounded-full font-extrabold">⚖️ Also handling Legal tasks</span>
           )}
@@ -1060,45 +1056,7 @@ export default function RoleDashboard() {
         </Section>
       )}
 
-      {/* 2. PO Edit Verification */}
-      <Section title="PO Edit Verification" icon="🔍"
-        count={tasks.po_edit_verification?.length}
-        subtitle="Verify PO edit requests with evidence before sending to Master Admin"
-        color="amber">
-        {!tasks.po_edit_verification?.length ? <Empty /> :
-          tasks.po_edit_verification.map(po => (
-            <div key={po.workflow_id} className="p-5 border-b flex justify-between items-start flex-wrap gap-3 hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md transition-shadow">
-              <div>
-                <p className="font-mono font-bold text-gray-900">{po.po_number}</p>
-                <p className="text-xs text-gray-500">Requested by: {po.requested_by_email}</p>
-                {po.reason && <p className="text-sm text-gray-600">Reason: {po.reason}</p>}
-                {po.evidence_url ? (
-                  <a href={po.evidence_url} target="_blank" rel="noreferrer"
-                    className="text-blue-600 underline text-xs mt-1 block">
-                    📎 View Evidence: {po.evidence_filename || 'document'}
-                  </a>
-                ) : (
-                  <p className="text-xs text-orange-500 mt-1">⚠️ No evidence attached</p>
-                )}
-              </div>
-              <ApproveRejectBtns
-                approveLabel="✅ Verify & Send to Master"
-                onApprove={() => doAction(
-                  `/workflow/po/${po.workflow_id}/operations-approve`,
-                  { notes: 'Verified by Operations team' },
-                  'Sent to Master Admin!'
-                )}
-                onReject={() => {
-                  const r = getRejectReason()
-                  if (r) doAction(`/workflow/po/${po.workflow_id}/reject`, { reason: r }, 'PO edit rejected')
-                }}
-              />
-            </div>
-          ))
-        }
-      </Section>
-
-      {/* 3. Company Safety Check Requests */}
+      {/* 2. Company Safety Check Requests */}
       <Section title="Company Safety Check Requests" icon="🏢"
         count={tasks.business_check_requests?.length}
         subtitle="Review company safety requests and generate reports for users"
@@ -1328,10 +1286,6 @@ export default function RoleDashboard() {
               <div className="text-xl font-black">{tasks.summary?.pending_subscriptions || 0}</div>
               <div className="text-[10px] opacity-80">Subscriptions</div>
             </div>
-            <div style={{ backgroundColor: '#d97706' }} className="text-white px-4 py-3 rounded-xl text-center">
-              <div className="text-xl font-black">{tasks.summary?.pending_po_approvals || 0}</div>
-              <div className="text-[10px] opacity-80">PO Approvals</div>
-            </div>
             <div style={{ backgroundColor: '#7c3aed' }} className="text-white px-4 py-3 rounded-xl text-center">
               <div className="text-xl font-black">{tasks.summary?.pending_business || 0}</div>
               <div className="text-[10px] opacity-80">Business</div>
@@ -1359,9 +1313,6 @@ export default function RoleDashboard() {
             </button>
             <button onClick={() => setActiveNav('subscriptions')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'subscriptions' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
               💳 Final Subscription Approvals
-            </button>
-            <button onClick={() => setActiveNav('po-approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'po-approvals' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
-              📋 Final PO Edit Approvals
             </button>
             <Link to="/admin/defaulter-approvals" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors hover:bg-gray-50 text-gray-700">
               🚩 Defaulter Case Approvals
@@ -1514,45 +1465,6 @@ export default function RoleDashboard() {
                     onReject={() => {
                       const r = getRejectReason()
                       if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
-                    }}
-                  />
-                </div>
-              ))
-            }
-          </Section>
-        )}
-
-        {activeNav === 'po-approvals' && (
-          <Section title="Final PO Edit Approvals" icon="📋"
-            count={tasks.pending_po_approvals?.length}
-            subtitle="These have been verified by Operations team"
-            color="amber">
-            {!tasks.pending_po_approvals?.length ? <Empty msg="No PO edits waiting for your approval ✅" /> :
-              tasks.pending_po_approvals.map(po => (
-                <div key={po.workflow_id} className="p-5 border-b flex justify-between items-start flex-wrap gap-3 hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md transition-shadow">
-                  <div>
-                    <p className="font-mono font-bold text-gray-900">{po.po_number}</p>
-                    {po.reason && <p className="text-sm text-gray-600">Reason: {po.reason}</p>}
-                    {po.evidence_url && (
-                      <a href={po.evidence_url} target="_blank" rel="noreferrer"
-                        className="text-blue-600 underline text-xs">📎 View Evidence</a>
-                    )}
-                    {po.review_notes && (
-                      <div className="mt-2 p-2 bg-amber-50 rounded-lg text-xs text-amber-700">
-                        <strong>Operations notes:</strong> {po.review_notes}
-                      </div>
-                    )}
-                  </div>
-                  <ApproveRejectBtns
-                    approveLabel="👑 Final Apply"
-                    onApprove={() => doAction(
-                      `/workflow/po/${po.workflow_id}/master-approve`,
-                      { notes: 'Final approval by Master Admin' },
-                      'PO edit applied! User notified.'
-                    )}
-                    onReject={() => {
-                      const r = getRejectReason()
-                      if (r) doAction(`/workflow/po/${po.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
                     }}
                   />
                 </div>
