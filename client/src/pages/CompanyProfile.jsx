@@ -58,7 +58,7 @@ export default function CompanyProfile() {
   })
 
   useEffect(() => {
-    loadProfile()
+    void loadProfile()
   }, [])
 
   const loadProfile = async () => {

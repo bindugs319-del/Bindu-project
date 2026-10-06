@@ -19,7 +19,7 @@ export default function AlertMessageSection({ token }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [token])
+  useEffect(() => { void load() }, [token])
 
   const save = async () => {
     setSaving(true)

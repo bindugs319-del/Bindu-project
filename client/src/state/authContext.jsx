@@ -101,7 +101,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    loadUser()
+    void loadUser()
   }, [loadUser])
 
   // Reset the idle clock the moment someone actually becomes logged in

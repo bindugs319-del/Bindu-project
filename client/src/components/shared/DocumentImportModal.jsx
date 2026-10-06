@@ -46,12 +46,12 @@ export default function DocumentImportModal({ onClose, onImportComplete, initial
       setError('Please select a PDF or an image (.pdf, .jpg, .jpeg, .png)')
       return
     }
-    runScan(selectedFile)
+    void runScan(selectedFile)
   }
 
   // Auto-run when opened with a file already chosen (e.g. drag-drop from elsewhere)
   useEffect(() => {
-    if (initialFile) runScan(initialFile)
+    if (initialFile) void runScan(initialFile)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFile])
 

@@ -51,7 +51,7 @@ export function useDefaulterContext(context) {
       }
       setContextLoading(false)
     }
-    loadContextOptions()
+    void loadContextOptions()
   }, [context])
 
   return { contextOptions, contextNumbers, contextLoading }

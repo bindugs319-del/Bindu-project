@@ -31,7 +31,7 @@ export default function ManagePlans() {
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    fetchPlans()
+    void fetchPlans()
   }, [])
 
   const fetchPlans = async () => {

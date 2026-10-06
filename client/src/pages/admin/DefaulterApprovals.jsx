@@ -10,7 +10,7 @@ export default function DefaulterApprovals() {
   const [busyId, setBusyId] = useState(null)
 
   useEffect(() => {
-    fetchPending()
+    void fetchPending()
   }, [])
 
   const fetchPending = async () => {

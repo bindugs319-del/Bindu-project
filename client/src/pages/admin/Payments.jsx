@@ -8,7 +8,7 @@ export default function Payments() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchPayments()
+    void fetchPayments()
   }, [])
 
   const fetchPayments = async () => {

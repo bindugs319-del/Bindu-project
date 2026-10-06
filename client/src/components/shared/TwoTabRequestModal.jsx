@@ -40,7 +40,7 @@ export default function TwoTabRequestModal({ onClose, onSuccess, config }) {
 
   useEffect(() => {
     if (activeTab === 'my') {
-      loadMyRequests()
+      void loadMyRequests()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])

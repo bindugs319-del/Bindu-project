@@ -15,7 +15,7 @@ export default function UserProfile() {
   const [activeTab, setActiveTab] = useState('profile')
 
   useEffect(() => {
-    loadAll()
+    void loadAll()
   }, [userId])
 
   const loadAll = async () => {

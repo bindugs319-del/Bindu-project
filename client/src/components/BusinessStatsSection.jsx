@@ -20,7 +20,7 @@ export default function BusinessStatsSection({ token }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [token])
+  useEffect(() => { void load() }, [token])
 
   const updateField = (idx, field, value) => {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, [field]: value } : it))

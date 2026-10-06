@@ -123,7 +123,7 @@ export default function GenericCSVImportModal({ onClose, onImportComplete, initi
 
   useEffect(() => {
     if (initialFile) {
-      handleFileChange({ target: { files: [initialFile] } })
+      void handleFileChange({ target: { files: [initialFile] } })
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFile])

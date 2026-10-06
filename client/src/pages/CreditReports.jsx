@@ -14,7 +14,7 @@ export default function CreditReports() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchReports()
+    void fetchReports()
   }, [])
 
   const fetchReports = async () => {

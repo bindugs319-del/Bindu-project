@@ -171,14 +171,8 @@ export default function Invoices({ onDataChange } = {}) {
   const onDataChangeRef = useRef(onDataChange)
   useEffect(() => { onDataChangeRef.current = onDataChange }, [onDataChange])
 
-  const fetchInvoices = useCallback(async (opts = {}) => {
-    const { silent = false } = opts
-    // silent=true is used by the background auto-refresh below — it
-    // must NOT toggle `loading`, since that swaps the entire table for
-    // a "Loading invoices..." placeholder (see the render below), which
-    // would make the whole list flash every 45s. Only a user-triggered
-    // fetch (initial load, filter change, after save) shows that state.
-    if (!silent) setLoading(true)
+  const fetchInvoices = useCallback(async () => {
+    setLoading(true)
 
     try {
       const response = await invoicesApi.list({ limit: 100, include_archived: showArchived })
@@ -196,33 +190,18 @@ export default function Invoices({ onDataChange } = {}) {
         // updates this component's own state, and anything else on the
         // page showing the same data stays stale until a full reload.
         onDataChangeRef.current?.()
-      } else if (!silent) {
-        // A background poll failing quietly (e.g. one dropped request)
-        // shouldn't surface as a user-facing error banner — only a
-        // fetch the user actually triggered should.
+      } else {
         setError(response.error)
       }
     } catch (err) {
-      if (!silent) setError(err.message)
+      setError(err.message)
     }
 
-    if (!silent) setLoading(false)
+    setLoading(false)
   }, [showArchived])
 
   useEffect(() => {
-    fetchInvoices()
-
-    // Keeps this list current without a manual reload — e.g. an
-    // invoice the Zoho sync (or anyone else) adds in the background
-    // would otherwise sit unseen until the page is refreshed, since a
-    // normal page load only fetches once. Silent: doesn't show the
-    // loading placeholder or surface errors — see fetchInvoices above.
-    const REFRESH_INTERVAL_MS = 45000
-    const intervalId = setInterval(() => {
-      fetchInvoices({ silent: true })
-    }, REFRESH_INTERVAL_MS)
-
-    return () => clearInterval(intervalId)
+    void fetchInvoices()
   }, [fetchInvoices])
 
   const handleQuickInvoiceDocUpload = async (invoice, file) => {
@@ -435,11 +414,6 @@ export default function Invoices({ onDataChange } = {}) {
   const [reminderIncludeLegalNotice, setReminderIncludeLegalNotice] = useState(false)
   const [reminderLegalNoticeContent, setReminderLegalNoticeContent] = useState('')
   const [showInvoiceLegalNoticeConfirm, setShowInvoiceLegalNoticeConfirm] = useState(null)
-  // Whether this invoice has a document to attach is read directly from
-  // reminderModalInvoice.document_url wherever needed — it's mandatory
-  // now (see handleConfirmReminder/the Send button below), not a user
-  // toggle, so there's no separate state for it any more.
-  const [reminderModalError, setReminderModalError] = useState(null)
 
   const handleSendReminder = (invoice) => {
     const dueDateStr = invoice.payment_due_date?.slice(0, 10) || 'N/A'
@@ -454,7 +428,6 @@ export default function Invoices({ onDataChange } = {}) {
     setReminderScheduleType('now')
     setReminderScheduledAt('')
     setReminderIncludeLegalNotice(false)
-    setReminderModalError(null)
     setReminderLegalNoticeContent(
       `To: ${invoice.counterparty_name || ''}\n` +
       `RE: Outstanding Payment - Invoice ${invoice.invoice_number || ''}\n\n` +
@@ -474,7 +447,6 @@ export default function Invoices({ onDataChange } = {}) {
     setReminderScheduleType('now')
     setReminderScheduledAt('')
     setReminderIncludeLegalNotice(false)
-    setReminderModalError(null)
     setReminderLegalNoticeContent('')
   }
 
@@ -508,23 +480,12 @@ export default function Invoices({ onDataChange } = {}) {
   }
 
   const handleConfirmReminder = async () => {
-    setReminderModalError(null)
-
-    // Mandatory, not optional: no reminder can go out without the
-    // invoice's own document attached (the backend enforces this too,
-    // as the real guard, in case this check is ever bypassed).
-    if (!reminderModalInvoice?.document_url) {
-      setReminderModalError('Please attach the invoice document to this invoice before sending a reminder.')
-      return
-    }
-
     const payload = {
       subject: reminderSubject,
       body: reminderBody,
       scheduled_at: reminderScheduleType === 'later' ? new Date(reminderScheduledAt).toISOString() : null,
       include_legal_notice: reminderIncludeLegalNotice,
       legal_notice_content: reminderIncludeLegalNotice ? reminderLegalNoticeContent : null,
-      attach_invoice_document: true,
     }
     // Sending now with a legal notice attached needs an explicit
     // confirmation step first, mirroring the Purchase Orders page.
@@ -2391,28 +2352,6 @@ export default function Invoices({ onDataChange } = {}) {
                     </p>
                   </div>
                 )}
-
-                {/* Attach Invoice Document — mandatory, not optional:
-                    every reminder must include the invoice's own
-                    uploaded document (see the Documents column), so
-                    this is always on and can't be unchecked; it's shown
-                    as a checkbox only so it's visible/expected, the
-                    same way "Attach Legal Notice" above is. */}
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mt-3 opacity-90">
-                  <input type="checkbox" checked={true} disabled readOnly />
-                  📎 Attach Invoice Document <span className="text-xs text-gray-400 font-normal">(required)</span>
-                </label>
-                {!reminderModalInvoice?.document_url && (
-                  <p className="text-xs text-red-600 mt-1">
-                    This invoice has no document uploaded yet. Upload one first (Documents column) — a reminder can't be sent without it.
-                  </p>
-                )}
-
-                {reminderModalError && (
-                  <p className="text-sm text-red-600 mt-3 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
-                    {reminderModalError}
-                  </p>
-                )}
               </div>
 
               <div className="border-t border-gray-100 pt-6">
@@ -2466,7 +2405,7 @@ export default function Invoices({ onDataChange } = {}) {
               </button>
               <button
                 onClick={handleConfirmReminder}
-                disabled={reminderSending || (reminderScheduleType === 'later' && !reminderScheduledAt) || !reminderModalInvoice?.document_url}
+                disabled={reminderSending || (reminderScheduleType === 'later' && !reminderScheduledAt)}
                 className="px-8 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {reminderSending ? 'Processing...' : reminderScheduleType === 'later' ? 'Schedule Reminder' : 'Send Reminder'}

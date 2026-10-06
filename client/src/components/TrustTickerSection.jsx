@@ -20,7 +20,7 @@ export default function TrustTickerSection({ token }) {
     setLoading(false)
   }
 
-  useEffect(() => { load() }, [token])
+  useEffect(() => { void load() }, [token])
 
   const updateValue = (idx, value) => {
     setItems(prev => prev.map((it, i) => i === idx ? { ...it, value } : it))

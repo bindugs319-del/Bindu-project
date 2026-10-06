@@ -11,7 +11,7 @@ export default function Wallet() {
     const [msg, setMsg] = useState('')
 
     useEffect(() => {
-        fetchWalletData()
+        void fetchWalletData()
     }, [])
 
     const fetchWalletData = async () => {

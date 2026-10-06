@@ -101,7 +101,7 @@ export default function VendorInvoices() {
   }, [showArchived])
 
   useEffect(() => {
-    fetchInvoices()
+    void fetchInvoices()
   }, [fetchInvoices])
 
   useEffect(() => {
@@ -114,7 +114,7 @@ export default function VendorInvoices() {
         setReminderDaysBefore(days)
         setReminderDaysBeforeSaved(days)
       }
-    })
+    }).catch(err => console.error('Failed to load vendor reminder settings:', err))
   }, [])
 
   const saveReminderEmail = async () => {

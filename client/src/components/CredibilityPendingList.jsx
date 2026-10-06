@@ -55,7 +55,7 @@ export default function CredibilityPendingList({ type, title, description, onRef
   }
 
   useEffect(() => {
-    loadReviews()
+    void loadReviews()
   }, [])
 
   return (

@@ -56,11 +56,11 @@ export default function PDFImportModal({
       setError('Please select a PDF or an image (.pdf, .jpg, .jpeg, .png)')
       return
     }
-    runScan(selectedFile)
+    void runScan(selectedFile)
   }
 
   useEffect(() => {
-    if (initialFile) runScan(initialFile)
+    if (initialFile) void runScan(initialFile)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialFile])
 

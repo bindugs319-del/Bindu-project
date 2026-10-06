@@ -28,7 +28,7 @@ export default function Settlement() {
   })
 
   useEffect(() => {
-    fetchSettlements()
+    void fetchSettlements()
   }, [])
 
   // case_reference is free text ("Reference to defaulter case or PO"), not
