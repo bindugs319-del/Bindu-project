@@ -139,13 +139,10 @@ async def sync_vendor_credibility(vendor_name: str, db: AsyncSession, current_us
         traceback.print_exc() 
 
 
-@po_router.post("/{po_id}/request-approval") 
-async def request_po_edit_approval( 
-    po_id: str, 
-    request: Request, 
-    db: Annotated[AsyncSession, Depends(get_db)], 
-    current_user: Annotated[any, Depends(get_current_user)] 
-): 
+async def _request_po_edit_approval_impl(po_id, request, db, current_user):
+    """Shared body for the current (/purchase-orders) and legacy (/pos)
+    request-approval routes, which were previously two copies of the same
+    function kept in sync by hand."""
     if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
         raise UnauthorizedFeature(PO_FEATURE_NAME)
     body = await request.json() 
@@ -166,6 +163,16 @@ async def request_po_edit_approval(
         reason=body.get('reason', 'PO Edit') 
     ) 
     return {"success": True, "message": "Edit submitted for approval. Financial team notified.", "data": {"request_id": req_id}}
+
+
+@po_router.post("/{po_id}/request-approval") 
+async def request_po_edit_approval( 
+    po_id: str, 
+    request: Request, 
+    db: Annotated[AsyncSession, Depends(get_db)], 
+    current_user: Annotated[any, Depends(get_current_user)] 
+): 
+    return await _request_po_edit_approval_impl(po_id, request, db, current_user)
 
 
 @po_router.post("")
@@ -457,6 +464,40 @@ async def search_pos_for_reference(
 
 
 @po_router.get("")
+def _po_to_row_dict(p, safe_archived=False):
+    """Serialize one PurchaseOrder row for the list endpoint. safe_archived
+    uses getattr for the 'archived' column, for the fallback query path
+    below that runs without filtering on it (to tolerate a column mismatch
+    on an older schema)."""
+    return {
+        "id": p.id,
+        "po_number": p.po_number,
+        "vendor": p.vendor,
+        "gstin": p.gstin,
+        "vendor_email": p.vendor_email,
+        "vendor_phone": p.vendor_phone,
+        "amount": p.amount,
+        "due_date": p.due_date.isoformat() if p.due_date else None,
+        "status": p.status,
+        "archived": getattr(p, "archived", False) if safe_archived else p.archived,
+        "payment_completed_at": p.payment_completed_at.isoformat() if p.payment_completed_at else None,
+        "payment_receipt_url": getattr(p, "payment_receipt_url", None),
+        "payment_receipt_filename": getattr(p, "payment_receipt_filename", None),
+        "payment_window_days": getattr(p, "payment_window_days", 50),
+        "legal_notice_sent_at": p.legal_notice_sent_at.isoformat() if p.legal_notice_sent_at else None,
+        "document_url": p.document_url,
+        "evidence_url": p.evidence_url,
+        "approved_by": p.approved_by,
+        "approved_at": p.approved_at.isoformat() if p.approved_at else None,
+        "rejection_reason": p.rejection_reason,
+        "notes": p.notes,
+        "supplier_address": p.supplier_address,
+        "delivery_address": p.delivery_address,
+        "invoice_address": p.invoice_address,
+        "created_at": p.created_at.isoformat() if p.created_at else None,
+    }
+
+
 async def list_pos(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
@@ -484,33 +525,7 @@ async def list_pos(
         result = await db.execute(stmt)
         pos = result.scalars().all()
         
-        rows = [{
-            "id": p.id,
-            "po_number": p.po_number,
-            "vendor": p.vendor,
-            "gstin": p.gstin,
-            "vendor_email": p.vendor_email,
-            "vendor_phone": p.vendor_phone,
-            "amount": p.amount,
-            "due_date": p.due_date.isoformat() if p.due_date else None,
-            "status": p.status,
-            "archived": p.archived,
-            "payment_completed_at": p.payment_completed_at.isoformat() if p.payment_completed_at else None,
-            "payment_receipt_url": getattr(p, "payment_receipt_url", None),
-            "payment_receipt_filename": getattr(p, "payment_receipt_filename", None),
-            "payment_window_days": getattr(p, "payment_window_days", 50),
-            "legal_notice_sent_at": p.legal_notice_sent_at.isoformat() if p.legal_notice_sent_at else None,
-            "document_url": p.document_url,
-            "evidence_url": p.evidence_url,
-            "approved_by": p.approved_by,
-            "approved_at": p.approved_at.isoformat() if p.approved_at else None,
-            "rejection_reason": p.rejection_reason,
-            "notes": p.notes,
-            "supplier_address": p.supplier_address,
-            "delivery_address": p.delivery_address,
-            "invoice_address": p.invoice_address,
-            "created_at": p.created_at.isoformat() if p.created_at else None,
-        } for p in pos]
+        rows = [_po_to_row_dict(p) for p in pos]
         return ResponseFormatter.create_success(data=rows)
     except Exception as e:
         import traceback; print("PURCHASE ORDER LIST ERROR (fallback without archived filter):"); traceback.print_exc()
@@ -523,33 +538,7 @@ async def list_pos(
             stmt2 = select(PurchaseOrder).where(PurchaseOrder.company_id == current_user.company_id).order_by(PurchaseOrder.created_at.desc()).offset(skip).limit(limit)
             result2 = await db.execute(stmt2)
             pos2 = result2.scalars().all()
-            rows2 = [{
-                "id": p.id,
-                "po_number": p.po_number,
-                "vendor": p.vendor,
-                "gstin": p.gstin,
-                "vendor_email": p.vendor_email,
-                "vendor_phone": p.vendor_phone,
-                "amount": p.amount,
-                "due_date": p.due_date.isoformat() if p.due_date else None,
-                "status": p.status,
-                "archived": getattr(p, "archived", False),
-                "payment_completed_at": p.payment_completed_at.isoformat() if p.payment_completed_at else None,
-                "payment_receipt_url": getattr(p, "payment_receipt_url", None),
-                "payment_receipt_filename": getattr(p, "payment_receipt_filename", None),
-                "payment_window_days": getattr(p, "payment_window_days", 50),
-                "legal_notice_sent_at": p.legal_notice_sent_at.isoformat() if p.legal_notice_sent_at else None,
-                "document_url": p.document_url,
-                "evidence_url": p.evidence_url,
-                "approved_by": p.approved_by,
-                "approved_at": p.approved_at.isoformat() if p.approved_at else None,
-                "rejection_reason": p.rejection_reason,
-                "notes": p.notes,
-                "supplier_address": p.supplier_address,
-                "delivery_address": p.delivery_address,
-                "invoice_address": p.invoice_address,
-                "created_at": p.created_at.isoformat() if p.created_at else None,
-            } for p in pos2]
+            rows2 = [_po_to_row_dict(p, safe_archived=True) for p in pos2]
             return ResponseFormatter.create_success(data=rows2)
         except Exception:
             # Final fallback: empty list
@@ -1936,25 +1925,6 @@ async def request_po_edit_approval_pos(
     db: Annotated[AsyncSession, Depends(get_db)], 
     current_user: Annotated[User, Depends(get_current_user)] 
 ): 
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
-    body = await request.json() 
-    from sqlalchemy import select 
-    po = (await db.execute(select(PurchaseOrder).where(PurchaseOrder.id == po_id))).scalar_one_or_none() 
-    if not po: 
-        raise HTTPException(404, "PO not found") 
-    
-    from app.services.workflow_service import WorkflowService 
-    req_id = await WorkflowService.start_po_approval( 
-        db=db, 
-        po_id=po_id, 
-        po_number=po.po_number, 
-        requester_email=current_user.email, 
-        edit_data=body.get('edit_data', {}), 
-        evidence_url=body.get('evidence_url'), 
-        evidence_filename=body.get('evidence_filename'), 
-        reason=body.get('reason', 'PO Edit') 
-    ) 
-    return {"success": True, "message": "Edit submitted for approval. Financial team notified.", "data": {"request_id": req_id}}
+    return await _request_po_edit_approval_impl(po_id, request, db, current_user)
 
 

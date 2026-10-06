@@ -14,26 +14,20 @@ import EditPOModal from '../components/po/EditPOModal'
 import PurchaseOrders from './PurchaseOrders'
 import RoleDashboard from './roles/RoleDashboard'
 import { logActivity, ACTIONS } from '../utils/activityLogger'
-import BusinessRequestModal from '../components/BusinessRequestModal'
-import SupportRequestModal from '../components/SupportRequestModal'
+import DashboardHeader from '../components/dashboard/DashboardHeader'
+import DashboardRequestModals from '../components/dashboard/DashboardRequestModals'
+import { useRoleFlags } from '../hooks/useRoleFlags'
+import { usePlanInfo } from '../hooks/usePlanInfo'
 
 export default function Dashboard() {
   const { user, subscription, loading } = useAuth()
-  
-  const role = String(user?.role || '').toUpperCase()
 
   // Internal roles are handled by WorkflowDashboard
   // if (role === 'OPERATIONS' || role === 'OPERATION' || role === 'FINANCIAL' || role === 'FINANCE' || role === 'LEGAL') { 
   //   return <RoleDashboard /> 
   // }
-  
-  const isCompanyAdmin = role === 'COMPANY_ADMIN'
-  const isUser = role === 'USER'
-  const isMasterAdmin = role === 'MASTER_ADMIN'
-  const isFinancial = role === 'FINANCIAL' || role === 'FINANCE'
-  const isOperations = role === 'OPERATION' || role === 'OPERATIONS'
-  const isLegal = role === 'LEGAL'
-  const isInternal = ['MASTER_ADMIN', 'OPERATION', 'OPERATIONS', 'FINANCIAL', 'FINANCE', 'LEGAL'].includes(role)
+
+  const { isCompanyAdmin, isUser, isMasterAdmin, isFinancial, isOperations, isLegal, isInternal } = useRoleFlags(user)
 
   const [stats, setStats] = useState({
     purchaseOrders: 0,
@@ -202,24 +196,7 @@ export default function Dashboard() {
     return allDefaulters.filter(d => poNumbers.has(d.invoice_number)).length
   }, [purchaseRows, allDefaulters])
 
-  const planLabel = useMemo(() => {    if (!subscription) return 'No Plan'
-    // Check if subscription has plan, plan_id, or is the admin free plan
-    if (subscription.plan) return String(subscription.plan).toUpperCase()
-    if (subscription.plan_id) return String(subscription.plan_id).toUpperCase()
-    const subObj = subscription.subscription
-    if (subObj?.plan_id) return String(subObj.plan_id).toUpperCase()
-    if (subObj?.plan) return String(subObj.plan).toUpperCase()
-    return 'BASE'
-  }, [subscription])
-
-  const planStatus = useMemo(() => {
-    if (user?.subscription_bypass || user?.full_access) return 'Active'
-    if (!subscription) return 'Inactive'
-    if (subscription.is_active) return 'Active'
-    const subObj = subscription.subscription
-    if (subObj?.status) return String(subObj.status).charAt(0).toUpperCase() + String(subObj.status).slice(1)
-    return 'Inactive'
-  }, [subscription, user])
+  const { planLabel, planStatus } = usePlanInfo(subscription, user)
 
   // formatCurrency, formatDate, getActivityIcon, and getExpiryDisplay
   // now live in utils/dashboardDisplay.js (see import above) — they were
@@ -228,24 +205,12 @@ export default function Dashboard() {
   return (
     <section className="py-8 md:py-12">
       <div className="container-custom space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <p className="text-xs text-gray-500">
-              {loading ? 'Loading profile...' : `Welcome back, ${user?.company_name || user?.email || 'Member'}`}
-            </p>
-            <h1 className="text-2xl font-heading font-bold text-gray-900">Dashboard</h1>
-          </div>
-          
-          {/* My Wallet - Slim Inline Strip */}
-          <div className="flex items-center gap-3 px-4 py-2 bg-indigo-50/50 border border-indigo-100 rounded-full">
-            <span className="text-xs font-medium text-indigo-700 flex items-center gap-1.5">
-              💳 Wallet: <span className="font-bold">{stats.wallet}</span> pts
-            </span>
-            <Link to="/wallet" className="text-[11px] font-semibold text-indigo-600 hover:underline">
-              Redeem →
-            </Link>
-          </div>
-        </div>
+        <DashboardHeader
+          title="Dashboard"
+          loading={loading}
+          userLabel={user?.company_name || user?.email}
+          walletBalance={stats.wallet}
+        />
 
         <div className="flex flex-wrap gap-4">
           {/* All users see Purchase Orders and Invoices */}
@@ -395,22 +360,10 @@ export default function Dashboard() {
             onSave={handleSaveEditPO}
           />
         )}
-        {showBizRequest && (
-          <BusinessRequestModal
-            onClose={() => setShowBizRequest(false)}
-            onSuccess={() => {
-              setShowBizRequest(false)
-            }}
-          />
-        )}
-        {showSupportRequest && (
-          <SupportRequestModal
-            onClose={() => setShowSupportRequest(false)}
-            onSuccess={() => {
-              setShowSupportRequest(false)
-            }}
-          />
-        )}
+        <DashboardRequestModals
+          showBizRequest={showBizRequest} setShowBizRequest={setShowBizRequest}
+          showSupportRequest={showSupportRequest} setShowSupportRequest={setShowSupportRequest}
+        />
       </div>
     </section>
   )

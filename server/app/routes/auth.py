@@ -31,6 +31,30 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
+def _set_auth_cookies(response: JSONResponse, tokens: dict) -> None:
+    """Set the access/refresh token cookies on a login-style response.
+    Shared by register, login, and login-via-email-OTP, which previously
+    each had their own copy of this exact cookie setup."""
+    response.set_cookie(
+        key="access_token",
+        value=tokens["access_token"],
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        path="/",
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=tokens["refresh_token"],
+        httponly=True,
+        secure=settings.COOKIE_SECURE,
+        samesite=settings.COOKIE_SAMESITE,
+        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        path="/",
+    )
+
+
 # ---------------- REGISTER OTP ----------------
 @router.post("/register/send-otp")
 async def register_send_otp(request: RegisterSendOTPRequest, http_request: Request):
@@ -119,27 +143,7 @@ async def register(
         )
 
         response = JSONResponse(content=response_data)
-
-        # ✅ FIXED COOKIE SETTING (NO DOMAIN)
-        response.set_cookie(
-            key="access_token",
-            value=result["tokens"]["access_token"],
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite=settings.COOKIE_SAMESITE,
-            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            path="/",
-        )
-
-        response.set_cookie(
-            key="refresh_token",
-            value=result["tokens"]["refresh_token"],
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite=settings.COOKIE_SAMESITE,
-            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-            path="/",
-        )
+        _set_auth_cookies(response, result["tokens"])
 
         return response
     except AppException as e:
@@ -172,25 +176,7 @@ async def login(request: LoginRequest, http_request: Request, db: Annotated[Asyn
         response = JSONResponse(content=response_data)
         
         # Set cookies for browser clients
-        response.set_cookie(
-            key="access_token",
-            value=result["tokens"]["access_token"],
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite=settings.COOKIE_SAMESITE,
-            max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-            path="/",
-        )
-
-        response.set_cookie(
-            key="refresh_token",
-            value=result["tokens"]["refresh_token"],
-            httponly=True,
-            secure=settings.COOKIE_SECURE,
-            samesite=settings.COOKIE_SAMESITE,
-            max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-            path="/",
-        )
+        _set_auth_cookies(response, result["tokens"])
 
         return response
     except AppException as e:
@@ -259,24 +245,7 @@ async def login_verify_email_otp(
         request_id=request_id,
     )
     response = JSONResponse(content=response_data)
-    response.set_cookie(
-        key="access_token",
-        value=result["tokens"]["access_token"],
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite=settings.COOKIE_SAMESITE,
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        path="/",
-    )
-    response.set_cookie(
-        key="refresh_token",
-        value=result["tokens"]["refresh_token"],
-        httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite=settings.COOKIE_SAMESITE,
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
-        path="/",
-    )
+    _set_auth_cookies(response, result["tokens"])
     return response
 
 # ---------------- INVITATION ACCEPT ----------------

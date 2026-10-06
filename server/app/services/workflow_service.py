@@ -105,6 +105,23 @@ class WorkflowService:
         print(f"[WORKFLOW] Subscription started: {sub_id}, assigned to {assigned_role}") 
         return sub_id 
 
+    @staticmethod
+    async def _mark_workflow_rejected(db, wf_id, rejector_email, reason):
+        """Shared UPDATE for marking a workflow_items row rejected — used by
+        both the subscription-specific reject path and the generic
+        reject_workflow(), which were previously two copies of this same
+        statement. Does not commit; callers commit alongside their own
+        related updates."""
+        await db.execute(text("""
+            UPDATE workflow_items SET
+                status='REJECTED',
+                rejected_by_email=:email,
+                rejection_notes=:notes,
+                rejected_at=NOW(),
+                updated_at=NOW()
+            WHERE id=:id
+        """), dict(id=wf_id, email=rejector_email, notes=reason))
+
     @staticmethod 
     async def financial_verify_subscription(db, wf_id, approver_email, notes): 
         """Step 2: Financial/Operations verifies payment → notify Master Admin""" 
@@ -236,15 +253,7 @@ class WorkflowService:
                 WHERE id=:id 
             """), dict(id=sub_data['id'], reason=reason)) 
 
-        await db.execute(text( """ 
-            UPDATE workflow_items SET 
-                status='REJECTED', 
-                rejected_by_email=:email, 
-                rejection_notes=:notes, 
-                rejected_at=NOW(), 
-                updated_at=NOW() 
-            WHERE id=:id 
-        """), dict(id=wf_id, email=rejector_email, notes=reason)) 
+        await WorkflowService._mark_workflow_rejected(db, wf_id, rejector_email, reason)
         await db.commit() 
 
         if sub: 
@@ -534,15 +543,7 @@ class WorkflowService:
             {"id": wf_id} 
         )).fetchone() 
 
-        await db.execute(text(""" 
-            UPDATE workflow_items SET 
-                status='REJECTED', 
-                rejected_by_email=:email, 
-                rejection_notes=:notes, 
-                rejected_at=NOW(), 
-                updated_at=NOW() 
-            WHERE id=:id 
-        """), dict(id=wf_id, email=rejector_email, notes=reason)) 
+        await WorkflowService._mark_workflow_rejected(db, wf_id, rejector_email, reason)
         await db.commit() 
 
         if wf: 

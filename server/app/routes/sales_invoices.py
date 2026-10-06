@@ -97,28 +97,6 @@ def serialize_sales_invoice(invoice: SalesInvoice) -> dict:
     return SalesInvoiceResponse.model_validate(invoice).model_dump(mode="json")
 
 
-async def _fetch_invoice_document_bytes(document_url: str) -> Optional[bytes]:
-    """Resolves invoice.document_url — a relative /uploads/... path OR an
-    absolute URL, depending on which storage backend (B2, Google Drive,
-    local disk) store_uploaded_file used — down to raw bytes, so it can
-    be attached to the reminder email regardless of where it's stored.
-    Returns None (never raises) if it can't be fetched."""
-    import httpx
-
-    url = document_url
-    if not url.startswith("http://") and not url.startswith("https://"):
-        url = f"{settings.BASE_URL.rstrip('/')}/{url.lstrip('/')}"
-
-    try:
-        async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
-            resp = await client.get(url)
-        if resp.status_code != 200:
-            return None
-        return resp.content
-    except Exception:
-        return None
-
-
 async def _get_owned_invoice(db: AsyncSession, invoice_id: str, user_id: str) -> Optional[SalesInvoice]:
     result = await db.execute(
         select(SalesInvoice).where(
@@ -322,16 +300,6 @@ async def send_sales_invoice_reminder(
     if not to_email:
         raise HTTPException(status_code=400, detail="No customer email configured for this invoice")
 
-    # Mandatory as of this change: no reminder — sent now or scheduled —
-    # goes out without the invoice's own document attached. Checked here,
-    # before either path below, so scheduling a reminder for later can't
-    # bypass it either.
-    if not (invoice.document_url or "").strip():
-        raise HTTPException(
-            status_code=400,
-            detail="Please attach the invoice document to this invoice before sending a reminder.",
-        )
-
     due_date_str = invoice.payment_due_date.isoformat() if invoice.payment_due_date else "N/A"
     amount_str = f"₹{invoice.total:,.2f}"
 
@@ -376,30 +344,15 @@ async def send_sales_invoice_reminder(
         except Exception:
             raise HTTPException(status_code=400, detail="Invalid scheduled_at format")
 
-    from app.services.email_service import EmailService, send_email_with_attachment, send_email_with_attachments
+    from app.services.email_service import EmailService, send_email_with_attachment
     from app.utils.audit import log_audit
 
-    # Send NOW — the invoice's own uploaded document is always attached
-    # (mandatory as of this change — see the check right after to_email
-    # above, which covers this path and the "schedule for later" path
-    # above equally), plus a formal legal-notice PDF too if requested.
-    # include_legal_notice mirrors purchase_orders' send-reminder
-    # endpoint exactly.
+    # Send NOW — optionally with a formal legal-notice PDF attached,
+    # mirroring purchase_orders' send-reminder endpoint exactly.
     email_sent = False
     try:
-        import os
-        attachments = []  # list of (bytes, filename) — built up below
-
-        doc_bytes = await _fetch_invoice_document_bytes(invoice.document_url)
-        if doc_bytes is None:
-            raise HTTPException(
-                status_code=502,
-                detail="Could not retrieve the attached invoice document. Please try re-uploading it and send the reminder again.",
-            )
-        ext = os.path.splitext(invoice.document_url.split("?")[0])[1] or ".pdf"
-        attachments.append((doc_bytes, f"Invoice_{invoice.invoice_number}{ext}"))
-
         if req.include_legal_notice:
+            import os
             from app.services.legal_notice_service import generate_legal_notice_pdf
             from app.utils.uploads import get_upload_subdir
 
@@ -414,12 +367,13 @@ async def send_sales_invoice_reminder(
             }
             generate_legal_notice_pdf(invoice_data, pdf_path, req.legal_notice_content)
 
-            def _read_pdf_bytes(path: str) -> bytes:
-                with open(path, "rb") as f:
-                    return f.read()
-            import asyncio
-            legal_notice_bytes = await asyncio.to_thread(_read_pdf_bytes, pdf_path)
-            attachments.append((legal_notice_bytes, f"Legal_Notice_{invoice.invoice_number}.pdf"))
+            email_sent = await send_email_with_attachment(
+                to_email=to_email,
+                subject=subject,
+                body=body,
+                attachment_path=pdf_path,
+                attachment_name=f"Legal_Notice_{invoice.invoice_number}.pdf",
+            )
 
             if os.path.exists(pdf_path):
                 os.remove(pdf_path)
@@ -429,13 +383,8 @@ async def send_sales_invoice_reminder(
                 db=db, user=current_user, action="SALES_INVOICE_LEGAL_NOTICE_SENT",
                 entity_obj=invoice, reason=f"To: {to_email}",
             )
-
-        if attachments:
-            email_sent = await send_email_with_attachments(to_email, subject, body, attachments)
         else:
             email_sent = await EmailService().send_email(to_email, subject, body)
-
-        if not req.include_legal_notice:
             await log_audit(
                 db=db, user=current_user, action="SALES_INVOICE_REMINDER_SENT",
                 entity_obj=invoice, reason=f"Reminder sent to {to_email}" if email_sent else f"Reminder NOT delivered (email not configured) — intended for {to_email}",
@@ -443,26 +392,22 @@ async def send_sales_invoice_reminder(
 
         invoice.updated_at = get_utc_now()
         await db.commit()
-    except HTTPException:
-        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to send reminder email: {str(e)}")
 
     if not email_sent:
-        # send_email() / send_email_with_attachment(s)() return False
-        # (rather than raising) specifically when no real email provider
-        # is configured — see EmailService. Reporting success here
-        # anyway would silently convince the user a customer was
-        # reminded when nothing was actually sent.
+        # send_email() / send_email_with_attachment() return False (rather
+        # than raising) specifically when no real email provider is
+        # configured — see EmailService. Reporting success here anyway
+        # would silently convince the user a customer was reminded when
+        # nothing was actually sent.
         return success_response(
             message="Reminder logged, but no email was actually sent — email delivery isn't configured on this server yet. Ask your admin to set up BREVO_API_KEY.",
         )
 
-    attached_bits = ["invoice document"]  # always attached now — see the mandatory check above
-    if req.include_legal_notice:
-        attached_bits.append("legal notice")
-    suffix = f" with {' and '.join(attached_bits)}"
-    return success_response(message=f"Reminder{suffix} sent to {to_email}")
+    return success_response(
+        message=f"Reminder with Legal Notice sent to {to_email}" if req.include_legal_notice else f"Reminder sent to {to_email}"
+    )
 
 
 @router.post("/{invoice_id}/send-to-legal-support")
@@ -890,17 +835,25 @@ async def list_sales_invoices_pending_master(
     return success_response(data=[serialize_sales_invoice(i) for i in invoices])
 
 
+async def _require_owned_invoice(db, invoice_id, current_user):
+    """Access-check + fetch-or-404 for a single owned invoice — used by the
+    simple single-invoice routes (get/delete/etc.) that were previously
+    each repeating this same four-line check."""
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
+    return invoice
+
+
 @router.get("/{invoice_id}")
 async def get_sales_invoice(
     invoice_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
-        raise UnauthorizedFeature("Invoice Management")
-    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
-    if not invoice:
-        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
+    invoice = await _require_owned_invoice(db, invoice_id, current_user)
     return success_response(data=serialize_sales_invoice(invoice))
 
 
@@ -1043,15 +996,12 @@ async def request_sales_invoice_approval(
     return success_response(data=serialize_sales_invoice(invoice), message="Edit submitted for approval. Operations team has been notified.")
 
 
-@router.post("/{invoice_id}/operations-verify")
-async def sales_invoice_operations_verify(
-    invoice_id: str,
-    action: SalesInvoiceWorkflowAction,
-    current_user: Annotated[User, Depends(get_current_user)],
-    db: Annotated[AsyncSession, Depends(get_db)],
-):
-    """Step 3 — Operations confirms the Truth Check and forwards to
-    Master Admin, mirroring WorkflowService.operations_verify_po."""
+async def _require_invoice_pending_operations_review(db, invoice_id, current_user):
+    """Access-check + role-check + fetch-or-404 + status-guard for the
+    Operations verify/reject pair, which were previously each repeating
+    this same block. Note this looks up by id directly (any invoice),
+    unlike _require_owned_invoice above — Operations/Master Admin review
+    invoices they don't themselves own."""
     if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
         raise UnauthorizedFeature("Invoice Management")
     _require_role(current_user, ["OPERATIONS", "OPERATION", "MASTER_ADMIN"])
@@ -1061,6 +1011,19 @@ async def sales_invoice_operations_verify(
         raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
     if invoice.workflow_status != "Pending Operations Review":
         raise HTTPException(status_code=400, detail=f"Invoice is not pending Operations review (current: {invoice.workflow_status})")
+    return invoice
+
+
+@router.post("/{invoice_id}/operations-verify")
+async def sales_invoice_operations_verify(
+    invoice_id: str,
+    action: SalesInvoiceWorkflowAction,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_db)],
+):
+    """Step 3 — Operations confirms the Truth Check and forwards to
+    Master Admin, mirroring WorkflowService.operations_verify_po."""
+    invoice = await _require_invoice_pending_operations_review(db, invoice_id, current_user)
 
     invoice.workflow_status = "Pending Master Admin Approval"
     invoice.operations_reviewed_by = current_user.id
@@ -1096,15 +1059,7 @@ async def sales_invoice_operations_reject(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Operations rejects the edit at the Truth Check stage."""
-    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
-        raise UnauthorizedFeature("Invoice Management")
-    _require_role(current_user, ["OPERATIONS", "OPERATION", "MASTER_ADMIN"])
-    result = await db.execute(select(SalesInvoice).where(SalesInvoice.id == invoice_id))
-    invoice = result.scalar_one_or_none()
-    if not invoice:
-        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
-    if invoice.workflow_status != "Pending Operations Review":
-        raise HTTPException(status_code=400, detail=f"Invoice is not pending Operations review (current: {invoice.workflow_status})")
+    invoice = await _require_invoice_pending_operations_review(db, invoice_id, current_user)
 
     invoice.workflow_status = "Rejected"
     invoice.approval_status = "REJECTED"
@@ -1250,11 +1205,7 @@ async def delete_sales_invoice(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
-        raise UnauthorizedFeature("Invoice Management")
-    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
-    if not invoice:
-        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
+    invoice = await _require_owned_invoice(db, invoice_id, current_user)
 
     await db.delete(invoice)
     await db.commit()

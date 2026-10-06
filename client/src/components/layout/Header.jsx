@@ -63,6 +63,53 @@ function NavDropdown({ label, options }) {
   )
 }
 
+// A single desktop/tablet nav link with the animated bottom-border-on-hover
+// treatment. Used for the main nav links, the Contact link, and the Login
+// link — they were previously three (really four, once tablet nav is
+// counted) copies of the same NavLink/motion.span markup.
+function DesktopNavItem({ to, label }) {
+  return (
+    <NavLink
+      to={to}
+      className={({ isActive }) =>
+        `relative text-sm font-medium transition-all duration-200 ${
+          isActive ? 'text-[#1E3A8A] font-bold' : 'text-[#374151] hover:text-[#1E3A8A]'
+        }`
+      }
+    >
+      {({ isActive }) => (
+        <motion.span whileHover={{ y: -1 }}>
+          {label}
+          <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6] rounded-full transition-all duration-200 ${isActive ? 'w-full' : 'w-0 hover:w-full'}`}></span>
+        </motion.span>
+      )}
+    </NavLink>
+  )
+}
+
+// A labeled, always-expanded group of links in the mobile slide-out menu —
+// used for Membership Hub, Invoice, and PO, which were previously three
+// copies of the same header-div-plus-mapped-NavLink markup.
+function MobileNavGroup({ title, options, onNavigate }) {
+  return (
+    <div>
+      <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">{title}</div>
+      {options.map((opt) => (
+        <NavLink
+          key={opt.to}
+          to={opt.to}
+          className={({ isActive }) =>
+            `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
+          }
+          onClick={onNavigate}
+        >
+          {opt.label}
+        </NavLink>
+      ))}
+    </div>
+  )
+}
+
 export default function Header() {
   const [open, setOpen] = useState(false)
   const { user, isAuthenticated } = useAuth()
@@ -176,59 +223,15 @@ export default function Header() {
 
         <nav className="hidden lg:flex items-center gap-6">
           {navLinks.map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                `relative text-sm font-medium transition-all duration-200 ${
-                  isActive ? 'text-[#1E3A8A] font-bold' : 'text-[#374151] hover:text-[#1E3A8A]'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <motion.span whileHover={{ y: -1 }}>
-                  {link.label}
-                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6] rounded-full transition-all duration-200 ${isActive ? 'w-full' : 'w-0 hover:w-full'}`}></span>
-                </motion.span>
-              )}
-            </NavLink>
+            <DesktopNavItem key={link.to} to={link.to} label={link.label} />
           ))}
           <NavDropdown label="Membership Hub" options={membershipHubOptions} />
           <NavDropdown label="Invoice" options={invoiceOptions} />
           <NavDropdown label="PO" options={poOptions} />
-          <NavLink
-            key={contactLink.to}
-            to={contactLink.to}
-            className={({ isActive }) =>
-              `relative text-sm font-medium transition-all duration-200 ${
-                isActive ? 'text-[#1E3A8A] font-bold' : 'text-[#374151] hover:text-[#1E3A8A]'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <motion.span whileHover={{ y: -1 }}>
-                {contactLink.label}
-                <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6] rounded-full transition-all duration-200 ${isActive ? 'w-full' : 'w-0 hover:w-full'}`}></span>
-              </motion.span>
-            )}
-          </NavLink>
+          <DesktopNavItem to={contactLink.to} label={contactLink.label} />
           {/* Always-visible Login link — separate from the account avatar below,
               so it stays in the nav even after you're logged in. */}
-          <NavLink
-            to="/auth/login"
-            className={({ isActive }) =>
-              `relative text-sm font-medium transition-all duration-200 ${
-                isActive ? 'text-[#1E3A8A] font-bold' : 'text-[#374151] hover:text-[#1E3A8A]'
-              }`
-            }
-          >
-            {({ isActive }) => (
-              <motion.span whileHover={{ y: -1 }}>
-                Login
-                <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6] rounded-full transition-all duration-200 ${isActive ? 'w-full' : 'w-0 hover:w-full'}`}></span>
-              </motion.span>
-            )}
-          </NavLink>
+          <DesktopNavItem to="/auth/login" label="Login" />
           {isAuthenticated ? (
             <div className="flex items-center gap-2 ml-3">
               <NotificationBell />
@@ -264,22 +267,7 @@ export default function Header() {
         {/* Tablet nav */}
         <nav className="hidden md:flex lg:hidden items-center gap-4">
           {navLinks.slice(0, 3).map((link) => (
-            <NavLink
-              key={link.to}
-              to={link.to}
-              className={({ isActive }) =>
-                `relative text-sm font-medium transition-all duration-200 ${
-                  isActive ? 'text-[#1E3A8A] font-bold' : 'text-[#374151] hover:text-[#1E3A8A]'
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <motion.span whileHover={{ y: -1 }}>
-                  {link.label}
-                  <span className={`absolute bottom-0 left-0 right-0 h-0.5 bg-[#3B82F6] rounded-full transition-all duration-200 ${isActive ? 'w-full' : 'w-0 hover:w-full'}`}></span>
-                </motion.span>
-              )}
-            </NavLink>
+            <DesktopNavItem key={link.to} to={link.to} label={link.label} />
           ))}
           {isAuthenticated ? (
             <div className="flex items-center gap-2 ml-2">
@@ -360,58 +348,12 @@ export default function Header() {
                 </NavLink>
               ))}
 
-              {/* Membership Hub (Offerings/Membership/Wallet) — same
-                  always-expanded sub-group treatment as Invoice/PO below. */}
-              <div>
-                <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">Membership Hub</div>
-                {membershipHubOptions.map((opt) => (
-                  <NavLink
-                    key={opt.to}
-                    to={opt.to}
-                    className={({ isActive }) =>
-                      `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
-                    }
-                    onClick={() => setOpen(false)}
-                  >
-                    {opt.label}
-                  </NavLink>
-                ))}
-              </div>
-
-              {/* Invoice / PO — shown as always-expanded sub-groups here
+              {/* Membership Hub / Invoice / PO — always-expanded sub-groups,
                   since the mobile menu is already a scrollable list; a
                   nested toggle would just add an extra tap. */}
-              <div>
-                <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">Invoice</div>
-                {invoiceOptions.map((opt) => (
-                  <NavLink
-                    key={opt.to}
-                    to={opt.to}
-                    className={({ isActive }) =>
-                      `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
-                    }
-                    onClick={() => setOpen(false)}
-                  >
-                    {opt.label}
-                  </NavLink>
-                ))}
-              </div>
-
-              <div>
-                <div className="px-3 text-xs font-bold uppercase tracking-wide text-[#94A3B8] mb-1">PO</div>
-                {poOptions.map((opt) => (
-                  <NavLink
-                    key={opt.to}
-                    to={opt.to}
-                    className={({ isActive }) =>
-                      `block text-base font-semibold py-2 pl-6 ${isActive ? 'text-[#1E3A8A] bg-primary-50 rounded-lg px-3' : 'text-text-secondary hover:text-[#1E3A8A] hover:bg-primary-50/50 rounded-lg px-3'}`
-                    }
-                    onClick={() => setOpen(false)}
-                  >
-                    {opt.label}
-                  </NavLink>
-                ))}
-              </div>
+              <MobileNavGroup title="Membership Hub" options={membershipHubOptions} onNavigate={() => setOpen(false)} />
+              <MobileNavGroup title="Invoice" options={invoiceOptions} onNavigate={() => setOpen(false)} />
+              <MobileNavGroup title="PO" options={poOptions} onNavigate={() => setOpen(false)} />
 
               <NavLink
                 key={contactLink.to}
