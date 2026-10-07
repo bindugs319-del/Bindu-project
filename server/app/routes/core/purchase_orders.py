@@ -460,7 +460,6 @@ async def search_pos_for_reference(
         raise HTTPException(status_code=500, detail=f"Failed to search purchase orders: {str(e)}")
 
 
-@po_router.get("")
 async def _check_po_access(current_user, db):
     """Feature-access check for PO endpoints, with the same Master
     Admin / Company Admin bypass create_po has always had. Previously
@@ -510,6 +509,7 @@ def _po_to_row_dict(p, safe_archived=False):
     }
 
 
+@po_router.get("")
 async def list_pos(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
