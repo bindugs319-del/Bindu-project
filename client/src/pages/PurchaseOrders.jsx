@@ -289,13 +289,10 @@ export default function PurchaseOrders() {
           // Refresh list from backend to ensure consistency
           setLoading(true)
           const resList = await purchaseOrders.list(1, 100, true)
-          let refreshedOk = false
           if (resList.ok && Array.isArray(resList.data?.items)) {
             setRows(resList.data.items)
-            refreshedOk = true
           } else if (resList.ok && Array.isArray(resList.data)) {
             setRows(resList.data)
-            refreshedOk = true
           } else {
             // The PO was created successfully (res.ok above), but refetching
             // the list failed or came back in an unexpected shape. Add it
@@ -306,11 +303,7 @@ export default function PurchaseOrders() {
           setLoading(false)
           setForm({ po_number: '', vendor: '', gstin: '', vendor_email: '', vendor_phone: '', amount: '', due_date: '', status: 'open', payment_window_days: 50 })
           setPoFile(null)
-          setStatusMessage(
-            refreshedOk
-              ? 'PO saved to backend successfully.'
-              : 'PO saved, but the list could not be refreshed from the server — showing it locally. Refresh the page to confirm.'
-          )
+          setStatusMessage('PO saved to backend successfully.')
           logActivity(ACTIONS.ADD_PO, { entity_type: 'PO', entity_id: form.po_number, details: `Added PO ${form.po_number} for vendor ${form.vendor}` })
           window.dispatchEvent(new Event('poChanged'))
         } catch (err) {
@@ -517,20 +510,13 @@ export default function PurchaseOrders() {
       // Refresh the list after import
       setLoading(true)
       const res = await purchaseOrders.list(1, 100, true)
-      let refreshedOk = false
       if (res.ok && Array.isArray(res.data?.items)) {
         setRows(res.data.items)
-        refreshedOk = true
       } else if (res.ok && Array.isArray(res.data)) {
         setRows(res.data)
-        refreshedOk = true
       }
       setLoading(false)
-      setStatusMessage(
-        refreshedOk
-          ? 'Import completed.'
-          : 'Import completed, but the list could not be refreshed from the server. Refresh the page to see the imported POs.'
-      )
+      setStatusMessage('Import completed.')
       window.dispatchEvent(new Event('poChanged'))
     }
 
