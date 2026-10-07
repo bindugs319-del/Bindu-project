@@ -201,10 +201,7 @@ async def create_po(
     import traceback
     import uuid
     try:
-        role = str(getattr(current_user.role, "value", current_user.role) or "").upper()
-        if role not in ["MASTER_ADMIN", "COMPANY_ADMIN"]:
-            if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-                raise UnauthorizedFeature(PO_FEATURE_NAME)
+        await _check_po_access(current_user, db)
         
         gstin_norm = gstin.strip().upper() if gstin else None
         
@@ -464,6 +461,21 @@ async def search_pos_for_reference(
 
 
 @po_router.get("")
+async def _check_po_access(current_user, db):
+    """Feature-access check for PO endpoints, with the same Master
+    Admin / Company Admin bypass create_po has always had. Previously
+    only create_po, list_pending_pos, process_po_approval and reject_po
+    carried this bypass — every other PO endpoint (list, get, update,
+    delete, archive, mark paid) called AccessControlService directly, so
+    an admin whose company lacked an active PO_MANAGEMENT subscription
+    feature could create a PO but then get silently blocked from seeing
+    or managing it. Raises UnauthorizedFeature if access is denied."""
+    role = str(getattr(current_user.role, "value", current_user.role) or "").upper()
+    if role not in ["MASTER_ADMIN", "COMPANY_ADMIN"]:
+        if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
+            raise UnauthorizedFeature(PO_FEATURE_NAME)
+
+
 def _po_to_row_dict(p, safe_archived=False):
     """Serialize one PurchaseOrder row for the list endpoint. safe_archived
     uses getattr for the 'archived' column, for the fallback query path
@@ -508,8 +520,7 @@ async def list_pos(
     limit: int = 20,
 ):
     """List user's purchase orders"""
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
+    await _check_po_access(current_user, db)
     try:
         # Support both page/page_size and skip/limit
         if page_size and page_size > 0:
@@ -585,8 +596,7 @@ async def get_pending_approvals_list(
 @po_router.get("/{po_id}")
 async def get_po(po_id: str, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
     """Get single purchase order"""
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
+    await _check_po_access(current_user, db)
     stmt = select(PurchaseOrder).where(
         (PurchaseOrder.id == po_id) & 
         ((PurchaseOrder.company_id == current_user.company_id) | (PurchaseOrder.user_id == current_user.id))
@@ -668,8 +678,7 @@ async def get_po_receipt(po_id: str, current_user: Annotated[User, Depends(get_c
 @po_router.put("/{po_id}")
 async def update_po(po_id: str, req: PurchaseOrderUpdate, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
     """Update purchase order"""
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
+    await _check_po_access(current_user, db)
     
     stmt = select(PurchaseOrder).where(
         (PurchaseOrder.id == po_id) & 
@@ -1115,8 +1124,7 @@ async def mark_paid(
     file: UploadFile = File(None)
 ):
     """Mark purchase order as paid (immutable financial action)"""
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
+    await _check_po_access(current_user, db)
     try:
         role = str(getattr(current_user.role, "value", current_user.role) or "").upper()
         
@@ -1456,8 +1464,7 @@ async def reject_po(
 @po_router.delete("/{po_id}")
 async def delete_po(po_id: str, req: GenericReasonRequest, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
     """Delete purchase order"""
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
+    await _check_po_access(current_user, db)
     
     stmt = select(PurchaseOrder).where(
         (PurchaseOrder.id == po_id) & 
@@ -1490,8 +1497,7 @@ async def delete_po(po_id: str, req: GenericReasonRequest, current_user: Annotat
 @po_router.post("/{po_id}/archive")
 async def archive_po(po_id: str, req: ArchiveRequest, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
     """Archive/unarchive purchase order"""
-    if not await AccessControlService.can_access_feature(current_user.id, PO_MANAGEMENT, db):
-        raise UnauthorizedFeature(PO_FEATURE_NAME)
+    await _check_po_access(current_user, db)
     stmt = select(PurchaseOrder).where((PurchaseOrder.id == po_id) & (PurchaseOrder.user_id == current_user.id))
     result = await db.execute(stmt)
     po = result.scalars().first()
