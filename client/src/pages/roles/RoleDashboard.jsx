@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../state/authContext'
-import { api, adminApi, salesInvoices as invoicesApi, STATIC_BASE_URL } from '../../services/api/apiClient'
+import { api, adminApi } from '../../services/api/apiClient'
 import RoleToggleSection from '../../components/RoleToggleSection'
 import AlertMessageSection from '../../components/AlertMessageSection'
 import TrustTickerSection from '../../components/TrustTickerSection'
@@ -98,7 +98,7 @@ export default function RoleDashboard() {
       })
       
       if (res.ok) {
-        void fetchTasks()
+        fetchTasks()
         alert(action === 'approve' 
           ? `✅ Approved! Report sent to user. ${shouldSaveToNetwork ? 'Company saved to Network Trust Intelligence.' : ''}`
           : '❌ Rejected and user notified.'
@@ -118,9 +118,6 @@ export default function RoleDashboard() {
   const isLegal = role === 'LEGAL'
   const isMasterRole = isMaster
 
-  const [pendingOpsInvoiceEdits, setPendingOpsInvoiceEdits] = useState([])
-  const [pendingInvoiceEdits, setPendingInvoiceEdits] = useState([])
-  const [invoiceActionLoading, setInvoiceActionLoading] = useState(null)
   const [ratingRequests, setRatingRequests] = useState([])
   const [ratingRequestForm, setRatingRequestForm] = useState({})
   const [ratingRequestSaving, setRatingRequestSaving] = useState(null)
@@ -187,7 +184,7 @@ export default function RoleDashboard() {
       })
       if (res.ok) {
         alert(`✅ ${res.data?.message || 'Sent to Master Admin for approval.'}`)
-        void fetchOpsRatingRequests()
+        fetchOpsRatingRequests()
       } else {
         alert(`❌ ${res.error || 'Failed to submit proposal'}`)
       }
@@ -213,7 +210,7 @@ export default function RoleDashboard() {
       })
       if (res.ok) {
         alert(`✅ ${res.data?.message || 'Rating saved!'}`)
-        void fetchRatingRequests()
+        fetchRatingRequests()
       } else {
         alert(`❌ ${res.error || 'Failed to save rating'}`)
       }
@@ -223,67 +220,11 @@ export default function RoleDashboard() {
     setRatingRequestSaving(null)
   }
 
-  const loadInvoiceQueues = async () => {
-    try {
-      if (isOps || isMasterRole) {
-        const res = await invoicesApi.pendingOperations()
-        if (res.ok) setPendingOpsInvoiceEdits(res.data?.data || res.data || [])
-      }
-      if (isMasterRole) {
-        const res2 = await invoicesApi.pendingMaster()
-        if (res2.ok) setPendingInvoiceEdits(res2.data?.data || res2.data || [])
-      }
-    } catch (e) {
-      // silent — non-critical widget
-    }
-  }
-
-  const handleOpsInvoiceEditAction = async (invoice, decision) => {
-    const notes = prompt(decision === 'verify' ? 'Truth Check notes (optional):' : 'Reason for rejection:') || ''
-    if (decision === 'reject' && notes.trim() === '') return
-    setInvoiceActionLoading(invoice.id)
-    try {
-      const res = decision === 'verify'
-        ? await invoicesApi.operationsVerify(invoice.id, notes)
-        : await invoicesApi.operationsReject(invoice.id, notes)
-      if (res.ok) {
-        alert(decision === 'verify' ? '✅ Verified! Forwarded to Master Admin for final approval.' : 'Invoice edit rejected.')
-        void loadInvoiceQueues()
-      } else {
-        alert(res.error || 'Action failed')
-      }
-    } catch (e) {
-      alert('Network error')
-    }
-    setInvoiceActionLoading(null)
-  }
-
-  const handleInvoiceEditAction = async (invoice, decision) => {
-    const notes = prompt(decision === 'approve' ? 'Final approval notes (optional):' : 'Reason for rejection:') || ''
-    if (decision === 'reject' && notes.trim() === '') return
-    setInvoiceActionLoading(invoice.id)
-    try {
-      const res = decision === 'approve'
-        ? await invoicesApi.masterApprove(invoice.id, notes)
-        : await invoicesApi.masterReject(invoice.id, notes)
-      if (res.ok) {
-        alert(decision === 'approve' ? '✅ Invoice edit approved and applied!' : 'Invoice edit rejected.')
-        void loadInvoiceQueues()
-      } else {
-        alert(res.error || 'Action failed')
-      }
-    } catch (e) {
-      alert('Network error')
-    }
-    setInvoiceActionLoading(null)
-  }
-
   useEffect(() => {
-    void fetchTasks()
-    void loadCompanies()
-    void loadInvoiceQueues()
-    if (isMaster) void fetchRatingRequests()
-    if (isOps) void fetchOpsRatingRequests()
+    fetchTasks()
+    loadCompanies()
+    if (isMaster) fetchRatingRequests()
+    if (isOps) fetchOpsRatingRequests()
     let timer = null
     // Only refresh tasks every 10 seconds if NOT on create-user page
     if (activeNav !== 'create-user') {
@@ -381,7 +322,7 @@ export default function RoleDashboard() {
 
   const handleCompanyClick = (company) => {
     setSelectedCompany(company)
-    void loadCompanyDetails(company.id)
+    loadCompanyDetails(company.id)
   }
 
   const handleBack = () => {
@@ -400,7 +341,7 @@ export default function RoleDashboard() {
       const res = await api.post(endpoint, body)
       if (res.ok) {
         alert(`✅ ${successMsg || res.message || 'Done!'}`)
-        void fetchTasks()
+        fetchTasks()
       } else {
         alert(`❌ ${res.error || res.message || 'Action failed'}`)
       }
@@ -729,7 +670,7 @@ export default function RoleDashboard() {
                 )}
                 onReject={() => {
                   const r = getRejectReason()
-                  if (r) void doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Subscription rejected')
+                  if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Subscription rejected')
                 }}
               />
             </div>
@@ -849,7 +790,7 @@ export default function RoleDashboard() {
                       ) 
                       if (r.ok) { 
                         alert('✅ Legal notice processed! Master Admin has been notified.') 
-                        void fetchTasks() 
+                        fetchTasks() 
                       } else { 
                         alert(r.error || 'Failed to process') 
                       } 
@@ -900,6 +841,10 @@ export default function RoleDashboard() {
         <h1 className="text-3xl font-black text-white flex items-center gap-2">⚙️ Operations Dashboard</h1>
         <p className="text-sm text-amber-100 mt-2">Manage all pending requests</p>
         <div className="flex flex-wrap gap-3 mt-4">
+          <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-xl">
+            <span className="text-white font-bold text-sm">Pending PO Verifications:</span>
+            <span className="bg-white text-amber-600 font-black text-lg px-3 py-1 rounded-full">{tasks.po_edit_verification?.length || 0}</span>
+          </div>
           {tasks.handling_legal && (
             <span className="text-xs bg-gradient-to-r from-indigo-500 to-indigo-600 text-white px-3 py-1 rounded-full font-extrabold">⚖️ Also handling Legal tasks</span>
           )}
@@ -908,47 +853,6 @@ export default function RoleDashboard() {
           )}
         </div>
       </div>
-
-      {/* Invoice Edit Truth Check (Operations) */}
-      <Section title="Invoice Edit Truth Check" icon="🧾"
-        count={pendingOpsInvoiceEdits.length}
-        subtitle="Review edited invoices for consistency before forwarding to Master Admin"
-        color="indigo">
-        {!pendingOpsInvoiceEdits.length ? <Empty msg="No invoice edits pending Truth Check" /> :
-          pendingOpsInvoiceEdits.map(inv => (
-            <div key={inv.id} className="p-4 border-b border-gray-100 flex justify-between items-start gap-4">
-              <div className="text-sm">
-                <p className="font-bold text-gray-900">{inv.invoice_number} — {inv.counterparty_name}</p>
-                <p className="text-gray-600">Current amount: ₹{inv.total} · Due: {inv.payment_due_date ? new Date(inv.payment_due_date).toLocaleDateString('en-IN') : '—'}</p>
-                {inv.pending_change_reason && (
-                  <p className="text-xs text-gray-500 mt-1">Reason: {inv.pending_change_reason}</p>
-                )}
-                {inv.pending_change_evidence_url && (
-                  <a href={inv.pending_change_evidence_url.startsWith('http') ? inv.pending_change_evidence_url : `${STATIC_BASE_URL}${inv.pending_change_evidence_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline">
-                    📎 View evidence
-                  </a>
-                )}
-              </div>
-              <div className="flex gap-2 flex-shrink-0">
-                <button
-                  disabled={invoiceActionLoading === inv.id}
-                  onClick={() => handleOpsInvoiceEditAction(inv, 'verify')}
-                  className="px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  ✅ Verify & Forward
-                </button>
-                <button
-                  disabled={invoiceActionLoading === inv.id}
-                  onClick={() => handleOpsInvoiceEditAction(inv, 'reject')}
-                  className="px-3 py-1.5 rounded-lg bg-red-50 text-red-600 text-xs font-bold hover:bg-red-100 disabled:opacity-50"
-                >
-                  ✕ Reject
-                </button>
-              </div>
-            </div>
-          ))
-        }
-      </Section>
 
       {/* Company Rating Requests (Operations proposes, Master Admin approves) */}
       <Section title="Company Rating Requests" icon="⭐"
@@ -1047,7 +951,7 @@ export default function RoleDashboard() {
                   )}
                   onReject={() => {
                     const r = getRejectReason()
-                    if (r) void doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected')
+                    if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected')
                   }}
                 />
               </div>
@@ -1056,7 +960,45 @@ export default function RoleDashboard() {
         </Section>
       )}
 
-      {/* 2. Company Safety Check Requests */}
+      {/* 2. PO Edit Verification */}
+      <Section title="PO Edit Verification" icon="🔍"
+        count={tasks.po_edit_verification?.length}
+        subtitle="Verify PO edit requests with evidence before sending to Master Admin"
+        color="amber">
+        {!tasks.po_edit_verification?.length ? <Empty /> :
+          tasks.po_edit_verification.map(po => (
+            <div key={po.workflow_id} className="p-5 border-b flex justify-between items-start flex-wrap gap-3 hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md transition-shadow">
+              <div>
+                <p className="font-mono font-bold text-gray-900">{po.po_number}</p>
+                <p className="text-xs text-gray-500">Requested by: {po.requested_by_email}</p>
+                {po.reason && <p className="text-sm text-gray-600">Reason: {po.reason}</p>}
+                {po.evidence_url ? (
+                  <a href={po.evidence_url} target="_blank" rel="noreferrer"
+                    className="text-blue-600 underline text-xs mt-1 block">
+                    📎 View Evidence: {po.evidence_filename || 'document'}
+                  </a>
+                ) : (
+                  <p className="text-xs text-orange-500 mt-1">⚠️ No evidence attached</p>
+                )}
+              </div>
+              <ApproveRejectBtns
+                approveLabel="✅ Verify & Send to Master"
+                onApprove={() => doAction(
+                  `/workflow/po/${po.workflow_id}/operations-approve`,
+                  { notes: 'Verified by Operations team' },
+                  'Sent to Master Admin!'
+                )}
+                onReject={() => {
+                  const r = getRejectReason()
+                  if (r) doAction(`/workflow/po/${po.workflow_id}/reject`, { reason: r }, 'PO edit rejected')
+                }}
+              />
+            </div>
+          ))
+        }
+      </Section>
+
+      {/* 3. Company Safety Check Requests */}
       <Section title="Company Safety Check Requests" icon="🏢"
         count={tasks.business_check_requests?.length}
         subtitle="Review company safety requests and generate reports for users"
@@ -1118,7 +1060,7 @@ export default function RoleDashboard() {
               <button
                 onClick={() => {
                   const response = prompt('Response to user:') || 'Resolved by Operations team';
-                  void doAction(
+                  doAction(
                     `/support-requests/${req.id}/resolve`,
                     { response },
                     'Support request resolved! User notified.'
@@ -1154,7 +1096,7 @@ export default function RoleDashboard() {
                 <button
                   onClick={() => {
                     const notes = prompt('Notes:') || 'Processed by Operations'
-                    void doAction(`/workflow/legal-notice/${req.workflow_id}/process`, { notes }, 'Sent to Master Admin!')
+                    doAction(`/workflow/legal-notice/${req.workflow_id}/process`, { notes }, 'Sent to Master Admin!')
                   }}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-xs font-bold"
                 >
@@ -1240,7 +1182,7 @@ export default function RoleDashboard() {
                     if (res.ok) {
                       alert('✅ Report sent to Master Admin for approval!')
                       setSelectedBizRequest(null)
-                      void fetchTasks()
+                      fetchTasks()
                     } else {
                       alert(res.error || 'Failed')
                     }
@@ -1286,6 +1228,10 @@ export default function RoleDashboard() {
               <div className="text-xl font-black">{tasks.summary?.pending_subscriptions || 0}</div>
               <div className="text-[10px] opacity-80">Subscriptions</div>
             </div>
+            <div style={{ backgroundColor: '#d97706' }} className="text-white px-4 py-3 rounded-xl text-center">
+              <div className="text-xl font-black">{tasks.summary?.pending_po_approvals || 0}</div>
+              <div className="text-[10px] opacity-80">PO Approvals</div>
+            </div>
             <div style={{ backgroundColor: '#7c3aed' }} className="text-white px-4 py-3 rounded-xl text-center">
               <div className="text-xl font-black">{tasks.summary?.pending_business || 0}</div>
               <div className="text-[10px] opacity-80">Business</div>
@@ -1314,6 +1260,9 @@ export default function RoleDashboard() {
             <button onClick={() => setActiveNav('subscriptions')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'subscriptions' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
               💳 Final Subscription Approvals
             </button>
+            <button onClick={() => setActiveNav('po-approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'po-approvals' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
+              📋 Final PO Edit Approvals
+            </button>
             <Link to="/admin/defaulter-approvals" className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors hover:bg-gray-50 text-gray-700">
               🚩 Defaulter Case Approvals
             </Link>
@@ -1322,9 +1271,6 @@ export default function RoleDashboard() {
             </button>
             <button onClick={() => setActiveNav('legal-approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'legal-approvals' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
               ⚖️ Legal Notice Approvals
-            </button>
-            <button onClick={() => setActiveNav('invoice-approvals')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'invoice-approvals' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
-              🧾 Invoice Approvals {pendingInvoiceEdits.length > 0 && <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{pendingInvoiceEdits.length}</span>}
             </button>
             <button onClick={() => setActiveNav('rating-requests')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-colors ${activeNav === 'rating-requests' ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'hover:bg-gray-50 text-gray-700'}`}>
               ⭐ Company Rating Requests {ratingRequests.length > 0 && <span className="ml-auto bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{ratingRequests.length}</span>}
@@ -1464,7 +1410,46 @@ export default function RoleDashboard() {
                     )}
                     onReject={() => {
                       const r = getRejectReason()
-                      if (r) void doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
+                      if (r) doAction(`/workflow/subscription/${sub.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
+                    }}
+                  />
+                </div>
+              ))
+            }
+          </Section>
+        )}
+
+        {activeNav === 'po-approvals' && (
+          <Section title="Final PO Edit Approvals" icon="📋"
+            count={tasks.pending_po_approvals?.length}
+            subtitle="These have been verified by Operations team"
+            color="amber">
+            {!tasks.pending_po_approvals?.length ? <Empty msg="No PO edits waiting for your approval ✅" /> :
+              tasks.pending_po_approvals.map(po => (
+                <div key={po.workflow_id} className="p-5 border-b flex justify-between items-start flex-wrap gap-3 hover:bg-gray-50 transition-colors shadow-sm hover:shadow-md transition-shadow">
+                  <div>
+                    <p className="font-mono font-bold text-gray-900">{po.po_number}</p>
+                    {po.reason && <p className="text-sm text-gray-600">Reason: {po.reason}</p>}
+                    {po.evidence_url && (
+                      <a href={po.evidence_url} target="_blank" rel="noreferrer"
+                        className="text-blue-600 underline text-xs">📎 View Evidence</a>
+                    )}
+                    {po.review_notes && (
+                      <div className="mt-2 p-2 bg-amber-50 rounded-lg text-xs text-amber-700">
+                        <strong>Operations notes:</strong> {po.review_notes}
+                      </div>
+                    )}
+                  </div>
+                  <ApproveRejectBtns
+                    approveLabel="👑 Final Apply"
+                    onApprove={() => doAction(
+                      `/workflow/po/${po.workflow_id}/master-approve`,
+                      { notes: 'Final approval by Master Admin' },
+                      'PO edit applied! User notified.'
+                    )}
+                    onReject={() => {
+                      const r = getRejectReason()
+                      if (r) doAction(`/workflow/po/${po.workflow_id}/reject`, { reason: r }, 'Rejected. User notified.')
                     }}
                   />
                 </div>
@@ -1517,7 +1502,7 @@ export default function RoleDashboard() {
                           onClick={() => {
                             const sn = req.is_new_company ? (document.getElementById('sn-'+req.id)?.checked || false) : false;
                             const notes = prompt('Notes:') || 'Approved by Master Admin';
-                            void doAction('/business-check/'+req.id+'/master-approve', { save_to_network: sn, notes }, 'Report sent to user!' + (sn ? ' Saved to Network Trust.' : ''));
+                            doAction('/business-check/'+req.id+'/master-approve', { save_to_network: sn, notes }, 'Report sent to user!' + (sn ? ' Saved to Network Trust.' : ''));
                           }}
                           className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-xs font-bold"
                         >
@@ -1526,7 +1511,7 @@ export default function RoleDashboard() {
                         <button
                           onClick={() => {
                             const reason = prompt('Rejection reason:');
-                            if (reason) void doAction('/business-check/'+req.id+'/reject', { reason }, 'Rejected.');
+                            if (reason) doAction('/business-check/'+req.id+'/reject', { reason }, 'Rejected.');
                           }}
                           className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold"
                         >
@@ -1581,7 +1566,7 @@ export default function RoleDashboard() {
                     <button
                       onClick={() => {
                         const notes = prompt('Notes:') || 'Approved by Master Admin';
-                        void doAction('/workflow/legal-notice/' + item.workflow_id + '/master-approve', { notes }, 'Legal notice approved!');
+                        doAction('/workflow/legal-notice/' + item.workflow_id + '/master-approve', { notes }, 'Legal notice approved!');
                       }}
                       className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl text-xs font-bold"
                     >
@@ -1590,70 +1575,11 @@ export default function RoleDashboard() {
                     <button
                       onClick={() => {
                         const reason = prompt('Rejection reason:');
-                        if (reason) void doAction('/workflow/legal-notice/' + item.workflow_id + '/reject', { reason }, 'Rejected.');
+                        if (reason) doAction('/workflow/legal-notice/' + item.workflow_id + '/reject', { reason }, 'Rejected.');
                       }}
                       className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold"
                     >
                       ❌
-                    </button>
-                  </div>
-                </div>
-              ))}
-          </Section>
-        )}
-
-        {activeNav === 'invoice-approvals' && (
-          <Section title="Invoice Edit Approvals" icon="🧾" color="indigo"
-            count={pendingInvoiceEdits.length}
-            subtitle="Verified by Operations — give final approval">
-            {!pendingInvoiceEdits.length ? <Empty msg="No invoice edits pending final approval ✅" /> :
-              pendingInvoiceEdits.map(inv => (
-                <div key={inv.id} className="p-5 border-b flex justify-between items-start flex-wrap gap-3 hover:bg-gray-50 transition-colors">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <p className="font-mono font-bold text-gray-900">{inv.invoice_number}</p>
-                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">🧾 Invoice</span>
-                    </div>
-                    <p className="text-sm text-gray-600">{inv.counterparty_name}</p>
-                    <p className="text-sm font-bold text-indigo-600 mt-1">₹{Number(inv.total || 0).toLocaleString('en-IN')} (current)</p>
-                    <p className="text-xs text-gray-500 mt-1">Due: {inv.payment_due_date ? new Date(inv.payment_due_date).toLocaleDateString('en-IN') : '—'}</p>
-                    {inv.pending_change_reason && (
-                      <p className="text-xs text-gray-500 mt-1">Reason: {inv.pending_change_reason}</p>
-                    )}
-                    {inv.pending_change_evidence_url && (
-                      <a href={inv.pending_change_evidence_url.startsWith('http') ? inv.pending_change_evidence_url : `${STATIC_BASE_URL}${inv.pending_change_evidence_url}`} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 hover:underline block mt-1">
-                        📎 View evidence
-                      </a>
-                    )}
-                    {inv.operations_notes && (
-                      <div className="mt-2 p-2 bg-emerald-50 rounded-lg text-xs text-emerald-700">
-                        Operations Truth Check notes: {inv.operations_notes}
-                      </div>
-                    )}
-                    {inv.pending_changes && Object.keys(inv.pending_changes).length > 0 && (
-                      <div className="mt-2 p-2 bg-amber-50 rounded-lg text-xs text-amber-700 max-w-md">
-                        <p className="font-bold mb-1">Proposed changes:</p>
-                        {Object.entries(inv.pending_changes).filter(([k]) => k !== 'items').slice(0, 6).map(([k, v]) => (
-                          <p key={k}>{k}: {String(v)}</p>
-                        ))}
-                      </div>
-                    )}
-                    <span className="inline-block mt-2 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 uppercase">{inv.workflow_status}</span>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      disabled={invoiceActionLoading === inv.id}
-                      onClick={() => handleInvoiceEditAction(inv, 'approve')}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
-                    >
-                      👑 Approve Edit
-                    </button>
-                    <button
-                      disabled={invoiceActionLoading === inv.id}
-                      onClick={() => handleInvoiceEditAction(inv, 'reject')}
-                      className="bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-xl text-xs font-bold disabled:opacity-50"
-                    >
-                      ❌ Reject
                     </button>
                   </div>
                 </div>

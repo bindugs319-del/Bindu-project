@@ -156,11 +156,10 @@ export default function Invoices({ onDataChange } = {}) {
     setTimeout(() => URL.revokeObjectURL(url), 60000)
   }
 
-  // Edit-approval fields, only shown/used when editing an existing
-  // invoice, mirroring purchase_orders' EditPOModal exactly.
+  // Reason shown/required when editing an existing invoice (kept as an
+  // audit trail) — edits apply immediately now, with no Operations/
+  // Master Admin approval step.
   const [editReason, setEditReason] = useState('')
-  const [editEvidenceFile, setEditEvidenceFile] = useState(null)
-  const [submitForApproval, setSubmitForApproval] = useState(false)
   const formPanelRef = useRef(null)
 
   // Read via a ref rather than putting onDataChange directly in
@@ -201,7 +200,7 @@ export default function Invoices({ onDataChange } = {}) {
   }, [showArchived])
 
   useEffect(() => {
-    void fetchInvoices()
+    fetchInvoices()
   }, [fetchInvoices])
 
   const handleQuickInvoiceDocUpload = async (invoice, file) => {
@@ -235,7 +234,7 @@ export default function Invoices({ onDataChange } = {}) {
   // Purchase Orders page's always-visible Add PO panel) instead of a
   // modal opened by a button, so prefill it once on mount.
   useEffect(() => {
-    void openCreateModal()
+    openCreateModal()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -267,7 +266,7 @@ export default function Invoices({ onDataChange } = {}) {
     try {
       const res = await invoicesApi.archive(invoice.id)
       if (res.ok) {
-        void fetchInvoices()
+        fetchInvoices()
       } else {
         alert(res.error || 'Failed to update archive status')
       }
@@ -395,7 +394,7 @@ export default function Invoices({ onDataChange } = {}) {
     if (!reasonText.trim()) { alert('Please enter a reason'); return }
     const res = await invoicesApi.markPaid(reasonModal.invoice.id, reasonText, paymentReceipt)
     if (res.ok) {
-      void fetchInvoices()
+      fetchInvoices()
     } else {
       alert(res.error || 'Failed to mark as paid')
     }
@@ -467,7 +466,7 @@ export default function Invoices({ onDataChange } = {}) {
         alert(res.message || res.data?.message || 'Reminder processed.')
         closeReminderModal()
         setShowInvoiceLegalNoticeConfirm(null)
-        void fetchInvoices()
+        fetchInvoices()
       } else {
         alert(res.error || 'Failed to send reminder')
       }
@@ -499,7 +498,7 @@ export default function Invoices({ onDataChange } = {}) {
   const handleSendToLegal = async (invoice) => {
     const res = await invoicesApi.sendToLegal(invoice.id, legalSupportReason, legalSupportFile)
     if (res.ok) {
-      void fetchInvoices()
+      fetchInvoices()
     } else {
       alert(res.error || 'Failed to send to legal support')
     }
@@ -740,8 +739,6 @@ export default function Invoices({ onDataChange } = {}) {
   const openEditModal = async (invoice) => {
     setEditingInvoiceId(invoice.id)
     setEditReason('')
-    setEditEvidenceFile(null)
-    setSubmitForApproval(false)
 
     const breakdown = invoice.tax_breakdown || { cgst: 0, sgst: 0, igst: 0 }
     const mode = (breakdown.cgst || breakdown.sgst) ? 'cgst_sgst' : 'igst'
@@ -805,20 +802,12 @@ export default function Invoices({ onDataChange } = {}) {
     e.preventDefault()
     setError(null)
 
-    const wantsApproval = submitForApproval || !!editEvidenceFile
-
-    // Mirrors EditPOModal's validation: reason is always required when
-    // editing an existing invoice, and evidence is required if the
-    // approval-flow checkbox is on.
-    if (editingInvoiceId) {
-      if (!editReason.trim()) {
-        setError('Please enter a reason for this update')
-        return
-      }
-      if (wantsApproval && !editEvidenceFile) {
-        setError('Please attach evidence for the approval flow')
-        return
-      }
+    // Reason is always required when editing an existing invoice (kept
+    // as an audit trail) — the edit itself applies immediately, no
+    // Operations/Master Admin approval step.
+    if (editingInvoiceId && !editReason.trim()) {
+      setError('Please enter a reason for this update')
+      return
     }
 
     try {
@@ -848,24 +837,8 @@ export default function Invoices({ onDataChange } = {}) {
 
       let response
 
-      if (editingInvoiceId && wantsApproval) {
-        // Two-step approval flow: upload evidence, then submit the
-        // edit for Operations Truth Check -> Master Admin approval,
-        // instead of applying it immediately.
-        const uploadRes = await invoicesApi.uploadEvidence(editingInvoiceId, editEvidenceFile)
-        if (!uploadRes.ok) {
-          setError(uploadRes.error || 'Failed to upload evidence')
-          return
-        }
-        response = await invoicesApi.requestApproval(
-          editingInvoiceId,
-          payload,
-          uploadRes.data?.url,
-          uploadRes.data?.filename,
-          editReason
-        )
-      } else if (editingInvoiceId) {
-        // Normal save, applies immediately.
+      if (editingInvoiceId) {
+        // Edit applies immediately — no approval step.
         response = await invoicesApi.update(editingInvoiceId, payload)
       } else {
         response = await invoicesApi.create(payload)
@@ -882,7 +855,7 @@ export default function Invoices({ onDataChange } = {}) {
         }
 
         closeFormModal()
-        void fetchInvoices()
+        fetchInvoices()
       } else {
         setError(response.error)
       }
@@ -935,7 +908,7 @@ export default function Invoices({ onDataChange } = {}) {
 
     const res = await invoicesApi.delete(invoice.id)
     if (res.ok) {
-      void fetchInvoices()
+      fetchInvoices()
     } else {
       setError(res.error)
     }
@@ -947,7 +920,7 @@ export default function Invoices({ onDataChange } = {}) {
 
     const res = await invoicesApi.update(invoice.id, payload)
     if (res.ok) {
-      void fetchInvoices()
+      fetchInvoices()
     } else {
       setError(res.error)
     }
@@ -982,8 +955,6 @@ export default function Invoices({ onDataChange } = {}) {
     setTaxRate(0)
     setInvoiceFile(null)
     setEditReason('')
-    setEditEvidenceFile(null)
-    setSubmitForApproval(false)
     setPdfScanBanner(null)
   }
 
@@ -1706,33 +1677,6 @@ export default function Invoices({ onDataChange } = {}) {
                       />
                     </div>
 
-                    <div className="border-t border-gray-100 pt-4 mb-6">
-                      <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                        📎 Attach Evidence (Required for Operations Review)
-                      </h4>
-                      <p className="text-xs text-gray-500 mb-3">
-                        Upload payment proof or supporting document — this will trigger a review by the Operations team.
-                      </p>
-                      <input
-                        type="file"
-                        accept=".pdf,.jpg,.jpeg,.png"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0] || null
-                          setEditEvidenceFile(f)
-                          if (f) setSubmitForApproval(true)
-                        }}
-                        className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 mb-3"
-                      />
-                      <label className="flex items-center gap-2 cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={submitForApproval}
-                          onChange={(e) => setSubmitForApproval(e.target.checked)}
-                          className="rounded text-blue-600 focus:ring-blue-500"
-                        />
-                        <span className="text-sm text-gray-600 font-medium">Submit for internal approval flow</span>
-                      </label>
-                    </div>
                   </>
                 )}
 
@@ -1752,9 +1696,7 @@ export default function Invoices({ onDataChange } = {}) {
                     type="submit"
                     className="px-5 py-2 bg-blue-600 text-white rounded"
                   >
-                    {editingInvoiceId
-                      ? ((submitForApproval || editEvidenceFile) ? '📤 Submit for Approval' : '💾 Save Changes')
-                      : 'Create Invoice'}
+                    {editingInvoiceId ? '💾 Save Changes' : 'Create Invoice'}
                   </button>
 
                 </div>
@@ -1798,7 +1740,7 @@ export default function Invoices({ onDataChange } = {}) {
         {showInvoiceImport && (
           <InvoiceCSVImportModal
             onClose={() => setShowInvoiceImport(false)}
-            onImportComplete={() => { void fetchInvoices() }}
+            onImportComplete={() => { fetchInvoices() }}
           />
         )}
 
