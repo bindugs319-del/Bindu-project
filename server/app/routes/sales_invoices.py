@@ -6,7 +6,7 @@ matching the supervisor's spec sheet. Separate from the simpler
 Invoice model used by app/routes/invoices.py.
 """
 import re
-from datetime import datetime
+from datetime import date, datetime
 from typing import Annotated, Optional
 from uuid import uuid4
 
@@ -34,6 +34,13 @@ from app.services.sales_invoice_pdf import build_sales_invoice_pdf
 from app.utils.response import ResponseFormatter
 
 SALES_INVOICE_NOT_FOUND_ERROR = "Sales invoice not found"
+
+# Date-typed columns on SalesInvoice — see update_sales_invoice()'s use of
+# this set for why it needs to re-parse these back into date objects.
+SALES_INVOICE_DATE_FIELDS = {
+    "invoice_date", "payment_due_date", "po_date",
+    "expected_delivery_date", "lut_filing_date",
+}
 
 
 def get_utc_now():
@@ -835,25 +842,17 @@ async def list_sales_invoices_pending_master(
     return success_response(data=[serialize_sales_invoice(i) for i in invoices])
 
 
-async def _require_owned_invoice(db, invoice_id, current_user):
-    """Access-check + fetch-or-404 for a single owned invoice — used by the
-    simple single-invoice routes (get/delete/etc.) that were previously
-    each repeating this same four-line check."""
-    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
-        raise UnauthorizedFeature("Invoice Management")
-    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
-    if not invoice:
-        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
-    return invoice
-
-
 @router.get("/{invoice_id}")
 async def get_sales_invoice(
     invoice_id: str,
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    invoice = await _require_owned_invoice(db, invoice_id, current_user)
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
     return success_response(data=serialize_sales_invoice(invoice))
 
 
@@ -905,6 +904,14 @@ async def update_sales_invoice(
     for field, value in update_data.items():
         if field in ("counterparty_gstin", "counterparty_pan") and value:
             value = value.upper()
+        if field in SALES_INVOICE_DATE_FIELDS and isinstance(value, str):
+            # model_dump(mode="json") turns date objects into ISO strings
+            # (needed so nested models like bill_to/ship_to come out as
+            # plain dicts for the JSON columns) — but asyncpg's DATE
+            # columns need an actual date object, not a string, or the
+            # UPDATE fails with "'str' object has no attribute
+            # 'toordinal'". Convert these specific fields back.
+            value = date.fromisoformat(value)
         setattr(invoice, field, value)
 
     if payload.items is not None:
@@ -996,24 +1003,6 @@ async def request_sales_invoice_approval(
     return success_response(data=serialize_sales_invoice(invoice), message="Edit submitted for approval. Operations team has been notified.")
 
 
-async def _require_invoice_pending_operations_review(db, invoice_id, current_user):
-    """Access-check + role-check + fetch-or-404 + status-guard for the
-    Operations verify/reject pair, which were previously each repeating
-    this same block. Note this looks up by id directly (any invoice),
-    unlike _require_owned_invoice above — Operations/Master Admin review
-    invoices they don't themselves own."""
-    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
-        raise UnauthorizedFeature("Invoice Management")
-    _require_role(current_user, ["OPERATIONS", "OPERATION", "MASTER_ADMIN"])
-    result = await db.execute(select(SalesInvoice).where(SalesInvoice.id == invoice_id))
-    invoice = result.scalar_one_or_none()
-    if not invoice:
-        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
-    if invoice.workflow_status != "Pending Operations Review":
-        raise HTTPException(status_code=400, detail=f"Invoice is not pending Operations review (current: {invoice.workflow_status})")
-    return invoice
-
-
 @router.post("/{invoice_id}/operations-verify")
 async def sales_invoice_operations_verify(
     invoice_id: str,
@@ -1023,7 +1012,15 @@ async def sales_invoice_operations_verify(
 ):
     """Step 3 — Operations confirms the Truth Check and forwards to
     Master Admin, mirroring WorkflowService.operations_verify_po."""
-    invoice = await _require_invoice_pending_operations_review(db, invoice_id, current_user)
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+    _require_role(current_user, ["OPERATIONS", "OPERATION", "MASTER_ADMIN"])
+    result = await db.execute(select(SalesInvoice).where(SalesInvoice.id == invoice_id))
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
+    if invoice.workflow_status != "Pending Operations Review":
+        raise HTTPException(status_code=400, detail=f"Invoice is not pending Operations review (current: {invoice.workflow_status})")
 
     invoice.workflow_status = "Pending Master Admin Approval"
     invoice.operations_reviewed_by = current_user.id
@@ -1059,7 +1056,15 @@ async def sales_invoice_operations_reject(
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
     """Operations rejects the edit at the Truth Check stage."""
-    invoice = await _require_invoice_pending_operations_review(db, invoice_id, current_user)
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+    _require_role(current_user, ["OPERATIONS", "OPERATION", "MASTER_ADMIN"])
+    result = await db.execute(select(SalesInvoice).where(SalesInvoice.id == invoice_id))
+    invoice = result.scalar_one_or_none()
+    if not invoice:
+        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
+    if invoice.workflow_status != "Pending Operations Review":
+        raise HTTPException(status_code=400, detail=f"Invoice is not pending Operations review (current: {invoice.workflow_status})")
 
     invoice.workflow_status = "Rejected"
     invoice.approval_status = "REJECTED"
@@ -1205,7 +1210,11 @@ async def delete_sales_invoice(
     current_user: Annotated[User, Depends(get_current_user)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ):
-    invoice = await _require_owned_invoice(db, invoice_id, current_user)
+    if not await AccessControlService.can_access_feature(current_user.id, "CREDIT_MANAGEMENT", db):
+        raise UnauthorizedFeature("Invoice Management")
+    invoice = await _get_owned_invoice(db, invoice_id, current_user.id)
+    if not invoice:
+        raise HTTPException(status_code=404, detail=SALES_INVOICE_NOT_FOUND_ERROR)
 
     await db.delete(invoice)
     await db.commit()
