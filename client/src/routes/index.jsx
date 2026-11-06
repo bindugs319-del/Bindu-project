@@ -56,6 +56,8 @@ import DefaulterApprovals from '../pages/admin/DefaulterApprovals'
 import ManagePlans from '../pages/admin/ManagePlans'
 import ActivityLogs from '../pages/admin/ActivityLogs'
 import Payments from '../pages/admin/Payments'
+import ClientAccess from '../pages/admin/ClientAccess'
+import ClientView from '../pages/admin/ClientView'
 import UserProfile from '../pages/UserProfile'
 
 function DashboardRedirect() {
@@ -280,6 +282,23 @@ export default function AppRoutes() {
                 element={(
                   <RoleRoute allowedRoles={['MASTER_ADMIN', 'COMPANY_ADMIN', 'OPERATION', 'OPERATIONS', 'FINANCIAL', 'FINANCE', 'LEGAL']}>
                     <ActivityLogs />
+                  </RoleRoute>
+                )}
+              />
+
+              <Route
+                path="/admin/client-access"
+                element={(
+                  <RoleRoute allowedRoles={['MASTER_ADMIN', 'OPERATION', 'OPERATIONS']}>
+                    <ClientAccess />
+                  </RoleRoute>
+                )}
+              />
+              <Route
+                path="/client-view/:grantId"
+                element={(
+                  <RoleRoute allowedRoles={['MASTER_ADMIN', 'OPERATION', 'OPERATIONS']}>
+                    <ClientView />
                   </RoleRoute>
                 )}
               />

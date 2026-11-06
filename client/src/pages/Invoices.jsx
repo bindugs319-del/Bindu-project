@@ -4,6 +4,7 @@ import { salesInvoices as invoicesApi, purchaseOrders as poApi, api, STATIC_BASE
 import InvoiceCSVImportModal from '../components/invoices/InvoiceCSVImportModal'
 import InvoicePDFImportModal from '../components/invoices/InvoicePDFImportModal'
 import InfoTooltip from '../components/common/InfoTooltip'
+import { delegationHeaders } from '../utils/delegation'
 
 /**
  * Label + optional "*" required marker + info tooltip, used above every
@@ -725,7 +726,7 @@ export default function Invoices({ onDataChange } = {}) {
     // Load the caller's own company details for read-only display —
     // these come from BusinessProfile, not from this form.
     try {
-      const res = await fetch('/api/v1/account/profile', { credentials: 'include' })
+      const res = await fetch('/api/v1/account/profile', { credentials: 'include', headers: delegationHeaders() })
       const data = await res.json()
       if (data?.data) {
         setCompanyProfile(data.data)

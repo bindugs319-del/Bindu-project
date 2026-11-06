@@ -77,6 +77,14 @@ async def get_current_user(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User not found",
         )
+
+    # Client-authorized read-only view access: the admin authenticated above
+    # is swapped for the client only if they hold a live grant (checked on
+    # every request). See app/services/delegated_access_service.py.
+    grant_id = request.headers.get("X-Delegated-Grant")
+    if grant_id:
+        from app.services.delegated_access_service import resolve_delegation
+        return await resolve_delegation(request, db, user, grant_id.strip())
     return user
 
 

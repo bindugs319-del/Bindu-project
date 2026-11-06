@@ -16,6 +16,7 @@ RATE_LIMIT_MAX_REQUESTS = {
     '/api/v1/auth/otp/send': 10,  # 10 OTP requests per minute
     '/api/v1/auth/password/send-otp': 10,  # 10 password reset OTP per minute
     '/api/v1/auth/register/send-otp': 10,  # Added for registration
+    '/api/v1/admin/client-access/redeem': 5,  # admin view-access code redemption
 }
 
 

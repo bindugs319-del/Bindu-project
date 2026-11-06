@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useAuth } from '../../state/authContext'
 import { api } from '../../services/api/apiClient'
 import NotificationBell from '../NotificationBell'
+import { isDelegated } from '../../utils/delegation'
 
 // A nav item that shows a small dropdown of 2 options on click, closing
 // when an option is chosen or when clicking anywhere outside it.
@@ -117,6 +118,8 @@ export default function Header() {
 
   const role = String(user?.role || '').toUpperCase()
   const isMasterAdmin = role === 'MASTER_ADMIN'
+  // Operation Admin / Super Admin: read-only client view access (hidden while viewing a client)
+  const canUseClientAccess = ['MASTER_ADMIN', 'OPERATION', 'OPERATIONS'].includes(role) && !isDelegated()
 
   const navLinks = [
     { label: 'About', to: '/about' },
@@ -232,6 +235,9 @@ export default function Header() {
           {/* Always-visible Login link — separate from the account avatar below,
               so it stays in the nav even after you're logged in. */}
           <DesktopNavItem to="/auth/login" label="Login" />
+          {isAuthenticated && canUseClientAccess && (
+            <DesktopNavItem to="/admin/client-access" label="Client Access" />
+          )}
           {isAuthenticated ? (
             <div className="flex items-center gap-2 ml-3">
               <NotificationBell />
@@ -374,6 +380,16 @@ export default function Header() {
               >
                 Login
               </Link>
+
+              {isAuthenticated && canUseClientAccess && (
+                <Link
+                  to="/admin/client-access"
+                  className="block text-base font-semibold text-text-secondary hover:text-[#1E3A8A] py-2 px-3"
+                  onClick={() => setOpen(false)}
+                >
+                  Client Access
+                </Link>
+              )}
 
               {isAuthenticated ? (
                 <Link

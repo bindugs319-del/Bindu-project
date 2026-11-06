@@ -17,6 +17,7 @@ import DashboardHeader from '../components/dashboard/DashboardHeader'
 import DashboardRequestModals from '../components/dashboard/DashboardRequestModals'
 import { useRoleFlags } from '../hooks/useRoleFlags'
 import { usePlanInfo } from '../hooks/usePlanInfo'
+import AuthorizedClientsPanel from '../components/admin-access/AuthorizedClientsPanel'
 
 export default function InvoiceDashboard() {
   const { user, subscription, loading } = useAuth()
@@ -329,6 +330,13 @@ export default function InvoiceDashboard() {
           showBizRequest={showBizRequest} setShowBizRequest={setShowBizRequest}
           showSupportRequest={showSupportRequest} setShowSupportRequest={setShowSupportRequest}
         />
+
+        {/* Clients who granted this admin read-only view access */}
+        {(isMasterAdmin || isOperations) && (
+          <div className="mt-8">
+            <AuthorizedClientsPanel />
+          </div>
+        )}
       </div>
     </section>
   )

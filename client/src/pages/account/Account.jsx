@@ -5,6 +5,8 @@ import { api, purchaseOrders } from '../../services/api/apiClient'
 import authService from '../../services/authService'
 import { formatE164 } from '../../utils/phone'
 import EditPOModal from '../../components/po/EditPOModal'
+import GrantAdminAccess from '../../components/admin-access/GrantAdminAccess'
+import { isDelegated } from '../../utils/delegation'
 
 export default function Account() {
   const { user, logout, loadUser } = useAuth()
@@ -691,15 +693,22 @@ export default function Account() {
           </div>
         </div>
 
-        {/* Logout */}
-        <div className="card">
-          <button
-            onClick={handleLogout}
-            className="btn-primary w-full"
-          >
-            Logout
-          </button>
-        </div>
+        {/* Grant read-only view access to our admin team (client accounts only) */}
+        {['USER', 'COMPANY_ADMIN'].includes(String(user.role || '').toUpperCase()) && !isDelegated() && (
+          <GrantAdminAccess />
+        )}
+
+        {/* Logout (hidden in an admin's read-only client view — use the banner's Exit) */}
+        {!isDelegated() && (
+          <div className="card">
+            <button
+              onClick={handleLogout}
+              className="btn-primary w-full"
+            >
+              Logout
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

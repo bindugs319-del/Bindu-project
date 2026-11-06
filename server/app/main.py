@@ -19,6 +19,8 @@ from app.middleware import (
     RequestIDMiddleware,
     RateLimitMiddleware,
 )
+from app.middleware.delegated_access import DelegatedReadOnlyMiddleware
+from app.routes import admin_access
 from app.routes import (
     auth,
     drive,
@@ -1004,6 +1006,7 @@ app.mount(
 _cors_origins = list(settings.CORS_ORIGINS)
 
 # app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.ALLOWED_HOSTS)
+app.add_middleware(DelegatedReadOnlyMiddleware)  # read-only guard for admin view access
 app.add_middleware(RateLimitMiddleware)
 app.add_middleware(RequestIDMiddleware)
 app.add_middleware(ErrorHandlerMiddleware)
@@ -1046,6 +1049,9 @@ app.include_router(subscriptions.router, prefix=API_PREFIX, tags=["Subscriptions
 app.include_router(business_profile.router, prefix=API_PREFIX, tags=["Account"])
 app.include_router(drive.router, prefix=f"{API_PREFIX}/drive", tags=["Google Drive"])
 app.include_router(wallet.router, prefix=API_PREFIX, tags=["Wallet"])
+# Registered before admin.router so /admin/client-access/* can't be shadowed by its path params
+app.include_router(admin_access.client_router, prefix=API_PREFIX)
+app.include_router(admin_access.admin_router, prefix=API_PREFIX)
 app.include_router(admin.router, prefix=f"{API_PREFIX}/admin", tags=["Admin"])
 app.include_router(payments.router, prefix=f"{API_PREFIX}/payments", tags=["Payments"])
 app.include_router(user_settings.router, prefix=f"{API_PREFIX}/user/settings", tags=["User Settings"])

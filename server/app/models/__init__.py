@@ -1066,3 +1066,6 @@ class LegalNoticeRequest(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     details = Column(JSON, nullable=True)
+
+# Client-authorized read-only admin view access
+from app.models.admin_access import AdminAccessCode, AdminAccessGrant, DelegatedAccessAudit  # noqa: E402,F401

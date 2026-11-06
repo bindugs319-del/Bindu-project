@@ -1,3 +1,5 @@
+import { getDelegation, clearDelegation, delegationHeaders, DELEGATION_HEADER } from '../../utils/delegation'
+
 const RAW_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 const API_BASE_URL = (() => {
   let u = (RAW_BASE || '').trim()
@@ -71,7 +73,7 @@ async function downloadFile(endpoint, fallbackFilename = 'download') {
   const token = localStorage.getItem('access_token') || localStorage.getItem('token')
   const isValidToken = token && token !== 'undefined' && token !== 'null' && token.length > 10
 
-  const headers = {}
+  const headers = { ...delegationHeaders() }
   if (isValidToken) headers['Authorization'] = `Bearer ${token}`
 
   const response = await fetch(url, { credentials: 'include', headers })
@@ -146,6 +148,14 @@ async function apiRequest(endpoint, options = {}) {
     defaultOptions.headers['Authorization'] = `Bearer ${token}`
   }
 
+  // Read-only admin view of a client account (this tab only). Auth endpoints
+  // and calls that explicitly opt out always run as the admin themselves.
+  const delegation = getDelegation()
+  const sendsDelegation = !!delegation && !options.noDelegation && !endpoint.startsWith('/auth/')
+  if (sendsDelegation) {
+    defaultOptions.headers = { ...defaultOptions.headers, [DELEGATION_HEADER]: delegation.grantId }
+  }
+
   try {
     const response = await fetch(url, defaultOptions)
     if (timeoutId) clearTimeout(timeoutId)
@@ -199,6 +209,12 @@ async function apiRequest(endpoint, options = {}) {
         error: data?.error?.message || formatApiErrorDetail(data?.detail) || 'Unauthorized - please login again',
         data: null,
       }
+    }
+
+    // Client view access revoked/expired: leave the client view immediately.
+    if (response.status === 403 && sendsDelegation && data?.detail?.code === 'DELEGATION_ENDED') {
+      clearDelegation()
+      if (typeof window !== 'undefined') window.location.replace('/admin/client-access?ended=1')
     }
 
     // Handle other errors
@@ -865,6 +881,33 @@ export const credibilityIndex = {
   requestCompanyRating: (companyName) => apiRequest('/credibility-index/rating-request', { method: 'POST', body: JSON.stringify({ company_name: companyName }) }),
   getPendingRatingRequestsForOperations: () => apiRequest('/credibility-index/rating-requests/pending-operations'),
   operationsProposeRating: (requestId, data) => apiRequest(`/credibility-index/rating-requests/${requestId}/operations-propose`, { method: 'POST', body: JSON.stringify(data) }),
+}
+
+// Client side of admin view access: generate codes, see/revoke grants
+export const accessGrants = {
+  generate: (durationHours) => apiRequest('/access-grants/codes', { method: 'POST', body: JSON.stringify({ duration_hours: durationHours }) }),
+  list: () => apiRequest('/access-grants'),
+  cancelCode: (codeId) => apiRequest(`/access-grants/codes/${codeId}/cancel`, { method: 'POST' }),
+  revoke: (grantId) => apiRequest(`/access-grants/${grantId}/revoke`, { method: 'POST' }),
+  activity: () => apiRequest('/access-grants/activity'),
+}
+
+// Admin side of admin view access (always runs as the admin, never delegated)
+export const clientAccess = {
+  redeem: (code) => apiRequest('/admin/client-access/redeem', { method: 'POST', body: JSON.stringify({ code }), noDelegation: true }),
+  mine: () => apiRequest('/admin/client-access/mine', { noDelegation: true }),
+  session: (grantId) => apiRequest(`/admin/client-access/grants/${grantId}`, { noDelegation: true }),
+  revoke: (grantId) => apiRequest(`/admin/client-access/grants/${grantId}/revoke`, { method: 'POST', noDelegation: true }),
+  all: () => apiRequest('/admin/client-access/all', { noDelegation: true }),
+  audit: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString()
+    return apiRequest(`/admin/client-access/audit${q ? '?' + q : ''}`, { noDelegation: true })
+  },
+  // A client's invoices, read under one specific grant (read-only, audited)
+  clientInvoices: (grantId) => apiRequest('/sales-invoices?limit=50&include_archived=true', {
+    noDelegation: true,
+    headers: { [DELEGATION_HEADER]: grantId },
+  }),
 }
 
 // Utility: Check authentication status

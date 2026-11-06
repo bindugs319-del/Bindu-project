@@ -1,4 +1,5 @@
 import { API_BASE_URL } from './../services/api/apiClient'
+import { isDelegated } from './delegation'
 
 const API = API_BASE_URL
  
@@ -7,8 +8,9 @@ const API = API_BASE_URL
    sessionStorage.getItem('access_token') 
  
  export const logActivity = async (action, options = {}) => { 
-   const token = getToken() 
-   if (!token) return 
+   const token = getToken()
+   if (!token) return
+   if (isDelegated()) return // admin viewing a client: audited server-side instead
    try { 
      await fetch(`${API}/activity/log`, { 
        method: 'POST', 

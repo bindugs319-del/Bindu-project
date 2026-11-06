@@ -9,6 +9,7 @@ import ReminderModal from '../components/po/ReminderModal'
 import { formatE164 } from '../utils/phone'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { logActivity, ACTIONS } from '../utils/activityLogger'
+import { delegationHeaders } from '../utils/delegation'
 
 export default function PurchaseOrders() {
   const { canAccessFeature, user, loadUser } = useAuth()
@@ -218,7 +219,7 @@ export default function PurchaseOrders() {
       try {
         const cid = user?.company_id
         if (!cid) return
-        const resp = await fetch(`/api/v1/credibility/${cid}`, { credentials: 'include' })
+        const resp = await fetch(`/api/v1/credibility/${cid}`, { credentials: 'include', headers: delegationHeaders() })
         if (resp.ok) {
           const j = await resp.json()
           if (j?.success && j.data) setCred(j.data)
