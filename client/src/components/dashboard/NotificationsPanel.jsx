@@ -1,6 +1,7 @@
 import { useAuth } from '../../state/authContext'
 
-export default function NotificationsPanel({ dueReminders = [] }) {
+/** Dashboard notifications (membership expiry + due reminders). Shared by old and new panels. */
+export function useDashboardNotifications(dueReminders = []) {
   const { subscription, getDaysRemaining } = useAuth()
   const notifications = []
 
@@ -37,6 +38,12 @@ export default function NotificationsPanel({ dueReminders = [] }) {
       })
     })
   }
+
+  return notifications
+}
+
+export default function NotificationsPanel({ dueReminders = [] }) {
+  const notifications = useDashboardNotifications(dueReminders)
 
   // If no notifications, show a helpful message
   if (notifications.length === 0) {

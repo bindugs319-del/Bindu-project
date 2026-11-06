@@ -1,20 +1,19 @@
 import { useMemo, useEffect, useState, useCallback } from 'react'
-import QuickActionsRow from '../components/dashboard/QuickActionsRow'
-import SubscriptionStatusCard from '../components/dashboard/SubscriptionStatusCard'
-import CredibilityScoreCard from '../components/dashboard/CredibilityScoreCard'
-import DashboardSummaryCards from '../components/dashboard/DashboardSummaryCards'
-import StatLinkCard from '../components/dashboard/StatLinkCard'
-import StatsChart from '../components/ui/StatsChart'
+import { FileText, Clock, AlertTriangle, Handshake, Wallet, Gauge } from 'lucide-react'
 import { buildMonthlySeries } from '../utils/monthlySeries'
-import { formatCurrency, formatDate } from '../utils/dashboardDisplay'
+import { formatINR, formatCount } from '../utils/format'
 import { useAuth } from '../state/authContext'
-import { invoices, defaulters, settlements, appointments, wallet, adminApi, subscriptions, legal, businessCheck, salesInvoices } from '../services/api/apiClient'
-import { Link } from 'react-router-dom'
+import { invoices, defaulters, settlements, appointments, wallet, salesInvoices } from '../services/api/apiClient'
 import Invoices from './Invoices'
-import RoleDashboard from './roles/RoleDashboard'
 import { logActivity, ACTIONS } from '../utils/activityLogger'
-import DashboardHeader from '../components/dashboard/DashboardHeader'
 import DashboardRequestModals from '../components/dashboard/DashboardRequestModals'
+import QuickActionBar from '../components/dashboard/QuickActionBar'
+import { DueRemindersCard, NotificationsCard, RecentActivityCard, PlanCard } from '../components/dashboard/DashboardSidePanels'
+import PageHeader from '../components/ds/PageHeader'
+import KpiCard from '../components/ds/KpiCard'
+import Card from '../components/ds/Card'
+import Button from '../components/ds/Button'
+import MonthlyBarChart from '../components/ds/MonthlyBarChart'
 import { useRoleFlags } from '../hooks/useRoleFlags'
 import { usePlanInfo } from '../hooks/usePlanInfo'
 import AuthorizedClientsPanel from '../components/admin-access/AuthorizedClientsPanel'
@@ -27,7 +26,7 @@ export default function InvoiceDashboard() {
   //   return <RoleDashboard /> 
   // }
 
-  const { isCompanyAdmin, isUser, isMasterAdmin, isFinancial, isOperations, isLegal, isInternal } = useRoleFlags(user)
+  const { isCompanyAdmin, isMasterAdmin, isOperations } = useRoleFlags(user)
 
   const [stats, setStats] = useState({
     invoices: 0,
@@ -139,20 +138,6 @@ export default function InvoiceDashboard() {
     setInvoiceLoading(false)
   }, [])
 
-  // Formats an amount in its OWN currency (e.g. "$775.80" for a USD
-  // invoice) rather than always as INR — used for the Recent Invoices
-  // table below, where each row should show what the invoice actually
-  // says, not a forced-INR misreading of a foreign-currency amount.
-  // (Aggregate figures like invoiceMonthlySeries below are a separate
-  // case — those correctly convert via exchange_rate before summing.)
-  const money = (value, currency = 'INR') => {
-    try {
-      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency || 'INR', minimumFractionDigits: 2 }).format(Number(value) || 0)
-    } catch {
-      return new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 }).format(Number(value) || 0)
-    }
-  }
-
   const invoiceMonthlySeries = useMemo(() => buildMonthlySeries(invoiceRows, {
     getDate: (inv) => inv.created_at,
     // Converted to INR via exchange_rate — same reasoning as
@@ -171,160 +156,102 @@ export default function InvoiceDashboard() {
 
   const { planLabel, planStatus } = usePlanInfo(subscription, user)
 
-  // formatCurrency, formatDate, getActivityIcon, and getExpiryDisplay
-  // now live in utils/dashboardDisplay.js (see import above) — they were
-  // previously defined identically here and in Dashboard.jsx.
+  const welcome = loading ? 'Loading profile…' : `Welcome back, ${user?.company_name || user?.email || 'Member'}`
+  const hasOutstanding = (pendingInvoices.count || 0) > 0
 
   return (
-    <section className="py-8 md:py-12">
+    <section className="min-h-screen bg-surface-page py-8">
       <div className="container-custom space-y-6">
-        <DashboardHeader
-          title="Invoice Dashboard"
-          loading={loading}
-          userLabel={user?.company_name || user?.email}
-          walletBalance={stats.wallet}
+        <PageHeader
+          eyebrow="Invoices"
+          title="Customer invoices"
+          description={welcome}
+          actions={(
+            <Button to="/wallet" variant="secondary" size="sm" icon={Wallet}>
+              <span className="tabular-nums">{formatCount(stats.wallet)}</span> pts · Redeem
+            </Button>
+          )}
         />
 
-        <div className="flex flex-wrap gap-4">
-          {/* All users see Invoices */}
-          <>
-          <StatLinkCard
-              to="/invoices"
-              label="Invoices"
-              accentColor="#16A34A"
-              subtitle="View all →"
-              icon="💰"
-              iconBg="#DCFCE7"
-              value={stats.invoices}
-              loading={loadingData}
-            />
-          <StatLinkCard
-              to="/invoices"
-              label="Pending Invoices"
-              accentColor="#D97706"
-              subtitle={loadingData ? 'Loading...' : `${formatCurrency(pendingInvoices.total_due)} outstanding`}
-              icon="⏳"
-              iconBg="#FEF3C7"
-              value={pendingInvoices.count}
-              loading={loadingData}
-            />
-          </>
-
-          {/* All users see Defaulters */}
-          <StatLinkCard
-            to="/defaulters?context=invoice"
-            label="Defaulters"
-            accentColor="#D97706"
-            subtitle="View all →"
-            icon="⚠️"
-            iconBg="#FEF3C7"
-            value={invoiceDefaultersCount}
+        {/* KPIs */}
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          <KpiCard
+            to="/invoices"
+            label="Invoices"
+            icon={FileText}
+            value={formatCount(stats.invoices)}
+            context="Recently raised"
             loading={loadingData}
           />
-
-          {/* Additional stats for admins */}
-          <StatLinkCard
+          <KpiCard
+            to="/invoices"
+            label="Pending invoices"
+            icon={Clock}
+            value={formatCount(pendingInvoices.count)}
+            context={`${formatINR(pendingInvoices.total_due)} outstanding`}
+            tone={hasOutstanding ? 'warning' : 'neutral'}
+            loading={loadingData}
+          />
+          <KpiCard
+            to="/defaulters?context=invoice"
+            label="Defaulters"
+            icon={AlertTriangle}
+            value={formatCount(invoiceDefaultersCount)}
+            context="Linked to your invoices"
+            tone={invoiceDefaultersCount > 0 ? 'danger' : 'neutral'}
+            loading={loadingData}
+          />
+          <KpiCard
             to="/settlement"
             label="Settlements"
-            accentColor="#1E3A8A"
-            subtitle="View all →"
-            icon="✅"
-            iconBg="#EFF6FF"
-            value={stats.settlements}
+            icon={Handshake}
+            value={formatCount(stats.settlements)}
+            context="Recorded settlements"
             loading={loadingData}
           />
         </div>
 
-        {/* Quick Actions */}
-        <QuickActionsRow
+        <QuickActionBar
           context="invoice"
           onCheckSafety={() => setShowBizRequest(true)}
           onSupportRequest={() => setShowSupportRequest(true)}
         />
 
-
-
-        {/* Stats Chart */}
-        <div>
-          <StatsChart
-            data={invoiceMonthlySeries}
-            title="Monthly Invoice Overview"
-            countLabel="Invoices Raised"
-            amountLabel="Invoice Value (₹)"
-          />
-        </div>
-
-
-
-        {/* COMPANY ADMIN SPECIFIC SECTIONS */}
-        {isCompanyAdmin && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
-            <CredibilityScoreCard
-              to="/inv-credibility-index"
-              subtitle="Based on your invoice payment history and customer reports"
+        {/* Trend + side panels */}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <div className="lg:col-span-2 space-y-4">
+            <MonthlyBarChart
+              data={invoiceMonthlySeries}
+              title="Invoices by month"
+              description="Invoices you raised in the last 6 months"
+              countLabel="Invoices raised"
+              amountLabel="Invoice value"
+              loading={invoiceLoading}
             />
-            <SubscriptionStatusCard
-              planLabel={planLabel}
-              planStatus={planStatus}
-              subscription={subscription}
-            />
-          </div>
-        )}
-
-        {/* Invoice Management Table for Company Admin & Master Admin */}
-        {(isCompanyAdmin || isMasterAdmin) && (
-          <div className="space-y-3 mt-8">
-            <div className="flex justify-between items-center">
-              <h2 className="text-base font-bold text-[#0F172A] uppercase tracking-wide">Recent Invoices</h2>
-              <Link to="/invoices" className="text-xs text-[#3B82F6] font-bold hover:underline">View All Invoices →</Link>
-            </div>
-            <div className="bg-white rounded-[16px] shadow-[0_4px_24px_rgba(30,58,138,0.08)] overflow-hidden">
-              <table className="w-full text-left text-sm">
-                <thead className="bg-[#F8FAFF] text-[#0F172A] font-bold uppercase text-[11px] tracking-wide">
-                  <tr>
-                    <th className="px-6 py-4">Invoice#</th>
-                    <th className="px-6 py-4">Customer</th>
-                    <th className="px-6 py-4">Amount</th>
-                    <th className="px-6 py-4">Status</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E2E8F0]">
-                  {invoiceRows.slice(0, 5).map((inv, index) => (
-                    <tr key={inv.id} className="hover:bg-[#F0F4FF] transition-colors duration-150" style={{backgroundColor: index % 2 === 0 ? 'white' : '#FAFBFF'}}>
-                      <td className="px-6 py-4 font-semibold text-[#1E3A8A] hover:underline cursor-pointer">{inv.invoice_number}</td>
-                      <td className="px-6 py-4 text-[#475569]">{inv.counterparty_name}</td>
-                      <td className="px-6 py-4 font-semibold text-[#0F172A]">{money(inv.total, inv.currency)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-[11px] font-bold ${inv.status === 'Paid' ? 'bg-[#DCFCE7] text-[#16A34A]' : 'bg-[#DBEAFE] text-[#1D4ED8]'}`}>
-                          {inv.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {invoiceRows.length === 0 && (
-                    <tr>
-                      <td colSpan="4" className="px-6 py-8 text-center text-[#475569] italic">No invoices found. Create your first invoice to see it here.</td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <RecentActivityCard loading={loadingData} recentActivity={recentActivity} />
+              <PlanCard planLabel={planLabel} planStatus={planStatus} subscription={subscription} />
             </div>
           </div>
-        )}
-
-        {/* Smaller Dashboard Cards */}
-        <DashboardSummaryCards
-          loadingData={loadingData}
-          recentActivity={recentActivity}
-          dueReminders={dueReminders}
-          planLabel={planLabel}
-          planStatus={planStatus}
-          subscription={subscription}
-        />
-
-        <div>
-          <Invoices onDataChange={loadInvoiceHistory} />
+          <div className="space-y-4">
+            <DueRemindersCard loading={loadingData} dueReminders={dueReminders} />
+            <NotificationsCard dueReminders={dueReminders} />
+            {isCompanyAdmin && (
+              <Card>
+                <div className="flex items-start gap-3">
+                  <Gauge aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" />
+                  <div>
+                    <h2 className="text-heading text-ink-900">Company credibility</h2>
+                    <p className="text-small text-ink-500">Based on your invoice payment history and customer reports.</p>
+                    <Button to="/inv-credibility-index" variant="secondary" size="sm" className="mt-3">View analysis</Button>
+                  </div>
+                </div>
+              </Card>
+            )}
+          </div>
         </div>
+
+        <Invoices onDataChange={loadInvoiceHistory} embedded />
 
         <DashboardRequestModals
           showBizRequest={showBizRequest} setShowBizRequest={setShowBizRequest}
@@ -332,11 +259,7 @@ export default function InvoiceDashboard() {
         />
 
         {/* Clients who granted this admin read-only view access */}
-        {(isMasterAdmin || isOperations) && (
-          <div className="mt-8">
-            <AuthorizedClientsPanel />
-          </div>
-        )}
+        {(isMasterAdmin || isOperations) && <AuthorizedClientsPanel />}
       </div>
     </section>
   )

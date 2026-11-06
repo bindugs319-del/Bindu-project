@@ -36,15 +36,36 @@ const actions = [
  * Team Management / Check Company Safety / Support Request aren't tied to
  * PO or Invoice records, so they're left unchanged regardless of context.
  */
+/**
+ * The same action list QuickActions renders, resolved for the current user:
+ * [{ id, label, to, locked }] — `locked` = show the "Upgrade" marker.
+ * Used by the design-system QuickActionBar so both stay in sync.
+ */
+export function useQuickActions(context = null) {
+  const { canAccessFeature, user } = useAuth()
+  const role = String(user?.role || '').toUpperCase()
+  const isMasterAdmin = role === 'MASTER_ADMIN'
+  const list = [
+    ...actions,
+    ...((role === 'MASTER_ADMIN' || role === 'COMPANY_ADMIN') ? [{ label: 'Team Management', to: '/admin/team' }] : []),
+  ]
+  return list.map((item) => ({
+    id: item.to,
+    label: item.label,
+    to: (item.contextual && context) ? `${item.to}?context=${context}` : item.to,
+    locked: !!(item.feature && !isMasterAdmin && !canAccessFeature(item.feature)),
+  }))
+}
+
 export default function QuickActions({ context = null }) {
   const { canAccessFeature, user } = useAuth()
   const role = String(user?.role || '').toUpperCase()
   const isMasterAdmin = role === 'MASTER_ADMIN'
   const allActions = [
     ...actions,
-    ...((role === 'MASTER_ADMIN' || role === 'COMPANY_ADMIN') ? [{ 
-      emoji: '👥', 
-      label: 'Team Management', 
+    ...((role === 'MASTER_ADMIN' || role === 'COMPANY_ADMIN') ? [{
+      emoji: '👥',
+      label: 'Team Management',
       to: '/admin/team',
       color: 'indigo'
     }] : []),

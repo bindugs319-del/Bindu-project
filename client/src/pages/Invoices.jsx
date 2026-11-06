@@ -5,6 +5,15 @@ import InvoiceCSVImportModal from '../components/invoices/InvoiceCSVImportModal'
 import InvoicePDFImportModal from '../components/invoices/InvoicePDFImportModal'
 import InfoTooltip from '../components/common/InfoTooltip'
 import { delegationHeaders } from '../utils/delegation'
+import {
+  Download, Search, FileText, Paperclip, Receipt, CheckCircle2, Pencil, Mail, Archive, ArchiveRestore, Scale, Trash2, Loader2, AlertCircle,
+} from 'lucide-react'
+import DataTable from '../components/ds/DataTable'
+import Badge from '../components/ds/Badge'
+import Button, { IconButton } from '../components/ds/Button'
+import EmptyState from '../components/ds/EmptyState'
+import SegmentedControl from '../components/ds/SegmentedControl'
+import PageHeader from '../components/ds/PageHeader'
 
 /**
  * Label + optional "*" required marker + info tooltip, used above every
@@ -58,7 +67,7 @@ function formatError(error) {
   return String(error)
 }
 
-export default function Invoices({ onDataChange } = {}) {
+export default function Invoices({ onDataChange, embedded = false } = {}) {
   const [invoices, setInvoices] = useState([])
   const [loading, setLoading] = useState(true)
   const [showInvoiceImport, setShowInvoiceImport] = useState(false)
@@ -144,6 +153,7 @@ export default function Invoices({ onDataChange } = {}) {
   // page's "Open POs" list controls.
   const [statusFilter, setStatusFilter] = useState('')
   const [showArchived, setShowArchived] = useState(false)
+  const [search, setSearch] = useState('')
   const [archivingId, setArchivingId] = useState(null)
   const [invoiceFile, setInvoiceFile] = useState(null)
 
@@ -333,47 +343,21 @@ export default function Invoices({ onDataChange } = {}) {
 
   const getDaysLeftBadge = (row) => {
     const isPaid = row.payment_completed_at || row.status === 'Paid'
-    if (isPaid) return <span className="text-gray-400">—</span>
+    if (isPaid) return <span className="text-ink-400">—</span>
     const daysLeft = calculateDaysLeft(row.payment_due_date)
-    if (daysLeft > 7) return <span className="text-emerald-600 font-medium">{daysLeft} days left</span>
-    if (daysLeft >= 1 && daysLeft <= 7) return <span className="text-amber-600 font-medium">{daysLeft} days left ⚠️</span>
-    if (daysLeft === 0) return <span className="text-red-600 font-bold">Due Today!</span>
-    return <span className="text-red-600 font-bold">0 days</span>
+    if (daysLeft > 7) return <span className="text-ink-700 tabular-nums">{daysLeft} days</span>
+    if (daysLeft >= 1 && daysLeft <= 7) return <span className="font-medium text-warning-600 tabular-nums">{daysLeft} days</span>
+    if (daysLeft === 0) return <span className="font-semibold text-danger-600">Due today</span>
+    return <span className="font-semibold text-danger-600">0 days</span>
   }
 
   const getStatusPill = (row) => {
     const isPaid = row.payment_completed_at || row.status === 'Paid'
-    if (isPaid) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800 border border-emerald-200">
-          <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-500"></span>
-          Paid
-        </span>
-      )
-    }
+    if (isPaid) return <Badge tone="success">Paid</Badge>
     const daysLeft = calculateDaysLeft(row.payment_due_date)
-    if (daysLeft < 0) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800 border border-red-200">
-          <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-red-500"></span>
-          Overdue
-        </span>
-      )
-    }
-    if (daysLeft === 0) {
-      return (
-        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-800 border border-amber-200">
-          <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-amber-500"></span>
-          Due Today
-        </span>
-      )
-    }
-    return (
-      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200">
-        <span className="w-1.5 h-1.5 mr-1.5 rounded-full bg-blue-500"></span>
-        open
-      </span>
-    )
+    if (daysLeft < 0) return <Badge tone="danger">Overdue</Badge>
+    if (daysLeft === 0) return <Badge tone="warning">Due today</Badge>
+    return <Badge tone="info">Open</Badge>
   }
 
   // Mark Paid / Send Reminder / Send to Legal Support, mirroring the
@@ -930,11 +914,11 @@ export default function Invoices({ onDataChange } = {}) {
   const approvalBadge = (invoice) => {
     const ws = invoice.workflow_status
     if (!ws || ws === 'Draft') return null
-    const styles = {
-      'Pending Operations Review': 'bg-amber-100 text-amber-700',
-      'Pending Master Admin Approval': 'bg-blue-100 text-blue-700',
-      'Approved': 'bg-green-100 text-green-700',
-      'Rejected': 'bg-red-100 text-red-700',
+    const tones = {
+      'Pending Operations Review': 'warning',
+      'Pending Master Admin Approval': 'info',
+      'Approved': 'success',
+      'Rejected': 'danger',
     }
     const labels = {
       'Pending Operations Review': 'Edit: Operations review',
@@ -942,11 +926,7 @@ export default function Invoices({ onDataChange } = {}) {
       'Approved': 'Edit approved',
       'Rejected': 'Edit rejected',
     }
-    return (
-      <span className={`px-2 py-1 rounded text-xs font-semibold ${styles[ws] || 'bg-gray-100 text-gray-600'}`}>
-        {labels[ws] || ws}
-      </span>
-    )
+    return <Badge tone={tones[ws] || 'neutral'} dot={false}>{labels[ws] || ws}</Badge>
   }
 
   const closeFormModal = () => {
@@ -1705,31 +1685,167 @@ export default function Invoices({ onDataChange } = {}) {
               </div>
   )
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4">
+  // Presentation-only: free-text search over the rows already shown.
+  const q = search.trim().toLowerCase()
+  const tableRows = q
+    ? displayRows.filter((inv) => [inv.invoice_number, inv.counterparty_name, inv.counterparty_gstin, inv.counterparty_email]
+      .some((v) => String(v || '').toLowerCase().includes(q)))
+    : displayRows
+  const statusCounts = activeRows.reduce((acc, inv) => {
+    const k = inv.status || 'Draft'
+    acc[k] = (acc[k] || 0) + 1
+    return acc
+  }, {})
+  const hasFilters = !!(q || statusFilter)
 
-      <div className="max-w-7xl mx-auto">
+  const docHref = (url) => (url.startsWith('http') ? url : STATIC_BASE_URL + url)
 
-        <div className="flex justify-between items-center mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Invoice Management
-            </h1>
+  const legalLabel = (inv) => {
+    if (inv.status === 'Paid') return 'Not available for paid invoices'
+    return inv.legal_support_requested_at ? 'Legal support requested' : 'Send to legal support'
+  }
 
-            <p className="text-gray-600">
-              Create and manage sales invoices
-            </p>
-          </div>
+  const renderDocument = (inv) => {
+    if (inv.document_url) {
+      return (
+        <a href={docHref(inv.document_url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 font-medium text-brand-600 hover:underline">
+          <FileText aria-hidden="true" className="h-3.5 w-3.5" /> View
+        </a>
+      )
+    }
+    if (uploadingDocForInvoiceId === inv.id) return <span className="text-ink-400">Uploading…</span>
+    return (
+      <label className="inline-flex cursor-pointer items-center gap-1 rounded font-medium text-brand-600 hover:underline focus-within:ring-2 focus-within:ring-brand-500">
+        <Paperclip aria-hidden="true" className="h-3.5 w-3.5" /> Upload
+        <input
+          type="file"
+          accept=".pdf,.jpg,.jpeg,.png"
+          className="sr-only"
+          onChange={(e) => handleQuickInvoiceDocUpload(inv, e.target.files?.[0])}
+        />
+      </label>
+    )
+  }
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={downloadInvoicesAsCSV}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-            >
-              <span>📥</span> Download CSV
-            </button>
-          </div>
+  const renderActions = (inv) => {
+    const isPaid = inv.payment_completed_at || inv.status === 'Paid'
+    return (
+      <div className="flex justify-end gap-0.5">
+        {isPaid ? (
+          <IconButton icon={Receipt} tone="success" label="View payment details" onClick={() => setPaidDetailsInvoice(inv)} />
+        ) : (
+          <IconButton icon={CheckCircle2} tone="success" label="Mark as paid" onClick={() => handleMarkPaid(inv)} />
+        )}
+        <IconButton icon={Pencil} tone="brand" label="Edit" onClick={() => openEditModal(inv)} />
+        <IconButton
+          icon={Mail}
+          tone="brand"
+          label={inv.status === 'Paid' ? 'Reminder not available for paid invoices' : 'Send reminder'}
+          onClick={() => handleSendReminder(inv)}
+          disabled={inv.status === 'Paid' || reminderLoadingId === inv.id}
+        >
+          {reminderLoadingId === inv.id ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+        </IconButton>
+        <IconButton
+          icon={inv.archived ? ArchiveRestore : Archive}
+          tone="warning"
+          label={inv.archived ? 'Unarchive' : 'Archive'}
+          onClick={() => handleArchiveInvoice(inv)}
+          disabled={archivingId === inv.id}
+        >
+          {archivingId === inv.id ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : null}
+        </IconButton>
+        <IconButton
+          icon={Scale}
+          tone={inv.legal_support_requested_at ? 'success' : 'neutral'}
+          label={legalLabel(inv)}
+          onClick={() => inv.status !== 'Paid' && setShowLegalSupportConfirm(inv)}
+          disabled={inv.status === 'Paid'}
+        />
+        <IconButton icon={Trash2} tone="danger" label="Delete" onClick={() => handleDelete(inv)} />
+      </div>
+    )
+  }
+
+  const invoiceColumns = [
+    {
+      key: 'invoice_number',
+      header: 'Invoice #',
+      sortable: true,
+      render: (inv) => (
+        <div className="whitespace-nowrap">
+          <span className="inline-flex items-center gap-1.5 font-medium text-ink-900">
+            {inv.invoice_number}
+            {inv.legal_notice_sent_at && <Scale aria-label="Legal notice sent" className="h-3.5 w-3.5 text-ink-500" />}
+          </span>
+          {approvalBadge(inv) && <div className="mt-1">{approvalBadge(inv)}</div>}
         </div>
+      ),
+    },
+    {
+      // Customer + GSTIN + contact in one cell keeps the table readable next to the form
+      key: 'counterparty_name',
+      header: 'Customer',
+      sortable: true,
+      className: 'min-w-[220px]',
+      render: (inv) => (
+        <div className="min-w-0">
+          <p className="font-medium text-ink-900">{inv.counterparty_name}</p>
+          <p className="font-mono text-caption text-ink-500">{inv.counterparty_gstin || 'No GSTIN'}</p>
+          {(inv.counterparty_email || inv.counterparty_phone) && (
+            <p className="text-caption text-ink-500">
+              {[inv.counterparty_email, inv.counterparty_phone].filter(Boolean).join(' · ')}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'total',
+      header: 'Amount',
+      align: 'right',
+      sortValue: (inv) => (Number(inv.total) || 0) * (Number(inv.exchange_rate) || 1),
+      className: 'whitespace-nowrap font-semibold text-ink-900',
+      render: (inv) => money(inv.total, inv.currency),
+    },
+    {
+      key: 'payment_due_date',
+      header: 'Due date',
+      sortValue: (inv) => (inv.payment_due_date ? new Date(inv.payment_due_date).getTime() : null),
+      className: 'whitespace-nowrap',
+      render: (inv) => formatDate(inv.payment_due_date),
+    },
+    {
+      key: 'days_left',
+      header: 'Days left',
+      sortValue: (inv) => ((inv.payment_completed_at || inv.status === 'Paid') ? null : calculateDaysLeft(inv.payment_due_date)),
+      className: 'whitespace-nowrap',
+      render: (inv) => getDaysLeftBadge(inv),
+    },
+    { key: 'status', header: 'Status', sortable: true, className: 'whitespace-nowrap', render: (inv) => getStatusPill(inv) },
+    { key: 'document', header: 'Document', render: renderDocument },
+    { key: 'actions', header: <span className="sr-only">Actions</span>, align: 'right', sortable: false, render: renderActions },
+  ]
+
+  const csvButton = <Button size="sm" icon={Download} onClick={downloadInvoicesAsCSV}>Download CSV</Button>
+  const listHeader = embedded ? (
+    <div className="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 className="text-heading text-ink-900">All invoices</h2>
+        <p className="text-small text-ink-500">Create, track and follow up on your sales invoices.</p>
+      </div>
+      {csvButton}
+    </div>
+  ) : (
+    <PageHeader eyebrow="Invoices" title="Invoice management" description="Create and manage sales invoices" actions={csvButton} />
+  )
+
+  return (
+    <div className={embedded ? '' : 'min-h-screen bg-surface-page py-8'}>
+
+      <div className={embedded ? 'space-y-4' : 'container-custom space-y-4'}>
+
+        {listHeader}
 
         {showInvoicePdfImport && (
           <InvoicePDFImportModal
@@ -1746,236 +1862,89 @@ export default function Invoices({ onDataChange } = {}) {
         )}
 
         {error && (
-          <div className="bg-red-100 text-red-700 p-3 rounded mb-4">
+          <div role="alert" className="flex items-start gap-2 rounded-control border border-danger-200 bg-danger-50 p-3 text-small text-danger-700">
+            <AlertCircle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
             {formatError(error)}
           </div>
         )}
 
-        {/* Invoice Overview stats, mirroring the Purchase Orders page's
-            Business Credibility Index card (Total/Completed/Pending). */}
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-5 mb-4">
-          <h2 className="text-xl font-heading font-semibold text-amber-900">Invoice Overview</h2>
-          <p className="text-amber-800/90 text-sm mt-1 max-w-2xl">
-            A snapshot of your active sales invoices by status.
-          </p>
-          <div className="mt-4 grid sm:grid-cols-3 gap-3">
-            <div className="p-3 rounded-lg bg-white/60 border border-amber-100">
-              <p className="text-xs text-amber-700">Total Invoices</p>
-              <p className="font-semibold text-amber-900">{invoiceStats.totalCount}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-white/60 border border-amber-100">
-              <p className="text-xs text-amber-700">Paid Invoices</p>
-              <p className="font-semibold text-emerald-700">{invoiceStats.completed}</p>
-            </div>
-            <div className="p-3 rounded-lg bg-white/60 border border-amber-100">
-              <p className="text-xs text-amber-700">Pending Invoices</p>
-              <p className="font-semibold text-amber-700">{invoiceStats.pending}</p>
-            </div>
+        {/* Status snapshot of active invoices */}
+        <dl className="grid grid-cols-3 divide-x divide-ink-200 rounded-card border border-ink-200 bg-surface-card shadow-xs">
+          <div className="px-4 py-3">
+            <dt className="text-caption text-ink-500">Active invoices</dt>
+            <dd className="text-heading text-ink-900 tabular-nums">{invoiceStats.totalCount}</dd>
           </div>
-        </div>
+          <div className="px-4 py-3">
+            <dt className="text-caption text-ink-500">Paid</dt>
+            <dd className="text-heading text-success-600 tabular-nums">{invoiceStats.completed}</dd>
+          </div>
+          <div className="px-4 py-3">
+            <dt className="text-caption text-ink-500">Pending</dt>
+            <dd className="text-heading text-warning-600 tabular-nums">{invoiceStats.pending}</dd>
+          </div>
+        </dl>
 
-        {/* Status filter tabs + Show Archived, mirroring the Purchase
-            Orders page's "Open POs" list controls. */}
-        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
-          <div className="flex items-center gap-2">
-            <button onClick={() => setStatusFilter('')} className={`text-xs px-2.5 py-1 rounded-lg ${!statusFilter ? 'bg-gray-800 text-white' : 'bg-gray-100 text-gray-700'}`}>All</button>
-            <button onClick={() => setStatusFilter('Draft')} className={`text-xs px-2.5 py-1 rounded-lg ${statusFilter === 'Draft' ? 'bg-yellow-600 text-white' : 'bg-yellow-50 text-yellow-700'}`}>Draft</button>
-            <button onClick={() => setStatusFilter('Sent')} className={`text-xs px-2.5 py-1 rounded-lg ${statusFilter === 'Sent' ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-700'}`}>Sent</button>
-            <button onClick={() => setStatusFilter('Paid')} className={`text-xs px-2.5 py-1 rounded-lg ${statusFilter === 'Paid' ? 'bg-emerald-600 text-white' : 'bg-emerald-50 text-emerald-700'}`}>Paid</button>
-            <button onClick={() => setStatusFilter('Overdue')} className={`text-xs px-2.5 py-1 rounded-lg ${statusFilter === 'Overdue' ? 'bg-red-600 text-white' : 'bg-red-50 text-red-700'}`}>Overdue</button>
-          </div>
-          <div className="flex items-center gap-4">
-            <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showArchived}
-                onChange={(e) => setShowArchived(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+        <div className="flex flex-col 2xl:flex-row gap-4 items-start">
+
+        <div className="flex-[2] w-full min-w-0">
+          <DataTable
+            caption="Invoices"
+            columns={invoiceColumns}
+            rows={tableRows}
+            loading={loading}
+            maxHeight="70vh"
+            rowClassName={(inv) => (inv.archived ? 'opacity-60' : '')}
+            empty={(
+              <EmptyState
+                icon={FileText}
+                title={hasFilters ? 'No invoices match these filters' : 'No invoices yet'}
+                description={hasFilters ? 'Try a different status or search term.' : 'Use the form to create your first invoice.'}
               />
-              Show Archived
-            </label>
-            <p className="text-sm text-gray-500">Total: ₹{invoiceTotal.toLocaleString('en-IN')}</p>
-          </div>
-        </div>
-        {archivedCount > 0 && !showArchived && (
-          <p className="text-xs text-gray-500 mb-2">{archivedCount} archived invoice(s) hidden</p>
-        )}
-
-        <div className="flex flex-col lg:flex-row gap-4 items-start">
-
-        <div className="bg-white rounded-xl shadow overflow-hidden flex-[2] w-full">
-
-          {loading ? (
-            <div className="p-8 text-center">
-              Loading invoices...
-            </div>
-          ) : displayRows.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">
-              No invoices found.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-            <table className="min-w-full">
-
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Invoice #</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px] min-w-[220px]">Customer</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Email</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Mobile</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">GSTIN</th>
-                  <th className="p-4 text-right whitespace-nowrap text-[13px]">Amount</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Due Date</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Days Left</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Status</th>
-                  <th className="p-4 text-left whitespace-nowrap text-[13px]">Document</th>
-                  <th className="p-4 text-right whitespace-nowrap text-[13px]">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {displayRows.map(invoice => (
-                  <tr
-                    key={invoice.id}
-                    className={`border-t text-[13px] ${invoice.archived ? 'opacity-60' : ''}`}
-                  >
-                    <td className="p-4 text-[13px]">
-                      <div className="font-medium">
-                        {invoice.invoice_number}
-                        {invoice.legal_notice_sent_at && <span className="ml-2">⚖️</span>}
-                      </div>
-                      {approvalBadge(invoice) && (
-                        <div className="mt-0.5">{approvalBadge(invoice)}</div>
-                      )}
-                    </td>
-
-                    <td className="p-4 text-[13px]">
-                      {invoice.counterparty_name}
-                    </td>
-
-                    <td className="p-4 text-[13px] text-gray-600">
-                      {invoice.counterparty_email || '—'}
-                    </td>
-
-                    <td className="p-4 text-[13px] text-gray-600">
-                      {invoice.counterparty_phone || '—'}
-                    </td>
-
-                    <td className="p-4 whitespace-nowrap text-[13px]">
-                      <span className="font-mono bg-gray-100 px-2 py-1 rounded border border-gray-200 text-gray-700">{invoice.counterparty_gstin || '—'}</span>
-                    </td>
-
-                    <td className="p-4 text-right font-semibold whitespace-nowrap text-[13px]">
-                      {money(invoice.total, invoice.currency)}
-                    </td>
-
-                    <td className="p-4 whitespace-nowrap text-[13px]">
-                      {formatDate(invoice.payment_due_date)}
-                    </td>
-
-                    <td className="p-4 whitespace-nowrap text-[13px]">
-                      {getDaysLeftBadge(invoice)}
-                    </td>
-
-                    <td className="p-4 whitespace-nowrap text-[13px]">
-                      {getStatusPill(invoice)}
-                    </td>
-
-                    <td className="p-4 text-[13px]">
-                      {invoice.document_url ? (
-                        <a href={invoice.document_url.startsWith('http') ? invoice.document_url : `${STATIC_BASE_URL}${invoice.document_url}`} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          📄 View
-                        </a>
-                      ) : uploadingDocForInvoiceId === invoice.id ? (
-                        <span className="text-gray-400">Uploading&hellip;</span>
-                      ) : (
-                        <label className="text-primary-600 hover:text-primary-800 flex items-center gap-1 cursor-pointer">
-                          <span>📎</span> Upload
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            className="hidden"
-                            onChange={(e) => handleQuickInvoiceDocUpload(invoice, e.target.files?.[0])}
-                          />
-                        </label>
-                      )}
-                    </td>
-
-                    <td className="p-4">
-                      <div className="flex justify-end gap-1.5">
-                        {invoice.payment_completed_at || invoice.status === 'Paid' ? (
-                          <button
-                            onClick={() => setPaidDetailsInvoice(invoice)}
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors shadow-sm"
-                            title="View payment details"
-                          >
-                            🧾
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleMarkPaid(invoice)}
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 hover:text-emerald-700 transition-colors shadow-sm"
-                            title="Mark as paid"
-                          >
-                            ✅
-                          </button>
-                        )}
-                        <button
-                          onClick={() => openEditModal(invoice)}
-                          className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 transition-colors shadow-sm"
-                          title="Edit"
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => handleSendReminder(invoice)}
-                          disabled={invoice.status === 'Paid' || reminderLoadingId === invoice.id}
-                          className={`p-1.5 rounded-lg transition-colors shadow-sm ${
-                            invoice.status === 'Paid'
-                              ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50'
-                              : 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700'
-                          }`}
-                          title={invoice.status === 'Paid' ? 'Reminder not available for paid invoices' : 'Send Reminder'}
-                        >
-                          {reminderLoadingId === invoice.id ? '...' : '📧'}
-                        </button>
-                        <button
-                          onClick={() => handleArchiveInvoice(invoice)}
-                          disabled={archivingId === invoice.id}
-                          className="p-1.5 rounded-lg bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 transition-colors shadow-sm disabled:opacity-50"
-                          title={invoice.archived ? 'Unarchive' : 'Archive'}
-                        >
-                          {archivingId === invoice.id ? '...' : '🗄️'}
-                        </button>
-                        <button
-                          onClick={() => invoice.status !== 'Paid' && setShowLegalSupportConfirm(invoice)}
-                          disabled={invoice.status === 'Paid'}
-                          className={`p-1.5 rounded-lg transition-colors shadow-sm ${
-                            invoice.legal_support_requested_at
-                              ? 'bg-emerald-50 text-emerald-600'
-                              : invoice.status === 'Paid' ? 'bg-gray-100 text-gray-400 cursor-not-allowed opacity-50' : 'bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700'
-                          }`}
-                          title={invoice.status === 'Paid' ? 'Not available for paid invoices' : 'Send to Legal Support'}
-                        >
-                          ⚖️
-                        </button>
-                        <button
-                          onClick={() => handleDelete(invoice)}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 transition-colors shadow-sm"
-                          title="Delete"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-
-            </table>
-            </div>
-          )}
-
+            )}
+            toolbar={(
+              <>
+                <SegmentedControl
+                  label="Filter by status"
+                  value={statusFilter}
+                  onChange={setStatusFilter}
+                  options={[
+                    { value: '', label: 'All', count: activeRows.length },
+                    { value: 'Draft', label: 'Draft', count: statusCounts.Draft || 0 },
+                    { value: 'Sent', label: 'Sent', count: statusCounts.Sent || 0 },
+                    { value: 'Paid', label: 'Paid', count: statusCounts.Paid || 0 },
+                    { value: 'Overdue', label: 'Overdue', count: statusCounts.Overdue || 0 },
+                  ]}
+                />
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="relative">
+                    <Search aria-hidden="true" className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
+                    <input
+                      type="search"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search invoice, customer, GSTIN"
+                      aria-label="Search invoices"
+                      className="h-8 w-60 rounded-control border border-ink-200 bg-white pl-8 pr-2 text-small placeholder:text-ink-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    />
+                  </div>
+                  <label className="inline-flex cursor-pointer items-center gap-2 text-small text-ink-600">
+                    <input
+                      type="checkbox"
+                      checked={showArchived}
+                      onChange={(e) => setShowArchived(e.target.checked)}
+                      className="h-4 w-4 rounded border-ink-300 text-brand-600 focus-visible:ring-brand-500"
+                    />
+                    Show archived{archivedCount > 0 && !showArchived ? ` (${archivedCount})` : ''}
+                  </label>
+                </div>
+              </>
+            )}
+            footer={(
+              <span className="ml-3 text-caption text-ink-500">
+                Total <span className="font-semibold text-ink-900 tabular-nums">₹{invoiceTotal.toLocaleString('en-IN')}</span>
+              </span>
+            )}
+          />
         </div>
 
         {/* ADD INVOICE PANEL — always visible next to the list,
@@ -1984,7 +1953,7 @@ export default function Invoices({ onDataChange } = {}) {
             separate popup instead (matching PurchaseOrders.jsx's
             EditPOModal pattern). */}
 
-        <div ref={formPanelRef} className="card flex-[1] w-full lg:sticky lg:top-4 bg-white rounded-xl shadow-xl overflow-y-auto max-h-[90vh]">
+        <div ref={formPanelRef} className="card flex-[1] w-full 2xl:sticky 2xl:top-4 bg-white rounded-xl shadow-xl overflow-y-auto 2xl:max-h-[90vh]">
 
           {editingInvoiceId ? (
             <div className="p-6 text-center text-gray-500">
