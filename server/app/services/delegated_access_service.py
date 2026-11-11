@@ -56,6 +56,8 @@ BLOCKED_GET_PATHS = (
 BLOCKED_PATH_PREFIXES = (
     "/api/v1/access-grants",
     "/api/v1/admin/client-access",
+    "/api/v1/organization",
+    "/api/v1/admin/organizations",
 )
 
 CLIENT_ROLES = {"USER", "COMPANY_ADMIN"}

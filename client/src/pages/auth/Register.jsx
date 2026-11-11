@@ -19,6 +19,10 @@ export default function Register() {
     gstin: '',
     accepts: false,
   })
+  // Organisation: independent company, head office, or branch of a head office
+  const [orgType, setOrgType] = useState('INDEPENDENT')
+  const [hqGstin, setHqGstin] = useState('')
+  const [branchName, setBranchName] = useState('')
   const [otpCode, setOtpCode] = useState('')
   const [otpSent, setOtpSent] = useState(false)
   const [sendingOtp, setSendingOtp] = useState(false)
@@ -133,6 +137,22 @@ export default function Register() {
       return
     }
 
+    if (orgType === 'BRANCH') {
+      const hq = hqGstin.trim().toUpperCase()
+      if (!isValidGstin(hq)) {
+        setStatus({ type: 'error', message: 'Enter your head office’s 15-character GSTIN' })
+        return
+      }
+      if (hq.slice(2, 12) !== form.gstin.trim().toUpperCase().slice(2, 12)) {
+        setStatus({ type: 'error', message: 'A branch’s GSTIN must have the same PAN as its head office (characters 3–12)' })
+        return
+      }
+      if (branchName.trim().length < 2) {
+        setStatus({ type: 'error', message: 'Enter a branch name, e.g. the city or state' })
+        return
+      }
+    }
+
     if (!form.accepts) {
       setStatus({ type: 'error', message: 'Please accept the terms and privacy policy' })
       return
@@ -157,6 +177,8 @@ export default function Register() {
         phone: phoneE164,
         gstin: form.gstin.trim().toUpperCase(),
         otp_code: otpCode.trim(),
+        org_type: orgType,
+        ...(orgType === 'BRANCH' ? { hq_gstin: hqGstin.trim().toUpperCase(), branch_name: branchName.trim() } : {}),
       })
 
       if (response.ok) {
@@ -328,6 +350,70 @@ export default function Register() {
               />
               <p className="text-xs text-[#64748B] mt-1">GSTIN will be validated and revalidated periodically.</p>
             </div>
+
+            {/* Organisation type */}
+            <fieldset>
+              <legend className="text-sm font-medium text-[#0F172A]">Register as</legend>
+              <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                {[
+                  { value: 'INDEPENDENT', label: 'Single company', hint: 'No branches' },
+                  { value: 'HEAD_OFFICE', label: 'Head office', hint: 'Sees all branches' },
+                  { value: 'BRANCH', label: 'Branch', hint: 'Of an existing head office' },
+                ].map((opt) => (
+                  <label
+                    key={opt.value}
+                    className={`flex cursor-pointer flex-col rounded-[12px] border px-4 py-3 text-sm focus-within:ring-2 focus-within:ring-[rgba(59,130,246,0.3)] ${orgType === opt.value ? 'border-[#1E3A8A] bg-[#EFF6FF]' : 'border-[#E2E8F0] hover:border-[#93C5FD]'}`}
+                  >
+                    <span className="flex items-center gap-2 font-medium text-[#0F172A]">
+                      <input
+                        type="radio"
+                        name="org_type"
+                        value={opt.value}
+                        checked={orgType === opt.value}
+                        onChange={() => setOrgType(opt.value)}
+                        className="accent-[#1E3A8A]"
+                      />
+                      {opt.label}
+                    </span>
+                    <span className="ml-5 text-xs text-[#64748B]">{opt.hint}</span>
+                  </label>
+                ))}
+              </div>
+              {orgType === 'HEAD_OFFICE' && (
+                <p className="text-xs text-[#64748B] mt-2">
+                  Branches in other states can ask to link to you. CreditDataWatch sets how many branches you can add.
+                </p>
+              )}
+              {orgType === 'BRANCH' && (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="hq_gstin" className="text-sm font-medium text-[#0F172A]">Head office GSTIN</label>
+                    <input
+                      id="hq_gstin"
+                      value={hqGstin}
+                      onChange={(e) => setHqGstin(e.target.value.toUpperCase())}
+                      maxLength={15}
+                      className="mt-2 w-full px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm font-mono focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
+                      placeholder="29AAAAA0000A1Z5"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="branch_name" className="text-sm font-medium text-[#0F172A]">Branch name</label>
+                    <input
+                      id="branch_name"
+                      value={branchName}
+                      onChange={(e) => setBranchName(e.target.value)}
+                      maxLength={120}
+                      className="mt-2 w-full px-4 py-3 rounded-[12px] border border-[#E2E8F0] text-sm focus:outline-none focus:border-[#3B82F6] focus:ring-2 focus:ring-[rgba(59,130,246,0.15)]"
+                      placeholder="e.g. Pune"
+                    />
+                  </div>
+                  <p className="sm:col-span-2 text-xs text-[#64748B]">
+                    Must share your PAN (GSTIN characters 3–12). The head office approves the link; you’ll only ever see your own branch’s data.
+                  </p>
+                </div>
+              )}
+            </fieldset>
 
             {/* OTP Verification */}
             {otpSent && (

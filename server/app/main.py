@@ -20,7 +20,7 @@ from app.middleware import (
     RateLimitMiddleware,
 )
 from app.middleware.delegated_access import DelegatedReadOnlyMiddleware
-from app.routes import admin_access
+from app.routes import admin_access, organization
 from app.routes import (
     auth,
     drive,
@@ -1052,6 +1052,8 @@ app.include_router(wallet.router, prefix=API_PREFIX, tags=["Wallet"])
 # Registered before admin.router so /admin/client-access/* can't be shadowed by its path params
 app.include_router(admin_access.client_router, prefix=API_PREFIX)
 app.include_router(admin_access.admin_router, prefix=API_PREFIX)
+app.include_router(organization.router, prefix=API_PREFIX)
+app.include_router(organization.admin_router, prefix=API_PREFIX)
 app.include_router(admin.router, prefix=f"{API_PREFIX}/admin", tags=["Admin"])
 app.include_router(payments.router, prefix=f"{API_PREFIX}/payments", tags=["Payments"])
 app.include_router(user_settings.router, prefix=f"{API_PREFIX}/user/settings", tags=["User Settings"])

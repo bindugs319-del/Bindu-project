@@ -38,6 +38,10 @@ export async function register(userData) {
     phone: userData.phone,
     gstin: userData.gstin,
     otp_code: userData.otp_code,
+    // Organisation (optional): INDEPENDENT / HEAD_OFFICE / BRANCH
+    ...(userData.org_type ? { org_type: userData.org_type } : {}),
+    ...(userData.hq_gstin ? { hq_gstin: userData.hq_gstin } : {}),
+    ...(userData.branch_name ? { branch_name: userData.branch_name } : {}),
   })
 
   if (response.ok && response.data) {

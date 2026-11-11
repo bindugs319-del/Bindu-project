@@ -2,7 +2,7 @@
 Pydantic schemas for authentication
 """
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from typing import Optional, Literal
 
 
 class RegisterRequest(BaseModel):
@@ -14,6 +14,11 @@ class RegisterRequest(BaseModel):
     phone: str = Field(..., min_length=10, max_length=20)
     gstin: str = Field(..., min_length=15, max_length=15)
     otp_code: Optional[str] = Field(None, min_length=4, max_length=10)
+    # Organisation (optional): register as an independent company (default),
+    # a head office, or a branch of an existing head office.
+    org_type: Optional[Literal["INDEPENDENT", "HEAD_OFFICE", "BRANCH"]] = "INDEPENDENT"
+    hq_gstin: Optional[str] = Field(None, min_length=15, max_length=15)
+    branch_name: Optional[str] = Field(None, min_length=2, max_length=120)
 
 
 class RegisterSendOTPRequest(BaseModel):

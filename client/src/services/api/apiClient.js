@@ -1,4 +1,4 @@
-import { getDelegation, clearDelegation, delegationHeaders, DELEGATION_HEADER } from '../../utils/delegation'
+import { getDelegation, clearDelegation, delegationHeaders, delegationHomePath, DELEGATION_HEADER } from '../../utils/delegation'
 
 const RAW_BASE = import.meta.env.VITE_API_URL || '/api/v1'
 const API_BASE_URL = (() => {
@@ -148,12 +148,13 @@ async function apiRequest(endpoint, options = {}) {
     defaultOptions.headers['Authorization'] = `Bearer ${token}`
   }
 
-  // Read-only admin view of a client account (this tab only). Auth endpoints
-  // and calls that explicitly opt out always run as the admin themselves.
+  // Read-only view of another account in this tab (admin -> client, or head
+  // office -> branch). Auth endpoints and calls that explicitly opt out
+  // always run as the signed-in user themselves.
   const delegation = getDelegation()
   const sendsDelegation = !!delegation && !options.noDelegation && !endpoint.startsWith('/auth/')
   if (sendsDelegation) {
-    defaultOptions.headers = { ...defaultOptions.headers, [DELEGATION_HEADER]: delegation.grantId }
+    defaultOptions.headers = { ...defaultOptions.headers, ...delegationHeaders() }
   }
 
   try {
@@ -211,10 +212,11 @@ async function apiRequest(endpoint, options = {}) {
       }
     }
 
-    // Client view access revoked/expired: leave the client view immediately.
+    // View access revoked/expired: leave the read-only view immediately.
     if (response.status === 403 && sendsDelegation && data?.detail?.code === 'DELEGATION_ENDED') {
+      const home = delegationHomePath(delegation)
       clearDelegation()
-      if (typeof window !== 'undefined') window.location.replace('/admin/client-access?ended=1')
+      if (typeof window !== 'undefined') window.location.replace(`${home}?ended=1`)
     }
 
     // Handle other errors
@@ -907,6 +909,26 @@ export const clientAccess = {
   clientInvoices: (grantId) => apiRequest('/sales-invoices?limit=50&include_archived=true', {
     noDelegation: true,
     headers: { [DELEGATION_HEADER]: grantId },
+  }),
+}
+
+// Head office / branch organisations (always runs as the signed-in company)
+export const organization = {
+  status: () => apiRequest('/organization', { noDelegation: true }),
+  becomeHeadOffice: () => apiRequest('/organization/head-office', { method: 'POST', noDelegation: true }),
+  requestBranch: (hqGstin, branchName) => apiRequest('/organization/branch-request', {
+    method: 'POST', body: JSON.stringify({ hq_gstin: hqGstin, branch_name: branchName }), noDelegation: true,
+  }),
+  cancelRequest: () => apiRequest('/organization/branch-request/cancel', { method: 'POST', noDelegation: true }),
+  approve: (linkId) => apiRequest(`/organization/branches/${linkId}/approve`, { method: 'POST', noDelegation: true }),
+  reject: (linkId) => apiRequest(`/organization/branches/${linkId}/reject`, { method: 'POST', noDelegation: true }),
+  remove: (linkId) => apiRequest(`/organization/branches/${linkId}/remove`, { method: 'POST', noDelegation: true }),
+  summary: () => apiRequest('/organization/summary', { noDelegation: true }),
+  branchSession: (branchCompanyId) => apiRequest(`/organization/branches/${branchCompanyId}/session`, { noDelegation: true }),
+  // Super Admin
+  listOrganisations: (q = '') => apiRequest(`/admin/organizations${q ? `?q=${encodeURIComponent(q)}` : ''}`, { noDelegation: true }),
+  setBranchLimit: (companyId, limit) => apiRequest(`/admin/organizations/${companyId}/branch-limit`, {
+    method: 'PUT', body: JSON.stringify({ branch_limit: limit }), noDelegation: true,
   }),
 }
 

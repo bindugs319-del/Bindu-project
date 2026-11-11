@@ -58,6 +58,9 @@ import ActivityLogs from '../pages/admin/ActivityLogs'
 import Payments from '../pages/admin/Payments'
 import ClientAccess from '../pages/admin/ClientAccess'
 import ClientView from '../pages/admin/ClientView'
+import Organizations from '../pages/admin/Organizations'
+import Branches from '../pages/organization/Branches'
+import BranchView from '../pages/organization/BranchView'
 import UserProfile from '../pages/UserProfile'
 
 function DashboardRedirect() {
@@ -291,6 +294,30 @@ export default function AppRoutes() {
                 element={(
                   <RoleRoute allowedRoles={['MASTER_ADMIN', 'OPERATION', 'OPERATIONS']}>
                     <ClientAccess />
+                  </RoleRoute>
+                )}
+              />
+              <Route
+                path="/admin/organizations"
+                element={(
+                  <RoleRoute allowedRoles={['MASTER_ADMIN']}>
+                    <Organizations />
+                  </RoleRoute>
+                )}
+              />
+              <Route
+                path="/organization/branches"
+                element={(
+                  <RoleRoute allowedRoles={['COMPANY_ADMIN']}>
+                    <Branches />
+                  </RoleRoute>
+                )}
+              />
+              <Route
+                path="/branch-view/:companyId"
+                element={(
+                  <RoleRoute allowedRoles={['COMPANY_ADMIN']}>
+                    <BranchView />
                   </RoleRoute>
                 )}
               />

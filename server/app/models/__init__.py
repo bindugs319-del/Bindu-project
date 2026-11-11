@@ -1069,3 +1069,6 @@ class LegalNoticeRequest(Base):
 
 # Client-authorized read-only admin view access
 from app.models.admin_access import AdminAccessCode, AdminAccessGrant, DelegatedAccessAudit  # noqa: E402,F401
+
+# Head office / branch organisations
+from app.models.organization import CompanyOrgSettings, CompanyBranchLink  # noqa: E402,F401

@@ -16,6 +16,7 @@ from app.services.delegated_access_service import (
 logger = logging.getLogger(__name__)
 
 _HEADER_KEY = DELEGATION_HEADER.lower().encode()
+_BRANCH_HEADER_KEY = b"x-branch-view"
 
 # Overridable in tests; defaults to the app's session factory.
 session_factory = None
@@ -38,22 +39,25 @@ class DelegatedReadOnlyMiddleware:
             return
 
         grant_id = None
+        branch_view = False
         for key, value in scope.get("headers", []):
             if key == _HEADER_KEY:
                 grant_id = value.decode("latin-1").strip()
-                break
+            elif key == _BRANCH_HEADER_KEY:
+                branch_view = True  # head office viewing a branch: same read-only rule
 
         method = scope.get("method", "GET")
         path = scope.get("path", "")
-        if not grant_id or not is_write_blocked(method, path):
+        if not (grant_id or branch_view) or not is_write_blocked(method, path):
             await self.app(scope, receive, send)
             return
 
-        await self._log_blocked(grant_id, scope)
+        if grant_id:
+            await self._log_blocked(grant_id, scope)
         body = json.dumps({
             "detail": {
                 "code": "DELEGATION_READ_ONLY",
-                "msg": "Read-only view: changes are not allowed while viewing a client account.",
+                "msg": "Read-only view: changes are not allowed while viewing another account.",
             }
         }).encode()
         await send({

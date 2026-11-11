@@ -85,6 +85,13 @@ async def get_current_user(
     if grant_id:
         from app.services.delegated_access_service import resolve_delegation
         return await resolve_delegation(request, db, user, grant_id.strip())
+
+    # Head office viewing one of its approved branches (read-only).
+    # See app/services/organization_service.py.
+    branch_company_id = request.headers.get("X-Branch-View")
+    if branch_company_id:
+        from app.services.organization_service import resolve_branch_view
+        return await resolve_branch_view(request, db, user, branch_company_id.strip())
     return user
 
 

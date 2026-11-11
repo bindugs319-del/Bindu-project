@@ -6,6 +6,7 @@ import authService from '../../services/authService'
 import { formatE164 } from '../../utils/phone'
 import EditPOModal from '../../components/po/EditPOModal'
 import GrantAdminAccess from '../../components/admin-access/GrantAdminAccess'
+import OrganisationSettings from '../../components/organization/OrganisationSettings'
 import { isDelegated } from '../../utils/delegation'
 
 export default function Account() {
@@ -692,6 +693,11 @@ export default function Account() {
             </div>
           </div>
         </div>
+
+        {/* Head office / branch organisation (client accounts only) */}
+        {['USER', 'COMPANY_ADMIN'].includes(String(user.role || '').toUpperCase()) && !isDelegated() && (
+          <OrganisationSettings />
+        )}
 
         {/* Grant read-only view access to our admin team (client accounts only) */}
         {['USER', 'COMPANY_ADMIN'].includes(String(user.role || '').toUpperCase()) && !isDelegated() && (

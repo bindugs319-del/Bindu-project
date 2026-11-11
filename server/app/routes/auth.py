@@ -101,9 +101,26 @@ async def register(
             select(User).where(User.gstin == request.gstin.upper()) 
         ) 
         if existing_gstin.scalar_one_or_none(): 
-            raise DuplicateGSTIN("This GSTIN is already registered. Please ask your company admin to invite you instead.") 
+            raise DuplicateGSTIN("This GSTIN is already registered. Please ask your company admin to invite you instead.")
+
+        # Registering as a branch: check the head office BEFORE creating the account
+        org_type = request.org_type or "INDEPENDENT"
+        if org_type == "BRANCH":
+            from app.services import organization_service as org
+            await org.ensure_tables(db)
+            if not (request.branch_name or "").strip():
+                raise org._err("INVALID_BRANCH_NAME", "Enter a branch name, e.g. the city or state.")
+            await org.find_head_office(db, request.hq_gstin or "", request.gstin)
 
         result = await AuthService.register(request, db)
+
+        if org_type in ("HEAD_OFFICE", "BRANCH"):
+            from app.services import organization_service as org
+            new_org_user = await db.get(User, result["user"]["id"])
+            if org_type == "HEAD_OFFICE":
+                await org.mark_head_office(db, new_org_user.company_id)
+            else:
+                await org.request_branch(db, new_org_user, request.hq_gstin, request.branch_name)
 
         # Extract company domain from email for audit/logging if needed
         email_domain = request.email.split('@')[1] if '@' in request.email else ''
@@ -148,6 +165,8 @@ async def register(
         return response
     except AppException as e:
         raise e
+    except HTTPException:
+        raise  # e.g. head office / branch validation messages
     except Exception as e:
         logger.error(f"Registration error: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Registration failed: {str(e)}")

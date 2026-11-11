@@ -1,12 +1,13 @@
 /**
- * Client-authorized read-only "view access" for admins.
- *
- * The active grant lives in sessionStorage, so it is scoped to the ONE
- * browser tab opened via "Open account" — the admin's other tabs stay normal.
- * apiClient adds the X-Delegated-Grant header from here; the backend checks
- * the grant (owner, expiry, revocation, read-only) on every request.
+ * Read-only "view another account" modes, scoped to ONE browser tab
+ * (sessionStorage), so the viewer's other tabs stay normal:
+ *  - kind 'admin':  our admin viewing a client (X-Delegated-Grant: grantId)
+ *  - kind 'branch': a head office viewing one of its branches
+ *                   (X-Branch-View: branchCompanyId)
+ * The backend re-checks permission and blocks writes on every request.
  */
 export const DELEGATION_HEADER = 'X-Delegated-Grant'
+export const BRANCH_VIEW_HEADER = 'X-Branch-View'
 const STORAGE_KEY = 'cdw_delegated_grant'
 
 export function getDelegation() {
@@ -14,18 +15,24 @@ export function getDelegation() {
     const raw = sessionStorage.getItem(STORAGE_KEY)
     if (!raw) return null
     const value = JSON.parse(raw)
-    return value?.grantId ? value : null
+    if (value?.kind === 'branch') return value.branchCompanyId ? value : null
+    return value?.grantId ? { kind: 'admin', ...value } : null
   } catch {
     return null
   }
 }
 
-export function setDelegation({ grantId, companyName, expiresAt }) {
+export function setDelegation({ kind = 'admin', grantId, branchCompanyId, companyName, expiresAt }) {
   try {
-    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ grantId, companyName, expiresAt }))
+    sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ kind, grantId, branchCompanyId, companyName, expiresAt }))
   } catch {
     // storage unavailable — delegation simply won't activate
   }
+}
+
+/** Where to go when the view ends (exit, revoked, expired). */
+export function delegationHomePath(d = getDelegation()) {
+  return d?.kind === 'branch' ? '/organization/branches' : '/admin/client-access'
 }
 
 export function clearDelegation() {
@@ -43,7 +50,8 @@ export function isDelegated() {
 /** Headers to spread into raw fetch() calls that bypass apiClient. */
 export function delegationHeaders() {
   const d = getDelegation()
-  return d ? { [DELEGATION_HEADER]: d.grantId } : {}
+  if (!d) return {}
+  return d.kind === 'branch' ? { [BRANCH_VIEW_HEADER]: d.branchCompanyId } : { [DELEGATION_HEADER]: d.grantId }
 }
 
 /** "5h 12m", "2d 3h", "4m" — or "expired". */
