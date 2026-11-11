@@ -107,6 +107,37 @@ async function downloadFile(endpoint, fallbackFilename = 'download') {
 }
 
 /**
+ * Fetch a binary endpoint (e.g. a generated PDF) as a Blob for in-page
+ * preview, with the same auth (and read-only view headers) as apiRequest.
+ * @returns {Promise<{ok: boolean, blob?: Blob, filename?: string, error?: string}>}
+ */
+async function fetchBlob(endpoint, fallbackFilename = 'document.pdf') {
+  const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`
+  const token = localStorage.getItem('access_token') || localStorage.getItem('token')
+  const isValidToken = token && token !== 'undefined' && token !== 'null' && token.length > 10
+  const headers = { ...delegationHeaders() }
+  if (isValidToken) headers['Authorization'] = `Bearer ${token}`
+  try {
+    const response = await fetch(url, { credentials: 'include', headers })
+    if (!response.ok) {
+      let message = `HTTP ${response.status}`
+      try {
+        const data = await response.json()
+        message = formatApiErrorDetail(data?.detail) || data?.message || message
+      } catch {
+        // not JSON — keep the status message
+      }
+      return { ok: false, error: message }
+    }
+    const disposition = response.headers.get('content-disposition') || ''
+    const match = disposition.match(/filename="?([^"]+)"?/)
+    return { ok: true, blob: await response.blob(), filename: match ? match[1] : fallbackFilename }
+  } catch (e) {
+    return { ok: false, error: e.message || 'Network error' }
+  }
+}
+
+/**
  * Make an authenticated API request with cookie support
  * @param {string} endpoint - API endpoint (without base URL)
  * @param {object} options - Fetch options (method, body, headers, etc.)
@@ -403,6 +434,8 @@ export const purchaseOrders = {
   list: (page = 1, pageSize = 20, includeArchived = false, opt = {}) => apiRequest(`/purchase-orders?page=${page}&page_size=${pageSize}&include_archived=${includeArchived}`, opt),
   search: (q = '', limit = 10) => apiRequest(`/purchase-orders/search?q=${encodeURIComponent(q)}&limit=${limit}`),
   get: (id) => apiRequest(`/purchase-orders/${id}`),
+  // Generated purchase-order PDF as a Blob (for in-page preview / download)
+  pdfBlob: (id, poNumber) => fetchBlob(`/purchase-orders/${id}/pdf`, `PO-${poNumber || id}.pdf`),
   update: (id, data) => apiRequest(`/purchase-orders/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   delete: (id, data) => apiRequest(`/purchase-orders/${id}`, { method: 'DELETE', body: data ? JSON.stringify(data) : undefined }),
   archive: (id, data) => apiRequest(`/purchase-orders/${id}/archive`, { method: 'POST', body: data ? JSON.stringify(data) : undefined }),
@@ -926,7 +959,7 @@ export const organization = {
   summary: () => apiRequest('/organization/summary', { noDelegation: true }),
   branchSession: (branchCompanyId) => apiRequest(`/organization/branches/${branchCompanyId}/session`, { noDelegation: true }),
   // Super Admin
-  listOrganisations: (q = '') => apiRequest(`/admin/organizations${q ? `?q=${encodeURIComponent(q)}` : ''}`, { noDelegation: true }),
+  listOrganisations: (q = '') => apiRequest('/admin/organizations' + (q ? '?q=' + encodeURIComponent(q) : ''), { noDelegation: true }),
   setBranchLimit: (companyId, limit) => apiRequest(`/admin/organizations/${companyId}/branch-limit`, {
     method: 'PUT', body: JSON.stringify({ branch_limit: limit }), noDelegation: true,
   }),

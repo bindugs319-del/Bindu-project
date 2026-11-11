@@ -593,6 +593,36 @@ async def get_pending_approvals_list(
         raise HTTPException(status_code=500, detail=str(e)) 
 
 
+@po_router.get("/{po_id}/pdf")
+async def get_po_pdf(po_id: str, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
+    """Generate the purchase order as a PDF (same access rules as get_po)."""
+    from app.services.purchase_order_pdf import build_purchase_order_pdf
+
+    await _check_po_access(current_user, db)
+    po = (await db.execute(select(PurchaseOrder).where(
+        (PurchaseOrder.id == po_id) &
+        ((PurchaseOrder.company_id == current_user.company_id) | (PurchaseOrder.user_id == current_user.id))
+    ))).scalars().first()
+    if not po and str(getattr(current_user.role, "value", current_user.role) or "").upper() == "MASTER_ADMIN":
+        po = (await db.execute(select(PurchaseOrder).where(PurchaseOrder.id == po_id))).scalars().first()
+    if not po:
+        raise HTTPException(status_code=404, detail=PO_NOT_FOUND_ERROR)
+
+    # Buyer = the company that raised the PO
+    company = await db.get(Company, po.company_id) if po.company_id else None
+    owner = await db.get(User, po.user_id) if po.user_id else None
+    company_name = (company.company_name if company else None) or (owner.company_name if owner else None)
+    company_gstin = (company.gstin if company else None) or (owner.gstin if owner else None)
+
+    pdf_bytes = build_purchase_order_pdf(po, company_name, company_gstin)
+    filename = f"PO-{po.po_number or po.id}.pdf".replace("/", "-")
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'inline; filename="{filename}"'},
+    )
+
+
 @po_router.get("/{po_id}")
 async def get_po(po_id: str, current_user: Annotated[User, Depends(get_current_user)], db: Annotated[AsyncSession, Depends(get_db)]):
     """Get single purchase order"""

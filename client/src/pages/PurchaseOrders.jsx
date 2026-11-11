@@ -10,6 +10,8 @@ import { formatE164 } from '../utils/phone'
 import LoadingSpinner from '../components/common/LoadingSpinner'
 import { logActivity, ACTIONS } from '../utils/activityLogger'
 import { delegationHeaders } from '../utils/delegation'
+import { FileText, Paperclip } from 'lucide-react'
+import DocumentPreviewModal from '../components/ds/DocumentPreviewModal'
 
 export default function PurchaseOrders() {
   const { canAccessFeature, user, loadUser } = useAuth()
@@ -56,6 +58,8 @@ export default function PurchaseOrders() {
   const [showCSVImport, setShowCSVImport] = useState(false)
   const [showPdfImport, setShowPdfImport] = useState(false)
   const [uploadingDocForId, setUploadingDocForId] = useState(null)
+  // In-page document preview: { kind: 'generated', id, poNumber } | { kind: 'uploaded', url, poNumber }
+  const [docPreview, setDocPreview] = useState(null)
   const [receiptModal, setReceiptModal] = useState(null)
   const [receiptLoading, setReceiptLoading] = useState(false)
 
@@ -753,15 +757,29 @@ export default function PurchaseOrders() {
                           {getStatusBadge(row)}
                         </td>
                         <td className="py-5 px-6 whitespace-nowrap">
+                          <div className="flex items-center gap-3">
+                          {/* Generated purchase-order PDF (always available) */}
+                          <button
+                            type="button"
+                            onClick={() => setDocPreview({ kind: 'generated', id: row.id, poNumber: row.po_number })}
+                            className="inline-flex items-center gap-1 rounded text-sm font-semibold text-brand-600 hover:text-brand-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                            aria-label={`View PDF of purchase order ${row.po_number}`}
+                          >
+                            <FileText aria-hidden="true" className="h-4 w-4" /> PDF
+                          </button>
                           {row.document_url ? (
-                            <a
-                              href={row.document_url.startsWith('http') ? row.document_url : `${STATIC_BASE_URL}${row.document_url}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            <button
+                              type="button"
+                              onClick={() => setDocPreview({
+                                kind: 'uploaded',
+                                poNumber: row.po_number,
+                                url: row.document_url.startsWith('http') ? row.document_url : `${STATIC_BASE_URL}${row.document_url}`,
+                              })}
+                              className="inline-flex items-center gap-1 rounded text-sm text-blue-600 hover:text-blue-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                              aria-label={`View uploaded document for ${row.po_number}`}
                             >
-                              <span>📄</span> View
-                            </a>
+                              <Paperclip aria-hidden="true" className="h-4 w-4" /> View
+                            </button>
                           ) : uploadingDocForId === row.id ? (
                             <span className="text-gray-400 text-xs">Uploading&hellip;</span>
                           ) : (
@@ -775,6 +793,7 @@ export default function PurchaseOrders() {
                               />
                             </label>
                           )}
+                          </div>
                         </td>
                         <td className="py-5 px-6 text-right whitespace-nowrap">
                           <div className="flex justify-end gap-1.5">
@@ -1158,6 +1177,18 @@ export default function PurchaseOrders() {
               </div>
             </div>
           )}
+
+        {/* PDF of the purchase order, or the uploaded document, shown in-page */}
+        <DocumentPreviewModal
+          open={!!docPreview}
+          title={docPreview?.kind === 'uploaded'
+            ? `Uploaded document · ${docPreview?.poNumber || ''}`
+            : `Purchase order ${docPreview?.poNumber || ''}`}
+          url={docPreview?.kind === 'uploaded' ? docPreview.url : undefined}
+          load={docPreview?.kind === 'generated' ? () => purchaseOrders.pdfBlob(docPreview.id, docPreview.poNumber) : undefined}
+          filename={docPreview?.kind === 'generated' ? `PO-${docPreview.poNumber}.pdf` : undefined}
+          onClose={() => setDocPreview(null)}
+        />
       </div>
     </section>
   )
