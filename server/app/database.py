@@ -5,8 +5,20 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sess
 from sqlalchemy.orm import declarative_base
 from app.config import settings
 
+
+def async_database_url(url: str) -> str:
+    """Accept the plain postgres:// / postgresql:// URLs that hosts like
+    Render provide, and convert them to the asyncpg driver this app uses
+    (asyncpg spells sslmode=... as ssl=...)."""
+    for prefix in ("postgres://", "postgresql://", "postgresql+psycopg2://"):
+        if url.startswith(prefix):
+            url = "postgresql+asyncpg://" + url[len(prefix):]
+            break
+    return url.replace("sslmode=", "ssl=")
+
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    async_database_url(settings.DATABASE_URL),
     echo=settings.ENVIRONMENT == "development",
     future=True,
     pool_size=10,

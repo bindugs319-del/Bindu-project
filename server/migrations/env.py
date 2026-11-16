@@ -45,8 +45,17 @@ def run_migrations_online() -> None:
     import os
 
     # Prefer an env var for the sync (psycopg2) URL so this works the same
-    # locally and on Render — falls back to alembic.ini if not set.
-    db_url = os.environ.get("ALEMBIC_DATABASE_URL") or config.get_main_option("sqlalchemy.url")
+    # locally and on Render — falls back to the app's DATABASE_URL (converted
+    # to the psycopg2 driver), then to alembic.ini if neither is set.
+    db_url = os.environ.get("ALEMBIC_DATABASE_URL")
+    if not db_url and os.environ.get("DATABASE_URL"):
+        db_url = os.environ["DATABASE_URL"]
+        for prefix in ("postgres://", "postgresql://", "postgresql+asyncpg://"):
+            if db_url.startswith(prefix):
+                db_url = "postgresql+psycopg2://" + db_url[len(prefix):]
+                break
+        db_url = db_url.replace("ssl=", "sslmode=")
+    db_url = db_url or config.get_main_option("sqlalchemy.url")
     config.set_main_option("sqlalchemy.url", db_url)
 
     section = config.get_section(config.config_ini_section) or {}

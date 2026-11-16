@@ -1,0 +1,99 @@
+# Render Blueprint — creates the database, backend API and website together.
+# Render dashboard → New → Blueprint → pick this repo. Values marked
+# `sync: false` are asked for once in the dashboard (secrets never go in git).
+#
+# If Render gives your services different URLs than the ones below (e.g. the
+# name was taken), update FRONTEND_URL / BASE_URL / CORS_ORIGINS on the API
+# and VITE_API_URL on the website, then redeploy both.
+
+databases:
+  - name: creditdatawatch-db
+    plan: free            # free Postgres expires after 30 days — upgrade to keep data
+    databaseName: creditdatawatch
+    user: creditdatawatch
+
+services:
+  # ---------------------------------------------------------------- API
+  - type: web
+    name: creditdatawatch-api
+    runtime: docker
+    rootDir: server
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL          # converted to the asyncpg driver by the app
+        fromDatabase:
+          name: creditdatawatch-db
+          property: connectionString
+      - key: SECRET_KEY            # signs login tokens — generated once by Render
+        generateValue: true
+      - key: ENVIRONMENT
+        value: production
+      - key: FRONTEND_URL
+        value: https://creditdatawatch-web.onrender.com
+      - key: BASE_URL
+        value: https://creditdatawatch-api.onrender.com
+      - key: CORS_ORIGINS
+        value: '["https://creditdatawatch-web.onrender.com"]'
+      # Website and API are on different onrender.com sub-domains, so any
+      # auth cookies must be cross-site + HTTPS (the app also sends tokens
+      # in the Authorization header, which is what normally carries login).
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: COOKIE_SAMESITE
+        value: none
+      - key: OTP_PROVIDER          # sign-up OTP codes go out by email
+        value: smtp
+
+      # --- Email (required for sign-up OTPs). Render blocks SMTP ports, so
+      # use Brevo's HTTPS API: free key at brevo.com + a verified sender.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: BREVO_FROM_EMAIL
+        sync: false
+      - key: SENDER_EMAIL
+        sync: false
+
+      # --- First Super Admin, created on startup (MASTER_ADMIN role).
+      - key: DEVELOPER_EMAILS      # JSON list, e.g. ["you@yourcompany.com"]
+        sync: false
+      - key: DEV_ADMIN_PASSWORD
+        sync: false
+
+      # --- File uploads. Render's disk is wiped on every deploy, so set
+      # Backblaze B2 (free tier) to keep uploaded documents. Optional.
+      - key: B2_APPLICATION_KEY_ID
+        sync: false
+      - key: B2_APPLICATION_KEY
+        sync: false
+      - key: B2_BUCKET_NAME
+        sync: false
+      - key: B2_ENDPOINT_URL
+        sync: false
+
+      # --- Lets an external cron (e.g. cron-job.org) run daily reminders
+      # while the free service is asleep. Optional.
+      - key: CRON_SECRET
+        generateValue: true
+
+  # ---------------------------------------------------------------- Website
+  - type: web
+    name: creditdatawatch-web
+    runtime: static
+    rootDir: client
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL          # baked into the build
+        value: https://creditdatawatch-api.onrender.com/api/v1
+    routes:
+      # Single-page app: every path serves index.html (React Router handles it)
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: SAMEORIGIN

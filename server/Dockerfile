@@ -56,4 +56,8 @@ ENV PORT=8000
 EXPOSE 8000
 
 # Real entrypoint: app.main:app (NOT main:app — see note at top of file).
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
+# Database migrations run first on every deploy, so a brand-new database
+# gets its full schema (the app's own startup table creation can't build
+# an empty database on its own). Set RUN_MIGRATIONS=false to skip, e.g. for
+# a pre-existing database that Alembic doesn't track yet.
+CMD ["sh", "-c", "if [ \"${RUN_MIGRATIONS:-true}\" = \"true\" ]; then alembic upgrade head || exit 1; fi; exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT}"]
